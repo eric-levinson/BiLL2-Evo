@@ -30,85 +30,6 @@ export interface ReasoningProps {
 export type ToolCallProps = {
   tools: ToolCall
 }
-interface ModelMessage {
-  content: string | null
-  context?: MessageContext[]
-  created_at: number
-  metrics?: {
-    time: number
-    prompt_tokens: number
-    input_tokens: number
-    completion_tokens: number
-    output_tokens: number
-  }
-  name: string | null
-  role: string
-  tool_args?: unknown
-  tool_call_id: string | null
-  tool_calls: Array<{
-    function: {
-      arguments: string
-      name: string
-    }
-    id: string
-    type: string
-  }> | null
-}
-
-export interface Model {
-  name: string
-  model: string
-  provider: string
-}
-
-export interface Agent {
-  agent_id: string
-  name: string
-  description: string
-  model: Model
-  storage?: boolean
-}
-
-export interface Team {
-  team_id: string
-  name: string
-  description: string
-  model: Model
-  storage?: boolean
-}
-
-interface MessageContext {
-  query: string
-  docs?: Array<Record<string, object>>
-  time?: number
-}
-
-export enum RunEvent {
-  RunStarted = 'RunStarted',
-  RunResponse = 'RunResponse',
-  RunResponseContent = 'RunResponseContent',
-  RunCompleted = 'RunCompleted',
-  RunError = 'RunError',
-  ToolCallStarted = 'ToolCallStarted',
-  ToolCallCompleted = 'ToolCallCompleted',
-  UpdatingMemory = 'UpdatingMemory',
-  ReasoningStarted = 'ReasoningStarted',
-  ReasoningStep = 'ReasoningStep',
-  ReasoningCompleted = 'ReasoningCompleted',
-  // Team Events
-  TeamRunStarted = 'TeamRunStarted',
-  TeamRunResponseContent = 'TeamRunResponseContent',
-  TeamRunCompleted = 'TeamRunCompleted',
-  TeamRunError = 'TeamRunError',
-  TeamRunCancelled = 'TeamRunCancelled',
-  TeamToolCallStarted = 'TeamToolCallStarted',
-  TeamToolCallCompleted = 'TeamToolCallCompleted',
-  TeamReasoningStarted = 'TeamReasoningStarted',
-  TeamReasoningStep = 'TeamReasoningStep',
-  TeamReasoningCompleted = 'TeamReasoningCompleted',
-  TeamMemoryUpdateStarted = 'TeamMemoryUpdateStarted',
-  TeamMemoryUpdateCompleted = 'TeamMemoryUpdateCompleted'
-}
 
 export interface ResponseAudio {
   id?: string
@@ -116,65 +37,6 @@ export interface ResponseAudio {
   transcript?: string
   channels?: number
   sample_rate?: number
-}
-
-export interface NewRunResponse {
-  status: 'RUNNING' | 'PAUSED' | 'CANCELLED'
-}
-
-export interface RunResponseContent {
-  content?: string | object
-  content_type: string
-  context?: MessageContext[]
-  event: RunEvent
-  event_data?: object
-  messages?: ModelMessage[]
-  metrics?: object
-  model?: string
-  run_id?: string
-  agent_id?: string
-  session_id?: string
-  tool?: ToolCall
-  tools?: Array<ToolCall>
-  created_at: number
-  extra_data?: PlaygroundAgentExtraData
-  images?: ImageData[]
-  videos?: VideoData[]
-  audio?: AudioData[]
-  response_audio?: ResponseAudio
-}
-
-export interface RunResponse {
-  content?: string | object
-  content_type: string
-  context?: MessageContext[]
-  event: RunEvent
-  event_data?: object
-  messages?: ModelMessage[]
-  metrics?: object
-  model?: string
-  run_id?: string
-  agent_id?: string
-  session_id?: string
-  tool?: ToolCall
-  tools?: Array<ToolCall>
-  created_at: number
-  extra_data?: PlaygroundAgentExtraData
-  images?: ImageData[]
-  videos?: VideoData[]
-  audio?: AudioData[]
-  response_audio?: ResponseAudio
-}
-
-export interface AgentExtraData {
-  reasoning_steps?: ReasoningSteps[]
-  reasoning_messages?: ReasoningMessage[]
-  references?: ReferenceData[]
-}
-
-export interface PlaygroundAgentExtraData extends AgentExtraData {
-  reasoning_messages?: ReasoningMessage[]
-  references?: ReferenceData[]
 }
 
 export interface ReasoningMessage {
@@ -204,24 +66,6 @@ export interface PlaygroundChatMessage {
   videos?: VideoData[]
   audio?: AudioData[]
   response_audio?: ResponseAudio
-}
-
-export interface ComboboxAgent {
-  value: string
-  label: string
-  model: {
-    provider: string
-  }
-  storage?: boolean
-}
-
-export interface ComboboxTeam {
-  value: string
-  label: string
-  model: {
-    provider: string
-  }
-  storage?: boolean
 }
 
 export interface ImageData {

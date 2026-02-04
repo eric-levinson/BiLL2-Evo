@@ -3,11 +3,7 @@ import { toast } from 'sonner'
 
 import { usePlaygroundStore } from '../store'
 
-import {
-  ComboboxAgent,
-  ComboboxTeam,
-  type PlaygroundChatMessage
-} from '@/types/playground'
+import { type PlaygroundChatMessage } from '@/types/playground'
 // TODO: Remove in cleanup phase - Agno API client deleted
 // import {
 //   getPlaygroundAgentsAPI,
@@ -97,8 +93,8 @@ const useChatActions = () => {
     setIsEndpointLoading(true)
     try {
       const status = await getStatus()
-      let agents: ComboboxAgent[] = []
-      let teams: ComboboxTeam[] = []
+      let agents: never[] = []
+      let teams: never[] = []
       if (status === 200) {
         setIsEndpointActive(true)
         teams = await getTeams()
