@@ -1,7 +1,7 @@
 import logging
 from typing import Union
 
-from sleeper_wrapper.base_api import BaseApi
+from .base_api import BaseApi
 
 logging.basicConfig(level=logging.WARN)
 
