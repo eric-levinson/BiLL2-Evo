@@ -2,30 +2,57 @@
 
 ## Project Overview
 
-BiLL-2 Evo is an AI-powered fantasy football analytics platform. It uses a multi-agent AI system to provide advanced NFL stats, Sleeper league management, dynasty rankings, and web research — all accessible through a chat UI or Discord bot.
+BiLL-2 Evo is an AI-powered fantasy football analytics platform. It uses a single AI agent with ~40 MCP tools to provide advanced NFL stats, Sleeper league management, dynasty rankings, and web research — all accessible through a chat UI.
 
-The monorepo contains three services:
+The monorepo contains two active services:
 
-1. **bill-agent-ui** — Next.js 15 chat frontend (TypeScript)
-2. **bill-agno** — AI agent orchestration backend (Python / Agno framework)
-3. **fantasy-tools-mcp** — MCP tool server with ~40 fantasy football tools (Python / FastMCP)
+1. **bill-agent-ui** — Next.js 15 chat frontend + AI backend (TypeScript, Vercel AI SDK 6)
+2. **fantasy-tools-mcp** — MCP tool server with ~40 fantasy football tools (Python / FastMCP)
+
+Legacy service (archived, not actively used):
+3. **bill-agno** — Old Python/Agno agent backend (being replaced by Vercel AI SDK in bill-agent-ui)
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│  bill-agent-ui  │────>│    bill-agno      │────>│  fantasy-tools-mcp  │
-│  (Next.js)      │     │  (Agno/FastAPI)   │     │  (FastMCP)          │
-│  Port 3000      │     │  Port 7777        │     │  Port 8000          │
-└─────────────────┘     └────────┬─────────-┘     └──────────┬──────────┘
-                                 │                            │
-                                 │    ┌───────────────┐       │
-                                 └───>│   Supabase     │<─────┘
-                                      │  (PostgreSQL)  │
-                                      └───────────────┘
+┌──────────────────────────────┐
+│       bill-agent-ui          │
+│       (Next.js 15)           │
+│                              │
+│  /api/chat ←── useChat()     │
+│      │         (streaming)   │
+│      ▼                       │
+│  Vercel AI SDK 6             │
+│  ┌────────────────┐          │
+│  │ Claude / GPT / │          │
+│  │ Gemini (single │          │
+│  │ agent + tools) │          │
+│  └───────┬────────┘          │
+│          │                   │
+└──────────┼───────────────────┘
+           │ MCP (Streamable HTTP)
+           ▼
+┌─────────────────────┐
+│  fantasy-tools-mcp  │
+│  (FastMCP, Python)  │
+│  Port 8000          │
+│  ~40 tools          │
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────┐
+│    Supabase     │
+│  (PostgreSQL)   │
+│  ~90 NFL tables │
+└─────────────────┘
 ```
 
-**Data flow:** UI sends chat messages to bill-agno via API proxy. bill-agno's Supervisor agent delegates to specialized agents (Web, Analytics, Fantasy, League). Those agents call fantasy-tools-mcp via MCP protocol to query Supabase for NFL data.
+**Data flow:** UI sends chat messages to `/api/chat`. The Vercel AI SDK creates a single Claude agent (or GPT/Gemini — provider-agnostic) that calls fantasy-tools-mcp via MCP protocol to query Supabase for NFL data. Responses stream back to the UI via the `useChat()` hook.
+
+**Key design decisions:**
+- **Single agent, not a team** — One inference call per query instead of 3-4. Tool Search dynamically loads only needed tools (85% token reduction).
+- **Provider-agnostic** — Swap Claude/GPT/Gemini with one line change via Vercel AI SDK.
+- **No separate Python backend** — The AI agent runs in a Next.js API route, eliminating a whole service.
 
 ## Running the Services
 
@@ -41,17 +68,7 @@ pip install -r requirements.txt
 python main.py                # Starts on port 8000
 ```
 
-### 2. bill-agno (Agent backend)
-```bash
-cd bill-agno
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS/Linux
-pip install agno openai phoenix[otel] python-dotenv httpx crawl4ai google-search-results duckduckgo-search newspaper4k
-python team_playground.py     # Starts Agno Playground on port 7777
-```
-
-### 3. bill-agent-ui (Frontend)
+### 2. bill-agent-ui (Frontend + AI Backend)
 ```bash
 cd bill-agent-ui
 pnpm install
@@ -65,22 +82,12 @@ Each service needs a `.env` file. See `.env.example` in each directory. Never co
 ### bill-agent-ui/.env
 | Variable | Description |
 |---|---|
+| `ANTHROPIC_API_KEY` | Anthropic API key (for Claude models) |
+| `OPENAI_API_KEY` | OpenAI API key (optional, for GPT models) |
+| `AI_MODEL_ID` | Model to use (default: `claude-sonnet-4-20250514`). Supports any Vercel AI SDK provider model. |
+| `MCP_SERVER_URL` | fantasy-tools-mcp URL (default: `http://localhost:8000/mcp/`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
-| `PLAYGROUND_API_URL` | bill-agno backend URL (default: `http://localhost:7777`) |
-
-### bill-agno/.env
-| Variable | Description |
-|---|---|
-| `OPENAI_API_KEY` | OpenAI API key |
-| `db_url` | Supabase PostgreSQL connection string (used for agent memory + storage) |
-| `MCP_SERVER_URL` | fantasy-tools-mcp URL (default: `http://localhost:8000/mcp/`) |
-| `PHOENIX_COLLECTOR_ENDPOINT` | Phoenix OTEL tracing endpoint (default: `http://localhost:6006`) |
-| `GOOGLE_API_KEY` | Google Search API key (for Web Agent) |
-| `DISCORD_BOT_TOKEN` | Discord bot token (only needed for Discord bot mode) |
-| `AGNO_API_KEY` | Agno platform key (optional, for monitoring) |
-| `USE_AI_SUMMARIZER` | Enable AI summarization of crawled pages (`TRUE`/`FALSE`) |
-| `SUMMARIZER_MODEL_ID` | Model for summarization (default: `gpt-5-nano`) |
 
 ### fantasy-tools-mcp/.env
 | Variable | Description |
@@ -90,24 +97,14 @@ Each service needs a `.env` file. See `.env.example` in each directory. Never co
 
 ## Key Source Files
 
-### bill-agent-ui (Next.js 15 / TypeScript)
+### bill-agent-ui (Next.js 15 / TypeScript / Vercel AI SDK 6)
+- `src/app/api/chat/route.ts` — **Core AI backend**. Single API route with ToolLoopAgent + MCP client. Handles streaming, tool calling, and chat persistence.
 - `src/app/` — Next.js App Router pages and API routes
 - `src/components/playground/` — Chat UI components (ChatArea, Sidebar, Sessions)
-- `src/api/playground.ts` — API client for Agno Playground backend
-- `src/api/routes.ts` — API route definitions
 - `src/store.ts` — Zustand state store
 - `src/lib/supabase/client.ts` — Browser Supabase client
 - `src/lib/supabase/server.ts` — Server Supabase client (SSR)
-- `src/hooks/useAIStreamHandler.tsx` — Core streaming response handler
 - `middleware.ts` — Next.js middleware (Supabase auth session refresh)
-
-### bill-agno (Python / Agno)
-- `team_playground.py` — **Primary entry point**. Defines the 4-agent team and runs the Agno Playground server
-- `gridiron_toolkit/info.py` — `GridironTools` class: custom Agno Toolkit wrapping remote MCP tools via MCPTools
-- `gridiron_toolkit/__init__.py` — Package init
-- `helpers/crawl_helpers.py` — `SummarizingCrawl4aiTools` wrapper (summarizes web crawl results before passing to agent)
-- `tests/` — Test files for crawl helpers
-- `_archive/` — Archived entry point variants (bill_api.py, bill_agui.py, discord_team.py)
 
 ### fantasy-tools-mcp (Python / FastMCP)
 - `main.py` — FastMCP server entry point (port 8000)
@@ -124,30 +121,36 @@ Each service needs a `.env` file. See `.env.example` in each directory. Never co
 - `tools/fantasy/sleeper_wrapper/` — Sleeper API client library
 - `docs/metrics_catalog.py` — Full metrics definitions
 - `docs/game_stats_catalog.py` — Game stats field definitions
-- `docs/agent-prompts.md` — Reference agent prompts
 
-## Agent Architecture (bill-agno)
+### bill-agno (Python / Agno) — ARCHIVED
+- `team_playground.py` — Old Agno Playground entry point (4-agent team). Being replaced by AI SDK route.
+- `gridiron_toolkit/info.py` — Old GridironTools MCP wrapper. No longer needed.
+- `_archive/` — Archived entry point variants (bill_api.py, bill_agui.py, discord_team.py)
 
-The system uses Agno's Team in "coordinate" mode. A Supervisor agent receives user messages and delegates to specialized agents:
+## AI Agent Architecture
 
-| Agent | Model | Role | Tools |
-|---|---|---|---|
-| **Supervisor** | gpt-5-mini | Routes requests, synthesizes results | `get_player_info_tool` via GridironTools |
-| **Web Search Agent** | gpt-5-mini | Google Search + web crawling | GoogleSearchTools, SummarizingCrawl4aiTools |
-| **Analytics Agent** | gpt-4.1-mini | Advanced NFL stats (season + weekly) | GridironTools (10 stats tools + metadata) |
-| **Fantasy Agent** | gpt-4.1-mini | Sleeper league data | GridironTools (14 Sleeper + ranking tools) |
-| **League Agent** | gpt-4.1-mini | Game-level stats | GridironTools (3 game stats tools) |
+The system uses a **single AI agent** powered by the Vercel AI SDK 6 `ToolLoopAgent`:
 
-All agents connect to fantasy-tools-mcp via `GridironTools`, which wraps Agno's `MCPTools` to call the remote MCP server.
+- **Model**: Claude Sonnet 4 (default, configurable via `AI_MODEL_ID` env var)
+- **Provider**: Anthropic (swappable to OpenAI, Google, etc. — one line change)
+- **Tools**: ~40 MCP tools from fantasy-tools-mcp, loaded via `@ai-sdk/mcp`
+- **Tool Search**: Anthropic's Tool Search feature loads only relevant tools per query (85% token reduction)
+- **Streaming**: Built-in via `useChat()` hook + `createAgentUIStreamResponse`
+- **Memory**: Chat persistence via Supabase (JSONB messages in `chat_sessions` table)
 
-The Supervisor team has:
-- **Memory**: PostgresMemoryDb (persisted agent memory across sessions)
-- **Storage**: PostgresStorage (session state persistence)
-- **History**: Last 3 runs injected into context
+### Why Single Agent (Not Multi-Agent Team)
+
+The previous architecture used a 4-agent team (Web, Analytics, Fantasy, League + Supervisor). This caused:
+- 3-4 LLM inference calls per query (3-6s latency)
+- 50-70% of context wasted on duplicated instructions and history injection
+- 5 separate MCP connections to the same server
+- Shared memory with cross-contamination between agents
+
+The single agent approach with Tool Search solves all of these.
 
 ## Supabase Database
 
-**Project**: "Advanced Fantasy Insights" (ID: `leghrjgcasbtrbnhhuuz`, region: us-east-1)
+**Project**: "Advanced Fantasy Insights" (region: us-east-1, project ID in `.env` files)
 
 ### Table Groups (~90 tables in `public` schema)
 
@@ -165,11 +168,9 @@ The Supervisor team has:
 | `vw_seasonal_offensive_player_data` | 1 | Seasonal offensive stats view |
 
 ### App-Specific Tables
-- `leagues`, `matchups`, `rosters`, `users` — Sleeper league data cache
+- `chat_sessions` — Chat persistence (AI SDK messages as JSONB)
 - `platform_users` — App user accounts
 - `player_insights`, `player_metrics_weekly`, `player_projection` — Derived analytics
-- `memory` — Agent memory (Agno PostgresMemoryDb)
-- `session_storage` — Session state (Agno PostgresStorage)
 
 ## MCP Tools Reference
 
@@ -216,10 +217,9 @@ The fantasy-tools-mcp server exposes these tool categories:
 
 ## Coding Conventions
 
-### Python (bill-agno, fantasy-tools-mcp)
+### Python (fantasy-tools-mcp)
 - Python 3.10+
 - Use `python-dotenv` for env loading at module top: `load_dotenv()`
-- Agno framework patterns: `Agent`, `Team`, `Toolkit`, `Memory`
 - Tools registered via FastMCP `@mcp.tool()` decorator in registry files
 - Each tool module follows the pattern: `info.py` (business logic) + `registry.py` (MCP registration)
 - Use `os.getenv()` for environment variables with sensible defaults
@@ -230,22 +230,25 @@ The fantasy-tools-mcp server exposes these tool categories:
 - Next.js 15 with App Router (`src/app/`)
 - React 18, TypeScript 5, strict mode
 - **pnpm** package manager (not npm or yarn)
+- Vercel AI SDK 6 for agent orchestration (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/mcp`)
+- `useChat()` hook for streaming chat UI
+- `ToolLoopAgent` + `createAgentUIStreamResponse` for the agent backend
 - Zustand for client state management
 - Tailwind CSS + shadcn/ui + Radix UI for components
 - Supabase SSR pattern (`@supabase/ssr`) for auth
-- API proxy pattern: UI -> Next.js API route -> bill-agno backend
 - Path alias: `@/*` maps to `./src/*`
 - Validation: `pnpm run validate` (lint + format + typecheck)
 
 ### General
 - No secrets in code — always use env vars
 - `.env.example` files document required variables
-- Each service runs independently and communicates via HTTP
+- Each service runs independently and communicates via HTTP/MCP
+- Model IDs configurable via `AI_MODEL_ID` env var
 
 ## Known Technical Debt
-- `_archive/` contains 3 entry point variants (bill_api.py, bill_agui.py, discord_team.py) that duplicate `build_team()` from team_playground.py — should be refactored to share a common team builder
-- Agent model versions (gpt-4.1-mini, gpt-5-mini, gpt-5-nano) should be configurable via env vars
-- No requirements.txt or pyproject.toml for bill-agno (dependencies installed manually)
-- No Docker containerization
-- No CI/CD pipeline at monorepo level (bill-agent-ui has a standalone validate workflow)
+- bill-agno directory still exists (archived) — can be removed once AI SDK migration is complete
 - `bill-agent-ui/package-lock.json` coexists with `pnpm-lock.yaml` (should remove package-lock.json)
+- MCP tool responses return too much data (need `columns` parameter, lower default limits)
+- No automated test suite for MCP tools or UI components
+- No CI/CD pipeline at monorepo level (bill-agent-ui has a standalone validate workflow)
+- No Docker containerization
