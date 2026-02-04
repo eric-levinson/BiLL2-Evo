@@ -1,0 +1,382 @@
+metrics_catalog = {
+    "receiving": {
+        "basic_info": {
+            "description": "Basic identifying information included with every query.",
+            "fields": {
+                "season": "NFL season (year)",
+                "player_name": "Player’s full name",
+                "ff_team": "Fantasy football team abbreviation",
+                "merge_name": "Standardized player name for matching"
+            }
+        },
+        "volume_metrics": {
+            "description": "Raw production, usage, and player basic info metrics.",
+            "fields": {
+                "games": "Number of games played",
+                "targets": "Total pass targets received",
+                "receptions": "Total receptions caught",
+                "receiving_yards": "Total receiving yards gained",
+                "receiving_tds": "Total receiving touchdowns",
+                "fantasy_points": "Total fantasy points scored (standard)",
+                "fantasy_points_ppr": "Fantasy points per reception scoring (PPR)",
+                "air_yards_share": "Share of team’s air yards",
+                "receiving_air_yards": "Total receiving air yards",
+                "receiving_first_downs": "Number of receiving first downs",
+                "receiving_2pt_conversions": "Number of 2-point conversions receiving",
+                "receiving_yards_after_catch": "Yards gained after catch",
+                "gs": "Games started",
+                "td": "Total touchdowns",
+                "ybc": "Yards before catch",
+                "yds": "Total yards",
+                "height": "Player height (inches)",
+                "weight": "Player weight (lbs)",
+                "player_position": "Player position"
+            }
+        },
+        "efficiency_metrics": {
+            "description": "Conversion rates, efficiency, and rate stats.",
+            "fields": {
+                "dom": "Dominator Rating — percentage of team’s receiving yards accounted for",
+                "racr": "Receiver Air Conversion Ratio — efficiency of air yards converted to actual yards",
+                "ay_sh": "Air yards share",
+                "ry_sh": "Rushing yards share",
+                "w8dom": "Weighted dominator rating",
+                "ppr_sh": "PPR share (fantasy points per reception share)",
+                "rfd_sh": "Red zone target share",
+                "rtd_sh": "Red zone touchdown share",
+                "tgt_sh": "Target share",
+                "wopr_x": "Weighted opportunity rating x",
+                "wopr_y": "Weighted opportunity rating y",
+                "yac_sh": "Yards after catch share",
+                "yptmpa": "Yards per target per match attempt",
+                "rtdfd_sh": "Red zone touchdown first down share",
+                "receiving_epa": "Expected points added via receiving",
+                "int": "Interceptions thrown by player",
+                "rat": "Passer rating or player rating (context dependent)",
+                "x1d": "Expected first downs",
+                "adot": "Average depth of target",
+                "drop_percent": "Drop percentage on targets",
+                "yac_r": "Yards after catch per reception",
+                "ybc_r": "Yards before catch per reception",
+                "rec_br": "Reception break rate (contested catches, separation, etc.)",
+                "brk_tkl": "Broken tackles",
+                "drop": "Number of dropped passes",
+                "avg_yac": "Average yards after catch",
+                "avg_expected_yac": "Average expected yards after catch",
+                "catch_percentage": "Catch rate (receptions divided by targets)",
+                "avg_intended_air_yards": "Average intended air yards per target",
+                "avg_yac_above_expectation": "Yards after catch above expected",
+                "percent_share_of_intended_air_yards": "Percentage share of intended air yards"
+            }
+        },
+        "situational_metrics": {
+            "description": "Contextual usage and player-specific situational info.",
+            "fields": {
+                "receiving_2pt_conversions": "Number of 2-point conversions made",
+                "receiving_first_downs": "Number of first downs via receptions",
+                "avg_cushion": "Average defender cushion in yards (NextGen tracking)",
+                "avg_separation": "Average separation from defender at catch point",
+                "player_display_name": "Official player display name",
+                "age": "Player age"
+            }
+        }
+        ,
+        "weekly": {
+            "description": "Per-week receiving metrics (same concepts as seasonal metrics but scoped to a single week). Useful for short-term analysis and matchup planning.",
+            "fields": {
+                "week": "NFL week number",
+                "targets": "Pass targets in the week",
+                "receptions": "Receptions in the week",
+                "receiving_yards": "Receiving yards in the week",
+                "receiving_tds": "Receiving touchdowns in the week",
+                "fantasy_points": "Fantasy points scored in the week",
+                "air_yards": "Air yards in the week",
+                "yac": "Yards after catch in the week",
+                "target_share": "Share of team targets that week",
+                "snap_count": "Number of snaps played that week",
+                "snap_share": "Share of team offensive snaps that week",
+                "contested_targets": "Targets contested by defenders",
+                "drops": "Number of dropped passes",
+                "avg_depth_of_target": "Average depth of target (per-week)",
+                "avg_yac": "Average yards after catch per reception (week)"
+            }
+        }
+    },
+    "passing": {
+        "basic_info": {
+            "description": "Basic identifying information included with every query.",
+            "fields": {
+                "season": "NFL season (year)",
+                "player_name": "Player’s full name",
+                "ff_team": "Fantasy football team abbreviation",
+                "merge_name": "Standardized player name for matching",
+                "height": "Player height (inches)",
+                "weight": "Player weight (lbs)",
+                "player_position": "Player position"
+            }
+        },
+        "volume_metrics": {
+            "description": "Total passing production, opportunities, and play counts.",
+            "fields": {
+                "games": "Number of games played",
+                "attempts": "Total passing attempts",
+                "completions": "Total completed passes",
+                "passing_yards": "Total passing yards gained",
+                "passing_tds": "Total passing touchdowns",
+                "passing_air_yards": "Total air yards thrown (distance of all attempts)",
+                "passing_first_downs": "Number of passing first downs",
+                "passing_2pt_conversions": "Number of two-point conversions via pass",
+                "spikes": "Number of spikes to stop clock",
+                "throwaways": "Number of passes intentionally thrown away",
+                "rpo_plays": "Number of run-pass option plays run",
+                "rpo_pass_att": "Number of pass attempts on RPO plays",
+                "rpo_rush_att": "Number of rush attempts on RPO plays",
+                "pa_pass_att": "Number of play-action pass attempts",
+                "pa_pass_yards": "Passing yards gained from play-action passes",
+                "rpo_pass_yards": "Passing yards on RPO plays",
+                "rpo_rush_yards": "Rushing yards on RPO plays",
+                "qb_plays": "Total quarterback plays (pass + rush + sacks)"
+            }
+        },
+        "efficiency_metrics": {
+            "description": "Passing efficiency, rate stats, and advanced accuracy metrics.",
+            "fields": {
+                "completion_percentage": "Completion percentage (completions divided by attempts)",
+                "passer_rating": "Traditional NFL passer rating",
+                "exp_sack": "Expected sacks (model-based)",
+                "epa_total": "Total expected points added (all plays)",
+                "passing_epa": "Expected points added via passing plays",
+                "qbr_raw": "Raw QBR (ESPN’s total quarterback rating, unadjusted)",
+                "qbr_total": "Total QBR (adjusted for game context)",
+                "qbr_rank": "QBR league rank",
+                "avg_air_distance": "Average air distance per pass attempt (yards)",
+                "avg_completed_air_yards": "Average air yards on completed passes",
+                "avg_air_yards_to_sticks": "Average distance to first down marker at throw",
+                "avg_intended_air_yards": "Average intended air yards per attempt",
+                "avg_air_yards_differential": "Difference between completed and intended air yards",
+                "expected_completion_percentage": "Expected completion percentage based on throw difficulty",
+                "completion_percentage_above_expectation": "Completion percentage above expected value",
+                "fantasy_points": "Total fantasy points scored (standard)",
+                "fantasy_points_ppr": "Total fantasy points scored (PPR scoring)",
+                "dakota": "Advanced composite QB metric (weighted blend of efficiency stats)",
+                "pa_pass_yards": "Passing yards from play-action passes",
+                "on_tgt_pct": "Percent of passes considered on target",
+                "bad_throw_pct": "Percentage of throws considered inaccurate or off target"
+            }
+        },
+        "situational_metrics": {
+            "description": "Contextual, pressure, turnover, and advanced situational passing metrics.",
+            "fields": {
+                "sacks": "Number of times sacked",
+                "sack_yards": "Total yards lost on sacks",
+                "sack_fumbles": "Number of fumbles on sacks",
+                "sack_fumbles_lost": "Fumbles lost on sacks",
+                "times_blitzed": "Number of plays with blitz pressure",
+                "times_hurried": "Number of pass attempts under hurry",
+                "times_hit": "Number of times hit while throwing",
+                "times_pressured": "Total pass attempts under pressure",
+                "batted_balls": "Number of passes batted at the line",
+                "pressure_pct": "Percent of pass plays with pressure",
+                "bad_throws": "Total number of inaccurate throws",
+                "on_tgt_throws": "Number of passes considered on target",
+                "aggressiveness": "Percent of throws into tight windows",
+                "max_air_distance": "Longest air distance on a single attempt (yards)",
+                "max_completed_air_distance": "Longest air distance on a completed pass",
+                "pocket_time": "Average time spent in pocket before throw (seconds)",
+                "drop_pct": "Percentage of pass attempts dropped by receivers",
+                "passing_yards_after_catch": "Total passing yards gained after catch (YAC by receivers)",
+                "interceptions": "Total interceptions thrown",
+                "rpo_plays": "Number of run-pass option plays",
+                "rpo_pass_att": "Pass attempts on RPO plays",
+                "rpo_rush_att": "Rush attempts on RPO plays",
+                "rpo_pass_yards": "Passing yards from RPO plays",
+                "rpo_rush_yards": "Rushing yards from RPO plays"
+            }
+        }
+        ,
+        "weekly": {
+            "description": "Per-week passing metrics for QBs and passers. Use for weekly performance and matchup evaluations.",
+            "fields": {
+                "week": "NFL week number",
+                "attempts": "Pass attempts in the week",
+                "completions": "Completions in the week",
+                "passing_yards": "Passing yards in the week",
+                "passing_tds": "Passing touchdowns in the week",
+                "interceptions": "Interceptions thrown in the week",
+                "times_sacked": "Number of sacks in the week",
+                "times_hurried": "Number of hurry events",
+                "epa": "Expected points added for the week",
+                "passer_rating": "Traditional passer rating for the week",
+                "on_target_pct": "Percent of throws considered on target (week)",
+                "avg_air_yards": "Average air yards per attempt (week)",
+                "fantasy_points": "Fantasy points scored in the week"
+            }
+        }
+    },
+    "rushing": {
+        "basic_info": {
+            "description": "Basic identifying information for each player-season.",
+            "fields": {
+                "season": "NFL season (year)",
+                "player_name": "Player’s full name",
+                "ff_team": "Fantasy football team abbreviation",
+                "merge_name": "Standardized player name for matching"
+            }
+        },
+        "volume_metrics": {
+            "description": "Raw rushing production, usage, and key volume stats.",
+            "fields": {
+                "games": "Number of games played",
+                "carries": "Rushing attempts (carries)",
+                "rushing_yards": "Total rushing yards gained",
+                "rushing_tds": "Rushing touchdowns scored",
+                "rushing_first_downs": "Number of rushing first downs",
+                "targets": "Total pass targets (for dual-threat/hybrid backs)",
+                "receptions": "Total receptions (for dual-threat/hybrid backs)",
+                "receiving_yards": "Total receiving yards gained (for dual-threat/hybrid backs)",
+                "receiving_tds": "Receiving touchdowns (for dual-threat/hybrid backs)",
+                "rush_attempts": "Total number of rush attempts (NextGen Stats)",
+                "rush_touchdowns": "Rushing touchdowns (NextGen Stats, may duplicate rushing_tds)",
+                "gs": "Games started",
+                "td": "Total touchdowns scored (rushing + receiving, if present)",
+                "yds": "Total yards gained (rushing, unless otherwise noted)",
+                "att": "Rushing attempts (alt label for carries)",
+            }
+        },
+        "efficiency_metrics": {
+            "description": "Advanced rate stats, efficiency, and contextual rushing metrics.",
+            "fields": {
+                "dom": "Dominator Rating — percentage of team’s total yards or TDs accounted for",
+                "ry_sh": "Rushing yards share — share of team’s rushing yards",
+                "w8dom": "Weighted dominator rating (rush and receiving blend)",
+                "ppr_sh": "Fantasy points per reception share (hybrid use)",
+                "yac_sh": "Yards after contact share",
+                "yptmpa": "Yards per team play (multi-phase attempts)",
+                "rushing_epa": "Expected points added via rushing",
+                "receiving_epa": "Expected points added via receiving (for dual-threat)",
+                "target_share": "Share of team’s pass targets",
+                "fantasy_points": "Total fantasy points scored (standard)",
+                "fantasy_points_ppr": "Total fantasy points scored (PPR scoring)",
+                "rushing_fumbles": "Number of fumbles on rushing attempts",
+                "rushing_fumbles_lost": "Number of lost fumbles on rushing attempts",
+                "rushing_yards_after_catch": "Yards gained after catch on rushing plays (if tracked)",
+                "receiving_yards_after_catch": "Yards gained after catch on receptions (for hybrid backs)",
+                "att_br": "Number of broken tackles on rushing attempts",
+                "brk_tkl": "Broken tackles (may duplicate att_br)",
+                "yac": "Yards after contact (total)",
+                "ybc": "Yards before contact (total)",
+                "yac_att": "Yards after contact per rush attempt",
+                "ybc_att": "Yards before contact per rush attempt",
+                "avg_rush_yards": "Average rushing yards per carry (NextGen Stats)",
+                "efficiency": "Rushing efficiency (measured by route/path deviation vs. straight line)",
+                "expected_rush_yards": "Expected rushing yards (model-based, NextGen)",
+                "rush_pct_over_expected": "Percent of carries with yards over expected (NextGen)",
+                "rush_yards_over_expected": "Total rushing yards above/below expected (NextGen)",
+                "rush_yards_over_expected_per_att": "Yards over expected per carry (NextGen)",
+                "percent_attempts_gte_eight_defenders": "Percent of rush attempts with 8+ defenders in the box (stacked boxes)",
+                "avg_time_to_los": "Average time (seconds) to reach line of scrimmage on rush attempts"
+            }
+        },
+        "situational_metrics": {
+            "description": "Goal-line usage, advanced context, and next-level situational stats.",
+            "fields": {
+                "rushing_2pt_conversions": "Number of two-point conversions scored via rush",
+                "receiving_2pt_conversions": "Two-point conversions via reception (for dual-threat)",
+                "rushing_first_downs": "First downs gained via rush",
+                "x1d": "Expected first downs (model-based)",
+                "age": "Player age during the season",
+                "rushing_yards_after_catch": "Yards after catch credited on rushes (rare; for later-proofing)"
+            }
+        }
+        ,
+        "weekly": {
+            "description": "Per-week rushing metrics for running backs and hybrid backs. Useful for weekly workload and efficiency checks.",
+            "fields": {
+                "week": "NFL week number",
+                "carries": "Rushing attempts in the week",
+                "rushing_yards": "Rushing yards in the week",
+                "rushing_tds": "Rushing touchdowns in the week",
+                "snap_count": "Offensive snaps in the week",
+                "snap_share": "Share of team offensive snaps (week)",
+                "targets": "Targets in the week",
+                "receptions": "Receptions in the week",
+                "receiving_yards": "Receiving yards in the week",
+                "broken_tackles": "Broken tackles recorded in the week",
+                "yards_after_contact": "Yards after contact in the week",
+                "efficiency": "Per-week rushing efficiency metric (context-specific)",
+                "fantasy_points": "Fantasy points scored in the week"
+            }
+        }
+    },
+    "defense": {
+        "basic_info": {
+            "description": "Basic identifying information included with every defensive analytics query.",
+            "fields": {
+                "season": "NFL season (year)",
+                "player_name": "Player’s full name",
+                "team": "Player's team abbreviation",
+                "position": "Player's position (e.g., LB, DB, DL)",
+                "height": "Player height (inches)",
+                "weight": "Player weight (lbs)",
+                "merge_name": "Standardized player name for matching",
+                "gsis_id": "NFL GSIS player ID",
+                "age": "Player age during the season"
+            }
+        },
+        "volume_metrics": {
+            "description": "Raw defensive production, usage, and snap/appearance counts.",
+            "fields": {
+                "g": "Games played",
+                "gs": "Games started",
+                "td": "Total defensive touchdowns",
+                "comb": "Combined tackles (solo + assist)",
+                "sk": "Sacks (quarterback takedowns)",
+                "int": "Interceptions made",
+                "bltz": "Number of blitzes attempted",
+                "hrry": "Quarterback hurries (pressures leading to hurried throws)",
+                "prss": "Quarterback pressures (sacks, hurries, knockdowns)",
+                "qbkd": "Quarterback knockdowns (QB hit as throwing)",
+                "m_tkl": "Missed tackles",
+                "pfr_id": "Pro Football Reference player ID"
+            }
+        },
+        "efficiency_metrics": {
+            "description": "Advanced rate stats, coverage/pressure efficiency, and contextual defensive analytics.",
+            "fields": {
+                "rat": "Passer rating allowed when targeted (coverage defenders)",
+                "cmp_percent": "Completion percentage allowed when targeted",
+                "cmp": "Completions allowed as primary defender",
+                "tgt": "Targets seen as primary defender",
+                "yds": "Yards allowed as primary defender",
+                "yds_cmp": "Yards allowed per completion as primary defender",
+                "yds_tgt": "Yards allowed per target as primary defender",
+                "dadot": "Defensive average depth of target allowed",
+                "pos": "Position played (shorthand, e.g., FS, LB, CB)",
+                "m_tkl_percent": "Missed tackle percentage (missed tackles divided by total tackle attempts)",
+                "air": "Air yards allowed (distance ball traveled in air on completions)",
+                "yac": "Yards after catch allowed (as primary defender)"
+            }
+        },
+        "situational_metrics": {
+            "description": "Situational, pressure, and context-specific defensive stats.",
+            "fields": {
+                # You can move advanced situational/Next Gen/rare fields here if needed in the future.
+            }
+        }
+        ,
+        "weekly": {
+            "description": "Per-week defensive metrics useful for weekly streaming decisions and matchup scouting.",
+            "fields": {
+                "week": "NFL week number",
+                "tackles_combined": "Combined tackles during the week",
+                "sacks": "Sacks recorded in the week",
+                "interceptions": "Interceptions made in the week",
+                "forced_fumbles": "Forced fumbles in the week",
+                "passes_defended": "Passes defended or breakups in the week",
+                "pressures": "Quarterback pressures in the week",
+                "qb_hits": "Quarterback hits in the week",
+                "fantasy_points": "Defensive fantasy points (DST or individual defensive scoring)"
+            }
+        }
+    }
+}
