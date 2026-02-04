@@ -2,10 +2,11 @@ import { useQueryState } from 'nuqs'
 import { SessionEntry } from '@/types/playground'
 import { Button } from '../../../ui/button'
 import useSessionLoader from '@/hooks/useSessionLoader'
-import {
-  deletePlaygroundSessionAPI,
-  deletePlaygroundTeamSessionAPI
-} from '@/api/playground'
+// TODO: Remove in cleanup phase - Agno API client deleted
+// import {
+//   deletePlaygroundSessionAPI,
+//   deletePlaygroundTeamSessionAPI
+// } from '@/api/playground'
 import { usePlaygroundStore } from '@/store'
 import { toast } from 'sonner'
 import Icon from '@/components/ui/icon'
@@ -52,40 +53,43 @@ const SessionItem = ({
   }
 
   const handleDeleteSession = async () => {
-    if (!(agentId || teamId)) return
+    // TODO: Implement session deletion for new useChat system
+    // Old Agno API deleted - needs to use Supabase or /api/chat endpoint
     setIsDeleting(true)
     try {
-      let response
-      if (mode === 'team' && teamId) {
-        response = await deletePlaygroundTeamSessionAPI(
-          selectedEndpoint,
-          teamId,
-          session_id
-        )
-      } else if (mode === 'agent' && agentId) {
-        response = await deletePlaygroundSessionAPI(
-          selectedEndpoint,
-          agentId,
-          session_id
-        )
-      } else {
-        throw new Error('No valid agent or team context for deletion')
-      }
-
-      if (response?.ok && sessionsData) {
-        setSessionsData(sessionsData.filter((s) => s.session_id !== session_id))
-        // If the deleted session was the active one, clear the chat
-        if (currentSessionId === session_id) {
-          setSessionId(null)
-          clearChat()
-        }
-        toast.success('Session deleted')
-      } else {
-        const errorMsg = await response?.text()
-        toast.error(
-          `Failed to delete session: ${response?.statusText || 'Unknown error'} ${errorMsg || ''}`
-        )
-      }
+      toast.error('Session deletion not yet implemented for new chat system')
+      // if (!(agentId || teamId)) return
+      // let response
+      // if (mode === 'team' && teamId) {
+      //   response = await deletePlaygroundTeamSessionAPI(
+      //     selectedEndpoint,
+      //     teamId,
+      //     session_id
+      //   )
+      // } else if (mode === 'agent' && agentId) {
+      //   response = await deletePlaygroundSessionAPI(
+      //     selectedEndpoint,
+      //     agentId,
+      //     session_id
+      //   )
+      // } else {
+      //   throw new Error('No valid agent or team context for deletion')
+      // }
+      //
+      // if (response?.ok && sessionsData) {
+      //   setSessionsData(sessionsData.filter((s) => s.session_id !== session_id))
+      //   // If the deleted session was the active one, clear the chat
+      //   if (currentSessionId === session_id) {
+      //     setSessionId(null)
+      //     clearChat()
+      //   }
+      //   toast.success('Session deleted')
+      // } else {
+      //   const errorMsg = await response?.text()
+      //   toast.error(
+      //     `Failed to delete session: ${response?.statusText || 'Unknown error'} ${errorMsg || ''}`
+      //   )
+      // }
     } catch (error) {
       toast.error(
         `Failed to delete session: ${error instanceof Error ? error.message : String(error)}`

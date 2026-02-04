@@ -8,11 +8,12 @@ import {
   ComboboxTeam,
   type PlaygroundChatMessage
 } from '@/types/playground'
-import {
-  getPlaygroundAgentsAPI,
-  getPlaygroundStatusAPI,
-  getPlaygroundTeamsAPI
-} from '@/api/playground'
+// TODO: Remove in cleanup phase - Agno API client deleted
+// import {
+//   getPlaygroundAgentsAPI,
+//   getPlaygroundStatusAPI,
+//   getPlaygroundTeamsAPI
+// } from '@/api/playground'
 import { useQueryState } from 'nuqs'
 
 const useChatActions = () => {
@@ -38,32 +39,38 @@ const useChatActions = () => {
   const [teamId, setTeamId] = useQueryState('team')
 
   const getStatus = useCallback(async () => {
-    try {
-      const status = await getPlaygroundStatusAPI(selectedEndpoint)
-      return status
-    } catch {
-      return 503
-    }
+    // TODO: Remove - Agno API deleted
+    // try {
+    //   const status = await getPlaygroundStatusAPI(selectedEndpoint)
+    //   return status
+    // } catch {
+    //   return 503
+    // }
+    return 503
   }, [selectedEndpoint])
 
   const getAgents = useCallback(async () => {
-    try {
-      const agents = await getPlaygroundAgentsAPI(selectedEndpoint)
-      return agents
-    } catch {
-      toast.error('Error fetching agents')
-      return []
-    }
+    // TODO: Remove - Agno API deleted
+    // try {
+    //   const agents = await getPlaygroundAgentsAPI(selectedEndpoint)
+    //   return agents
+    // } catch {
+    //   toast.error('Error fetching agents')
+    //   return []
+    // }
+    return []
   }, [selectedEndpoint])
 
   const getTeams = useCallback(async () => {
-    try {
-      const teams = await getPlaygroundTeamsAPI(selectedEndpoint)
-      return teams
-    } catch {
-      toast.error('Error fetching teams')
-      return []
-    }
+    // TODO: Remove - Agno API deleted
+    // try {
+    //   const teams = await getPlaygroundTeamsAPI(selectedEndpoint)
+    //   return teams
+    // } catch {
+    //   toast.error('Error fetching teams')
+    //   return []
+    // }
+    return []
   }, [selectedEndpoint])
 
   const clearChat = useCallback(() => {
