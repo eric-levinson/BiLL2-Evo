@@ -3,7 +3,7 @@
   "spec": "002-wire-frontend-to-usechat-hook",
   "state": "building",
   "subtasks": {
-    "completed": 2,
+    "completed": 3,
     "total": 13,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 4,
+    "number": 5,
     "started_at": "2026-02-03T21:54:19.965556"
   },
-  "last_update": "2026-02-03T22:02:30.853833"
+  "last_update": "2026-02-03T22:04:00.631355"
 }
