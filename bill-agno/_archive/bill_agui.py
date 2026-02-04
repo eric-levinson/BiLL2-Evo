@@ -28,7 +28,7 @@ from agno.storage.postgres import PostgresStorage
 from phoenix.otel import register
 
 # Set the local collector endpoint
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = "http://192.168.68.66:6006"
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "http://localhost:6006")
 
 # Configure the Phoenix tracer
 tracer_provider = register(
@@ -38,7 +38,7 @@ tracer_provider = register(
 
 
 # MCP server
-server_url = "http://192.168.68.66:8002/mcp/"
+server_url = os.getenv("MCP_SERVER_URL", "http://localhost:8002/mcp/")
 # Database URL
 db_url = os.getenv("db_url") or os.getenv("DB_URL")
 if not db_url:

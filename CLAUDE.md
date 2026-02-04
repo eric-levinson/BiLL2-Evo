@@ -147,7 +147,7 @@ The Supervisor team has:
 
 ## Supabase Database
 
-**Project**: "Advanced Fantasy Insights" (ID: `leghrjgcasbtrbnhhuuz`, region: us-east-1)
+**Project**: "Advanced Fantasy Insights" (region: us-east-1, project ID in `.env` files)
 
 ### Table Groups (~90 tables in `public` schema)
 
