@@ -14,10 +14,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  let mcpClient
+
   try {
     // Parse request body
     const body = await req.json()
-    const { messages, chatId } = body
+    const { messages } = body
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
 
     // Create MCP client with streamable HTTP transport
     const mcpServerUrl = process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
-    const mcpClient = await createMCPClient({
+    mcpClient = await createMCPClient({
       transport: {
         type: 'http',
         url: mcpServerUrl,
@@ -81,5 +83,10 @@ Remember:
       { error: 'Internal server error' },
       { status: 500 }
     )
+  } finally {
+    // Close MCP client to prevent resource leaks
+    if (mcpClient) {
+      await mcpClient.close()
+    }
   }
 }
