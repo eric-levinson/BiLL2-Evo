@@ -99,3 +99,6 @@ Thumbs.db
 fastmcp.log
 fastmcp.pid
 server-info.json
+
+# Auto Claude data directory
+.auto-claude/
