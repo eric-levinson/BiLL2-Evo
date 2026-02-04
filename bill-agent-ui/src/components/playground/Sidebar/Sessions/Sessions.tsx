@@ -6,7 +6,8 @@ import utc from 'dayjs/plugin/utc'
 import { useQueryState } from 'nuqs'
 
 import { usePlaygroundStore } from '@/store'
-import useSessionLoader from '@/hooks/useSessionLoader'
+// TODO: Implement session loading with new useChat system
+// import useSessionLoader from '@/hooks/useSessionLoader'
 
 import SessionItem from './SessionItem'
 import SessionBlankState from './SessionBlankState'
@@ -67,7 +68,8 @@ const Sessions = () => {
     null
   )
 
-  const { getSessions, getSession } = useSessionLoader()
+  // TODO: Implement session loading with new useChat system
+  // const { getSessions, getSession } = useSessionLoader()
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   const handleScroll = () => {
@@ -94,7 +96,8 @@ const Sessions = () => {
   useEffect(() => {
     if (hydrated && sessionId && selectedEndpoint && (agentId || teamId)) {
       const entityType = agentId ? 'agent' : 'team'
-      getSession({ entityType, agentId, teamId }, sessionId)
+      // TODO: Implement session loading with new useChat system
+      // getSession({ entityType, agentId, teamId }, sessionId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated])
@@ -107,11 +110,12 @@ const Sessions = () => {
     }
 
     setSessionsData(() => null)
-    getSessions({
-      entityType: mode,
-      agentId,
-      teamId
-    })
+    // TODO: Implement session loading with new useChat system
+    // getSessions({
+    //   entityType: mode,
+    //   agentId,
+    //   teamId
+    // })
   }, [
     selectedEndpoint,
     agentId,
@@ -119,7 +123,7 @@ const Sessions = () => {
     mode,
     isEndpointLoading,
     hasStorage,
-    getSessions,
+    // getSessions,
     setSessionsData
   ])
 

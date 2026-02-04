@@ -1,7 +1,8 @@
 import { useQueryState } from 'nuqs'
 import { SessionEntry } from '@/types/playground'
 import { Button } from '../../../ui/button'
-import useSessionLoader from '@/hooks/useSessionLoader'
+// TODO: Remove in cleanup phase - useSessionLoader deleted (used Agno API)
+// import useSessionLoader from '@/hooks/useSessionLoader'
 // TODO: Remove in cleanup phase - Agno API client deleted
 // import {
 //   deletePlaygroundSessionAPI,
@@ -30,7 +31,8 @@ const SessionItem = ({
   const [agentId] = useQueryState('agent')
   const [teamId] = useQueryState('team')
   const [, setSessionId] = useQueryState('session')
-  const { getSession } = useSessionLoader()
+  // TODO: Implement session loading with new useChat system
+  // const { getSession } = useSessionLoader()
   const { selectedEndpoint, sessionsData, setSessionsData, mode } =
     usePlaygroundStore()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -41,14 +43,15 @@ const SessionItem = ({
     if (!(agentId || teamId)) return
 
     onSessionClick()
-    await getSession(
-      {
-        entityType: mode,
-        agentId,
-        teamId
-      },
-      session_id
-    )
+    // TODO: Implement session loading with new useChat system
+    // await getSession(
+    //   {
+    //     entityType: mode,
+    //     agentId,
+    //     teamId
+    //   },
+    //   session_id
+    // )
     setSessionId(session_id)
   }
 
