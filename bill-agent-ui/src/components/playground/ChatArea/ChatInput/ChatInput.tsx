@@ -3,15 +3,12 @@ import { TextArea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundStore } from '@/store'
 import { useChatHandler } from '@/hooks/useChatHandler'
-import { useQueryState } from 'nuqs'
 import Icon from '@/components/ui/icon'
 
 const ChatInput = () => {
   const { chatInputRef } = usePlaygroundStore()
 
   const { input, setInput, sendMessage, isLoading } = useChatHandler()
-  const [selectedAgent] = useQueryState('agent')
-  const [teamId] = useQueryState('team')
 
   const handleSubmit = async () => {
     if (!input.trim()) return
@@ -40,12 +37,12 @@ const ChatInput = () => {
           }
         }}
         className="w-full border border-accent bg-primaryAccent px-4 text-sm text-primary focus:border-accent"
-        disabled={!(selectedAgent || teamId)}
+        disabled={isLoading}
         ref={chatInputRef}
       />
       <Button
         onClick={handleSubmit}
-        disabled={!(selectedAgent || teamId) || !input.trim() || isLoading}
+        disabled={!input.trim() || isLoading}
         size="icon"
         className="rounded-xl bg-primary p-5 text-primaryAccent"
       >
