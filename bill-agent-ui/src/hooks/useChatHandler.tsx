@@ -1,6 +1,6 @@
 'use client'
 
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 import { useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
@@ -25,18 +25,18 @@ export function useChatHandler() {
     stop,
     isLoading,
     error,
-    setMessages,
+    setMessages
   } = useChat({
     api: '/api/chat',
     id: sessionId || undefined,
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Chat error:', error)
       toast.error('Failed to send message. Please try again.')
     },
-    onFinish: (message) => {
+    onFinish: (message: { id: string; role: string; content: string }) => {
       // Message completed streaming
       console.log('Message completed:', message.id)
-    },
+    }
   })
 
   // Handle sending a new message
@@ -49,7 +49,7 @@ export function useChatHandler() {
       try {
         await append({
           role: 'user',
-          content: content.trim(),
+          content: content.trim()
         })
       } catch (err) {
         console.error('Error sending message:', err)
@@ -100,7 +100,7 @@ export function useChatHandler() {
     stopStreaming,
 
     // Session management
-    sessionId,
+    sessionId
   }
 }
 

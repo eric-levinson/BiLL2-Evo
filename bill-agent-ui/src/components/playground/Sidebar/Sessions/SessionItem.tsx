@@ -8,12 +8,10 @@ import { Button } from '../../../ui/button'
 //   deletePlaygroundSessionAPI,
 //   deletePlaygroundTeamSessionAPI
 // } from '@/api/playground'
-import { usePlaygroundStore } from '@/store'
 import { toast } from 'sonner'
 import Icon from '@/components/ui/icon'
 import { useState } from 'react'
 import DeleteSessionModal from './DeleteSessionModal'
-import useChatActions from '@/hooks/useChatActions'
 import { truncateText, cn } from '@/lib/utils'
 
 type SessionItemProps = SessionEntry & {
@@ -25,7 +23,6 @@ const SessionItem = ({
   title,
   session_id,
   isSelected,
-  currentSessionId,
   onSessionClick
 }: SessionItemProps) => {
   const [agentId] = useQueryState('agent')
@@ -33,11 +30,8 @@ const SessionItem = ({
   const [, setSessionId] = useQueryState('session')
   // TODO: Implement session loading with new useChat system
   // const { getSession } = useSessionLoader()
-  const { selectedEndpoint, sessionsData, setSessionsData, mode } =
-    usePlaygroundStore()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const { clearChat } = useChatActions()
 
   const handleGetSession = async () => {
     if (!(agentId || teamId)) return

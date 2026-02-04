@@ -32,7 +32,6 @@ const NewChatButton = ({
   </Button>
 )
 
-
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { clearChat, focusChatInput } = useChatActions()

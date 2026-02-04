@@ -52,10 +52,6 @@ const Sessions = () => {
   const [sessionId] = useQueryState('session')
 
   const {
-    selectedEndpoint,
-    mode,
-    isEndpointActive,
-    isEndpointLoading,
     hydrated,
     hasStorage,
     sessionsData,
@@ -94,8 +90,7 @@ const Sessions = () => {
   }, [])
 
   useEffect(() => {
-    if (hydrated && sessionId && selectedEndpoint && (agentId || teamId)) {
-      const entityType = agentId ? 'agent' : 'team'
+    if (hydrated && sessionId && (agentId || teamId)) {
       // TODO: Implement session loading with new useChat system
       // getSession({ entityType, agentId, teamId }, sessionId)
     }
@@ -103,7 +98,7 @@ const Sessions = () => {
   }, [hydrated])
 
   useEffect(() => {
-    if (!selectedEndpoint || !hasStorage || isEndpointLoading) return
+    if (!hasStorage) return
     if (!(agentId || teamId)) {
       setSessionsData(() => null)
       return
@@ -116,16 +111,7 @@ const Sessions = () => {
     //   agentId,
     //   teamId
     // })
-  }, [
-    selectedEndpoint,
-    agentId,
-    teamId,
-    mode,
-    isEndpointLoading,
-    hasStorage,
-    // getSessions,
-    setSessionsData
-  ])
+  }, [agentId, teamId, hasStorage, setSessionsData])
 
   useEffect(() => {
     if (sessionId) setSelectedSessionId(sessionId)
@@ -144,7 +130,7 @@ const Sessions = () => {
     []
   )
 
-  if (isSessionsLoading || isEndpointLoading) {
+  if (isSessionsLoading) {
     return (
       <div className="w-full">
         <div className="mb-2 text-xs font-medium uppercase">Sessions</div>
@@ -168,8 +154,7 @@ const Sessions = () => {
         onMouseOver={() => setIsScrolling(true)}
         onMouseLeave={handleScroll}
       >
-        {!isEndpointActive ||
-        !hasStorage ||
+        {!hasStorage ||
         (!isSessionsLoading && (!sessionsData || sessionsData.length === 0)) ? (
           <SessionBlankState />
         ) : (

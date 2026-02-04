@@ -29,12 +29,13 @@ export async function POST(req: Request) {
     }
 
     // Create MCP client with streamable HTTP transport
-    const mcpServerUrl = process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
+    const mcpServerUrl =
+      process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
     mcpClient = await createMCPClient({
       transport: {
         type: 'http',
-        url: mcpServerUrl,
-      },
+        url: mcpServerUrl
+      }
     })
 
     // Get all available tools from MCP server
@@ -69,13 +70,13 @@ Remember:
 - Cite specific stats when making recommendations
 - Consider both current performance and historical trends
 - For dynasty leagues, factor in player age and long-term value
-- Always verify player names and team affiliations before making claims`,
+- Always verify player names and team affiliations before making claims`
     })
 
     // Stream response back to client
     return createAgentUIStreamResponse({
       agent,
-      uiMessages: messages,
+      uiMessages: messages
     })
   } catch (err) {
     console.error('Chat API error:', err)

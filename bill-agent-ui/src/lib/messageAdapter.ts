@@ -1,38 +1,8 @@
 import type { ToolCall } from '@/types/playground'
+import type { Message } from '@ai-sdk/react'
 
-/**
- * Represents a UI message part from the Vercel AI SDK.
- * Messages can contain multiple parts: text, tool invocations, and tool results.
- */
-export type UIMessagePart =
-  | {
-      type: 'text'
-      text: string
-    }
-  | {
-      type: 'tool-invocation'
-      toolCallId: string
-      toolName: string
-      args: Record<string, unknown>
-      state?: 'partial' | 'call'
-    }
-  | {
-      type: 'tool-result'
-      toolCallId: string
-      toolName: string
-      result: unknown
-    }
-
-/**
- * Represents a message from the Vercel AI SDK useChat() hook.
- */
-export interface UIMessage {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  parts?: UIMessagePart[]
-  createdAt?: Date
-}
+// Re-export Message as UIMessage for convenience
+export type UIMessage = Message
 
 /**
  * Adapted message format for rendering in the chat UI.
@@ -40,7 +10,7 @@ export interface UIMessage {
  */
 export interface AdaptedMessage {
   id: string
-  role: 'user' | 'assistant' | 'system'
+  role: 'user' | 'assistant' | 'system' | 'data'
   content: string
   tool_calls?: ToolCall[]
   created_at: number
@@ -59,9 +29,7 @@ export interface AdaptedMessage {
  * @returns An adapted message compatible with MessageItem rendering
  */
 export function adaptUIMessage(message: UIMessage): AdaptedMessage {
-  const createdAt = message.createdAt
-    ? message.createdAt.getTime()
-    : Date.now()
+  const createdAt = message.createdAt ? message.createdAt.getTime() : Date.now()
 
   // If no parts, return simple message with content
   if (!message.parts || message.parts.length === 0) {
@@ -69,61 +37,64 @@ export function adaptUIMessage(message: UIMessage): AdaptedMessage {
       id: message.id,
       role: message.role,
       content: message.content,
-      created_at: createdAt,
+      created_at: createdAt
     }
   }
 
   // Extract text content from text parts
-  const textParts = message.parts.filter(
-    (part): part is Extract<UIMessagePart, { type: 'text' }> =>
-      part.type === 'text'
-  )
-  const textContent = textParts.map((part) => part.text).join('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const textParts = message.parts.filter((part: any) => part.type === 'text')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const textContent = textParts.map((part: any) => part.text).join('')
 
   // Extract tool invocations and results
   const toolInvocations = message.parts.filter(
-    (part): part is Extract<UIMessagePart, { type: 'tool-invocation' }> =>
-      part.type === 'tool-invocation'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (part: any) => part.type === 'tool-invocation'
   )
 
   const toolResults = message.parts.filter(
-    (part): part is Extract<UIMessagePart, { type: 'tool-result' }> =>
-      part.type === 'tool-result'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (part: any) => part.type === 'tool-result'
   )
 
   // Build ToolCall array from invocations and results
-  const toolCalls: ToolCall[] = toolInvocations.map((invocation) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toolCalls: ToolCall[] = toolInvocations.map((invocation: any) => {
     // Find matching result for this tool call
-    const result = toolResults.find(
-      (r) => r.toolCallId === invocation.toolCallId
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = toolResults.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (r: any) => r.toolCallId === invocation.toolCallId
     )
 
     // Determine if there was an error
-    const hasError =
+    const hasError = Boolean(
       result?.result &&
-      typeof result.result === 'object' &&
-      'error' in result.result
+        typeof result.result === 'object' &&
+        'error' in result.result
+    )
 
     return {
-      role: 'assistant',
+      role: 'assistant' as const,
       content: result ? JSON.stringify(result.result, null, 2) : null,
       tool_call_id: invocation.toolCallId,
       tool_name: invocation.toolName,
       tool_args: invocation.args as Record<string, string>,
       tool_call_error: hasError,
       metrics: {
-        time: 0, // MCP doesn't provide timing info by default
+        time: 0 // MCP doesn't provide timing info by default
       },
-      created_at: createdAt,
+      created_at: createdAt
     }
   })
 
   return {
     id: message.id,
-    role: message.role,
+    role: message.role === 'data' ? 'assistant' : message.role,
     content: textContent || message.content,
     tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-    created_at: createdAt,
+    created_at: createdAt
   }
 }
 

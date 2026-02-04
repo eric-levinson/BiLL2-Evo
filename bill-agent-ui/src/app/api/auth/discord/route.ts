@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
-
-export async function GET(req: Request) {
+export async function GET() {
   const supabase = await createServerSupabaseClient()
 
   // Build a redirectTo URL for the final callback page in the app. Use an

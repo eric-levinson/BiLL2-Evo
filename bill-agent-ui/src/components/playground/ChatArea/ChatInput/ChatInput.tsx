@@ -45,9 +45,7 @@ const ChatInput = () => {
       />
       <Button
         onClick={handleSubmit}
-        disabled={
-          !(selectedAgent || teamId) || !input.trim() || isLoading
-        }
+        disabled={!(selectedAgent || teamId) || !input.trim() || isLoading}
         size="icon"
         className="rounded-xl bg-primary p-5 text-primaryAccent"
       >

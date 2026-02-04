@@ -87,16 +87,11 @@ const HistoryBlankStateIcon = () => (
 )
 
 const SessionBlankState = () => {
-  const { selectedEndpoint, isEndpointActive, hasStorage } =
-    usePlaygroundStore()
+  const { hasStorage } = usePlaygroundStore()
   const [agentId] = useQueryState('agent')
 
   const errorMessage = (() => {
     switch (true) {
-      case !isEndpointActive:
-        return 'Endpoint is not connected. Please connect the endpoint to see the history.'
-      case !selectedEndpoint:
-        return 'Select an endpoint to see the history.'
       case !agentId:
         return 'Select an agent to see the history.'
       case !hasStorage:

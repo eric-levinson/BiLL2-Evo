@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { toast } from 'sonner'
 
 import { usePlaygroundStore } from '../store'
 
@@ -14,36 +13,8 @@ import { useQueryState } from 'nuqs'
 
 const useChatActions = () => {
   const { chatInputRef } = usePlaygroundStore()
-  const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
   const [, setSessionId] = useQueryState('session')
   const setMessages = usePlaygroundStore((state) => state.setMessages)
-  const setIsEndpointActive = usePlaygroundStore(
-    (state) => state.setIsEndpointActive
-  )
-  const setIsEndpointLoading = usePlaygroundStore(
-    (state) => state.setIsEndpointLoading
-  )
-  const setAgents = usePlaygroundStore((state) => state.setAgents)
-  const setTeams = usePlaygroundStore((state) => state.setTeams)
-  const setSelectedModel = usePlaygroundStore((state) => state.setSelectedModel)
-  const setHasStorage = usePlaygroundStore((state) => state.setHasStorage)
-  const setSelectedTeamId = usePlaygroundStore(
-    (state) => state.setSelectedTeamId
-  )
-  const setMode = usePlaygroundStore((state) => state.setMode)
-  const [agentId, setAgentId] = useQueryState('agent')
-  const [teamId, setTeamId] = useQueryState('team')
-
-  const getStatus = useCallback(async () => {
-    // TODO: Remove - Agno API deleted
-    // try {
-    //   const status = await getPlaygroundStatusAPI(selectedEndpoint)
-    //   return status
-    // } catch {
-    //   return 503
-    // }
-    return 503
-  }, [selectedEndpoint])
 
   const getAgents = useCallback(async () => {
     // TODO: Remove - Agno API deleted
@@ -55,7 +26,7 @@ const useChatActions = () => {
     //   return []
     // }
     return []
-  }, [selectedEndpoint])
+  }, [])
 
   const getTeams = useCallback(async () => {
     // TODO: Remove - Agno API deleted
@@ -67,7 +38,7 @@ const useChatActions = () => {
     //   return []
     // }
     return []
-  }, [selectedEndpoint])
+  }, [])
 
   const clearChat = useCallback(() => {
     setMessages([])
@@ -90,93 +61,11 @@ const useChatActions = () => {
   )
 
   const initializePlayground = useCallback(async () => {
-    setIsEndpointLoading(true)
-    try {
-      const status = await getStatus()
-      let agents: never[] = []
-      let teams: never[] = []
-      if (status === 200) {
-        setIsEndpointActive(true)
-        teams = await getTeams()
-        agents = await getAgents()
-
-        if (!agentId && !teamId) {
-          const currentMode = usePlaygroundStore.getState().mode
-
-          if (currentMode === 'team' && teams.length > 0) {
-            const firstTeam = teams[0]
-            setTeamId(firstTeam.value)
-            setSelectedTeamId(firstTeam.value)
-            setSelectedModel(firstTeam.model.provider || '')
-            setHasStorage(!!firstTeam.storage)
-          } else if (currentMode === 'agent' && agents.length > 0) {
-            const firstAgent = agents[0]
-            setAgentId(firstAgent.value)
-            setSelectedModel(firstAgent.model.provider || '')
-            setHasStorage(!!firstAgent.storage)
-            setSelectedTeamId(null)
-          } else {
-            if (teams.length > 0) {
-              // Prioritize team mode when teams are available
-              setMode('team')
-              const firstTeam = teams[0]
-              setTeamId(firstTeam.value)
-              setSelectedTeamId(firstTeam.value)
-              setSelectedModel(firstTeam.model.provider || '')
-              setHasStorage(!!firstTeam.storage)
-            } else if (agents.length > 0) {
-              setMode('agent')
-              const firstAgent = agents[0]
-              setAgentId(firstAgent.value)
-              setSelectedModel(firstAgent.model.provider || '')
-              setHasStorage(!!firstAgent.storage)
-              setSelectedTeamId(null)
-            }
-          }
-        }
-      } else {
-        setIsEndpointActive(false)
-        setMode('agent')
-        setSelectedModel('')
-        setHasStorage(false)
-        setSelectedTeamId(null)
-        setAgentId(null)
-        setTeamId(null)
-      }
-      setAgents(agents)
-      setTeams(teams)
-      return { agents, teams }
-    } catch (error) {
-      console.error('Error initializing playground:', error)
-      setIsEndpointActive(false)
-      setMode('agent')
-      setSelectedModel('')
-      setHasStorage(false)
-      setSelectedTeamId(null)
-      setAgentId(null)
-      setTeamId(null)
-      setAgents([])
-      setTeams([])
-    } finally {
-      setIsEndpointLoading(false)
-    }
-  }, [
-    getStatus,
-    getAgents,
-    getTeams,
-    setIsEndpointActive,
-    setIsEndpointLoading,
-    setAgents,
-    setTeams,
-    setAgentId,
-    setSelectedModel,
-    setHasStorage,
-    setSelectedTeamId,
-    setMode,
-    setTeamId,
-    agentId,
-    teamId
-  ])
+    // TODO: Remove - Agno Playground initialization no longer needed with new useChat system
+    // This function was used to initialize Agno agents/teams and endpoint status
+    // New system uses a single /api/chat endpoint - no initialization required
+    return { agents: [], teams: [] }
+  }, [])
 
   return {
     clearChat,
