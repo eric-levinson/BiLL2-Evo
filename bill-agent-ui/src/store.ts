@@ -1,31 +1,18 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
-import {
-  type PlaygroundChatMessage,
-  type SessionEntry
-} from '@/types/playground'
+import { type SessionEntry } from '@/types/playground'
 
 interface PlaygroundStore {
   hydrated: boolean
   setHydrated: () => void
   streamingErrorMessage: string
   setStreamingErrorMessage: (streamingErrorMessage: string) => void
-  isStreaming: boolean
-  setIsStreaming: (isStreaming: boolean) => void
-  messages: PlaygroundChatMessage[]
-  setMessages: (
-    messages:
-      | PlaygroundChatMessage[]
-      | ((prevMessages: PlaygroundChatMessage[]) => PlaygroundChatMessage[])
-  ) => void
   hasStorage: boolean
   setHasStorage: (hasStorage: boolean) => void
   chatInputRef: React.RefObject<HTMLTextAreaElement | null>
   selectedModel: string
   setSelectedModel: (model: string) => void
-  selectedTeamId: string | null
-  setSelectedTeamId: (teamId: string | null) => void
   sessionsData: SessionEntry[] | null
   setSessionsData: (
     sessionsData:
@@ -44,21 +31,11 @@ export const usePlaygroundStore = create<PlaygroundStore>()(
       streamingErrorMessage: '',
       setStreamingErrorMessage: (streamingErrorMessage) =>
         set(() => ({ streamingErrorMessage })),
-      isStreaming: false,
-      setIsStreaming: (isStreaming) => set(() => ({ isStreaming })),
-      messages: [],
-      setMessages: (messages) =>
-        set((state) => ({
-          messages:
-            typeof messages === 'function' ? messages(state.messages) : messages
-        })),
       hasStorage: false,
       setHasStorage: (hasStorage) => set(() => ({ hasStorage })),
       chatInputRef: { current: null },
       selectedModel: '',
       setSelectedModel: (selectedModel) => set(() => ({ selectedModel })),
-      selectedTeamId: null,
-      setSelectedTeamId: (teamId) => set(() => ({ selectedTeamId: teamId })),
       sessionsData: null,
       setSessionsData: (sessionsData) =>
         set((state) => ({

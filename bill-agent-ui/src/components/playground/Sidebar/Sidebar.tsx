@@ -1,11 +1,9 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import useChatActions from '@/hooks/useChatActions'
-import { usePlaygroundStore } from '@/store'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Icon from '@/components/ui/icon'
-import Sessions from './Sessions'
 
 const SidebarHeader = () => (
   <div className="flex items-center gap-2">
@@ -34,8 +32,7 @@ const NewChatButton = ({
 
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { clearChat, focusChatInput } = useChatActions()
-  const { messages } = usePlaygroundStore()
+  const { messages, clearChat, focusChatInput } = useChatActions()
 
   const handleNewChat = () => {
     clearChat()
@@ -76,7 +73,6 @@ const Sidebar = () => {
           disabled={messages.length === 0}
           onClick={handleNewChat}
         />
-        <Sessions />
       </motion.div>
     </motion.aside>
   )
