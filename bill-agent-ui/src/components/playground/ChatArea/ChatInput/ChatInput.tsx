@@ -1,50 +1,39 @@
 'use client'
-import { useState } from 'react'
-import { toast } from 'sonner'
 import { TextArea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundStore } from '@/store'
-import useAIChatStreamHandler from '@/hooks/useAIStreamHandler'
+import { useChatHandler } from '@/hooks/useChatHandler'
 import { useQueryState } from 'nuqs'
 import Icon from '@/components/ui/icon'
 
 const ChatInput = () => {
   const { chatInputRef } = usePlaygroundStore()
 
-  const { handleStreamResponse } = useAIChatStreamHandler()
+  const { input, setInput, sendMessage, isLoading } = useChatHandler()
   const [selectedAgent] = useQueryState('agent')
   const [teamId] = useQueryState('team')
-  const [inputMessage, setInputMessage] = useState('')
-  const isStreaming = usePlaygroundStore((state) => state.isStreaming)
+
   const handleSubmit = async () => {
-    if (!inputMessage.trim()) return
+    if (!input.trim()) return
 
-    const currentMessage = inputMessage
-    setInputMessage('')
+    const currentMessage = input
+    setInput('')
 
-    try {
-      await handleStreamResponse(currentMessage)
-    } catch (error) {
-      toast.error(
-        `Error in handleSubmit: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      )
-    }
+    await sendMessage(currentMessage)
   }
 
   return (
     <div className="relative mx-auto mb-1 flex w-full max-w-2xl items-end justify-center gap-x-2 font-geist">
       <TextArea
         placeholder={'Ask anything'}
-        value={inputMessage}
-        onChange={(e) => setInputMessage(e.target.value)}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
           if (
             e.key === 'Enter' &&
             !e.nativeEvent.isComposing &&
             !e.shiftKey &&
-            !isStreaming
+            !isLoading
           ) {
             e.preventDefault()
             handleSubmit()
@@ -57,7 +46,7 @@ const ChatInput = () => {
       <Button
         onClick={handleSubmit}
         disabled={
-          !(selectedAgent || teamId) || !inputMessage.trim() || isStreaming
+          !(selectedAgent || teamId) || !input.trim() || isLoading
         }
         size="icon"
         className="rounded-xl bg-primary p-5 text-primaryAccent"
