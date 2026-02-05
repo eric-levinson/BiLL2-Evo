@@ -11,6 +11,8 @@ import {
 } from 'react'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
+import { supabase } from '@/lib/supabase/client'
+import { createSession, updateSession } from '@/lib/supabase/sessions'
 
 interface ChatHandlerValue {
   messages: UIMessage[]
@@ -51,8 +53,46 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       console.error('Chat error:', error)
       toast.error('Failed to send message. Please try again.')
     },
-    onFinish: ({ message }) => {
-      console.log('Message completed:', message.id)
+    onFinish: async ({ message }) => {
+      try {
+        // Get current user
+        const {
+          data: { user },
+          error: userError
+        } = await supabase.auth.getUser()
+        if (userError || !user) {
+          console.warn('No user found, skipping session save:', userError)
+          return
+        }
+
+        // Build updated messages array with the new message
+        const updatedMessages = [...messages, message]
+
+        // If no session exists, create one
+        if (!sessionId) {
+          // Generate title from first user message (max 50 chars)
+          const firstUserMessage = updatedMessages.find(m => m.role === 'user')
+          const title =
+            (typeof firstUserMessage?.content === 'string'
+              ? firstUserMessage.content
+              : String(firstUserMessage?.content || 'New Chat')
+            ).substring(0, 50) || 'New Chat'
+
+          const newSession = await createSession(
+            user.id,
+            title,
+            updatedMessages
+          )
+          if (newSession) {
+            setSessionId(newSession.id)
+          }
+        } else {
+          // Update existing session
+          await updateSession(sessionId, updatedMessages)
+        }
+      } catch (error) {
+        console.error('Error saving chat session:', error)
+      }
     }
   })
 

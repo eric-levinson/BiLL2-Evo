@@ -1,25 +1,25 @@
 {
   "active": true,
   "spec": "004-chat-persistence-via-supabase",
-  "state": "planning",
+  "state": "building",
   "subtasks": {
-    "completed": 0,
-    "total": 0,
+    "completed": 2,
+    "total": 10,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Database Schema",
+    "current": "Chat Persistence Logic",
     "id": null,
-    "total": 1
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 4,
     "started_at": "2026-02-04T21:15:44.768266"
   },
-  "last_update": "2026-02-04T21:21:22.033490"
+  "last_update": "2026-02-04T21:26:25.203448"
 }
