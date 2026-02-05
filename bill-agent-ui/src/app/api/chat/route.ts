@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createMCPClient } from '@ai-sdk/mcp'
-import { ToolLoopAgent, createAgentUIStreamResponse, stepCountIs } from 'ai'
+import {
+  ToolLoopAgent,
+  stepCountIs,
+  consumeStream,
+  type UIMessage
+} from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 
 export async function POST(req: Request) {
@@ -19,7 +24,7 @@ export async function POST(req: Request) {
   try {
     // Parse request body
     const body = await req.json()
-    const { messages } = body
+    const { messages, id: chatId } = body
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -73,10 +78,77 @@ Remember:
 - Always verify player names and team affiliations before making claims`
     })
 
-    // Stream response back to client
-    return createAgentUIStreamResponse({
-      agent,
+    // Execute agent and get stream result
+    const result = agent.stream({
       uiMessages: messages
+    })
+
+    // Create UI message stream response with server-side persistence
+    return result.toUIMessageStreamResponse({
+      originalMessages: messages,
+      // CRITICAL: Consume stream to ensure completion even on client disconnect
+      // This prevents data loss when client closes browser or network disconnects
+      consumeSseStream: consumeStream,
+      // SERVER-SIDE persistence - fires even when client disconnects
+      onFinish: async ({ messages: completedMessages }) => {
+        try {
+          // Save messages to Supabase regardless of client connection status
+          if (!chatId) {
+            // Create new session with title from first user message
+            const firstUserMessage = completedMessages.find(
+              m => m.role === 'user'
+            )
+            const content =
+              typeof firstUserMessage?.content === 'string'
+                ? firstUserMessage.content
+                : String(firstUserMessage?.content || 'New Chat')
+
+            // Truncate title to 50 chars max (47 chars + '...')
+            const title =
+              content.length > 50
+                ? content.substring(0, 47) + '...'
+                : content
+
+            // Insert new session into database
+            const { error: insertError } = await supabase
+              .from('chat_sessions')
+              .insert({
+                user_id: user.id,
+                title,
+                messages: completedMessages as unknown as UIMessage[]
+              })
+
+            if (insertError) {
+              console.error('Server-side session creation failed:', insertError)
+            } else {
+              console.log(
+                'Server-side persistence: Created new session with title:',
+                title
+              )
+            }
+          } else {
+            // Update existing session with new messages
+            const { error: updateError } = await supabase
+              .from('chat_sessions')
+              .update({
+                messages: completedMessages as unknown as UIMessage[]
+              })
+              .eq('id', chatId)
+
+            if (updateError) {
+              console.error('Server-side session update failed:', updateError)
+            } else {
+              console.log(
+                'Server-side persistence: Updated session',
+                chatId
+              )
+            }
+          }
+        } catch (err) {
+          console.error('Server-side persistence error:', err)
+          // Don't throw - we don't want to break the streaming response
+        }
+      }
     })
   } catch (err) {
     console.error('Chat API error:', err)
