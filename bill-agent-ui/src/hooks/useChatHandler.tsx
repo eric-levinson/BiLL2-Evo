@@ -1,107 +1,126 @@
 'use client'
 
 import { useChat } from '@ai-sdk/react'
-import { useCallback, useEffect } from 'react'
+import type { UIMessage } from '@ai-sdk/react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState
+} from 'react'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
 
-/**
- * Custom hook that wraps Vercel AI SDK's useChat() to provide
- * chat functionality with the BiLL agent backend.
- *
- * This hook connects to /api/chat endpoint which uses ToolLoopAgent
- * with MCP tools for fantasy football analytics.
- */
-export function useChatHandler() {
-  const [sessionId, setSessionId] = useQueryState('session')
+interface ChatHandlerValue {
+  messages: UIMessage[]
+  isLoading: boolean
+  error: Error | undefined
+  input: string
+  setInput: (value: string) => void
+  sendMessage: (content: string) => Promise<void>
+  clearChat: () => void
+  retryLastMessage: () => void
+  stopStreaming: () => void
+  sessionId: string | null
+}
 
-  // Initialize useChat hook with configuration
+const ChatContext = createContext<ChatHandlerValue | null>(null)
+
+/**
+ * Provider that creates a single useChat() instance and shares it
+ * across all child components via React Context.
+ */
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const [sessionId, setSessionId] = useQueryState('session')
+  const [input, setInput] = useState('')
+
   const {
     messages,
-    input,
-    setInput,
-    append,
-    reload,
+    sendMessage: chatSendMessage,
+    regenerate,
     stop,
-    isLoading,
+    status,
     error,
     setMessages
   } = useChat({
-    api: '/api/chat',
-    id: sessionId || undefined,
+    // Only pass id when sessionId exists — passing id: undefined causes
+    // useChat v3 to recreate the Chat instance on every render
+    ...(sessionId ? { id: sessionId } : {}),
     onError: (error: Error) => {
       console.error('Chat error:', error)
       toast.error('Failed to send message. Please try again.')
     },
-    onFinish: (message: { id: string; role: string; content: string }) => {
-      // Message completed streaming
+    onFinish: ({ message }) => {
       console.log('Message completed:', message.id)
     }
   })
 
-  // Handle sending a new message
+  const isLoading = status === 'submitted' || status === 'streaming'
+
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!content.trim()) {
-        return
-      }
-
+      if (!content.trim()) return
       try {
-        await append({
-          role: 'user',
-          content: content.trim()
-        })
+        await chatSendMessage({ text: content.trim() })
       } catch (err) {
         console.error('Error sending message:', err)
         toast.error('Failed to send message')
       }
     },
-    [append]
+    [chatSendMessage]
   )
 
-  // Clear chat and reset session
   const clearChat = useCallback(() => {
     setMessages([])
     setSessionId(null)
     setInput('')
-  }, [setMessages, setSessionId, setInput])
+  }, [setMessages, setSessionId])
 
-  // Reload last message (retry on error)
   const retryLastMessage = useCallback(() => {
-    reload()
-  }, [reload])
+    regenerate()
+  }, [regenerate])
 
-  // Stop current streaming response
   const stopStreaming = useCallback(() => {
     stop()
   }, [stop])
 
-  // Show error toast if error occurs
   useEffect(() => {
     if (error) {
       toast.error(error.message || 'An error occurred')
     }
   }, [error])
 
-  return {
-    // Message state
-    messages,
-    isLoading,
-    error,
+  return (
+    <ChatContext.Provider
+      value={{
+        messages,
+        isLoading,
+        error,
+        input,
+        setInput,
+        sendMessage,
+        clearChat,
+        retryLastMessage,
+        stopStreaming,
+        sessionId
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  )
+}
 
-    // Input state
-    input,
-    setInput,
-
-    // Actions
-    sendMessage,
-    clearChat,
-    retryLastMessage,
-    stopStreaming,
-
-    // Session management
-    sessionId
+/**
+ * Hook to access the shared chat state from ChatProvider.
+ * Must be used within a ChatProvider.
+ */
+export function useChatHandler(): ChatHandlerValue {
+  const ctx = useContext(ChatContext)
+  if (!ctx) {
+    throw new Error('useChatHandler must be used within a ChatProvider')
   }
+  return ctx
 }
 
 export default useChatHandler
