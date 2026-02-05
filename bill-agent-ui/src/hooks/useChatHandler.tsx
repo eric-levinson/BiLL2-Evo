@@ -7,12 +7,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState
 } from 'react'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
 import { supabase } from '@/lib/supabase/client'
-import { createSession, updateSession } from '@/lib/supabase/sessions'
+import { createSession, updateSession, getSession } from '@/lib/supabase/sessions'
 
 interface ChatHandlerValue {
   messages: UIMessage[]
@@ -36,6 +37,7 @@ const ChatContext = createContext<ChatHandlerValue | null>(null)
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [sessionId, setSessionId] = useQueryState('session')
   const [input, setInput] = useState('')
+  const lastLoadedSessionId = useRef<string | null>(null)
 
   const {
     messages,
@@ -115,6 +117,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setMessages([])
     setSessionId(null)
     setInput('')
+    lastLoadedSessionId.current = null
   }, [setMessages, setSessionId])
 
   const retryLastMessage = useCallback(() => {
@@ -130,6 +133,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       toast.error(error.message || 'An error occurred')
     }
   }, [error])
+
+  // Load session messages when sessionId changes
+  useEffect(() => {
+    // Skip if no sessionId or if we already loaded this session
+    if (!sessionId || sessionId === lastLoadedSessionId.current) {
+      return
+    }
+
+    const loadSession = async () => {
+      try {
+        const session = await getSession(sessionId)
+        if (session && session.messages) {
+          // Update messages from loaded session
+          setMessages(session.messages)
+          // Track that we loaded this session to prevent duplicate loads
+          lastLoadedSessionId.current = sessionId
+        }
+      } catch (err) {
+        console.error('Error loading session:', err)
+        toast.error('Failed to load chat session')
+      }
+    }
+
+    loadSession()
+  }, [sessionId, setMessages])
 
   return (
     <ChatContext.Provider
