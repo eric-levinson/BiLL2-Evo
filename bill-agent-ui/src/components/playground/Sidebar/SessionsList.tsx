@@ -1,17 +1,60 @@
 'use client'
+import { useEffect } from 'react'
 import { usePlaygroundStore } from '@/store'
 import { useChatHandler } from '@/hooks/useChatHandler'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import { supabase } from '@/lib/supabase/client'
+import { getUserSessions } from '@/lib/supabase/sessions'
+import type { SessionEntry } from '@/types/playground'
 
 dayjs.extend(relativeTime)
 
 const SessionsList = () => {
-  const { sessionsData, isSessionsLoading } = usePlaygroundStore()
+  const { sessionsData, isSessionsLoading, setSessionsData, setIsSessionsLoading } = usePlaygroundStore()
   const { sessionId } = useChatHandler()
   const router = useRouter()
+
+  // Load user sessions on component mount
+  useEffect(() => {
+    const loadSessions = async () => {
+      setIsSessionsLoading(true)
+      try {
+        // Get current user
+        const {
+          data: { user },
+          error: userError
+        } = await supabase.auth.getUser()
+
+        if (userError || !user) {
+          console.warn('No user found, skipping session load:', userError)
+          setSessionsData([])
+          return
+        }
+
+        // Fetch user's sessions
+        const sessions = await getUserSessions(user.id)
+
+        // Map ChatSession[] to SessionEntry[]
+        const sessionEntries: SessionEntry[] = sessions.map((session) => ({
+          session_id: session.id,
+          title: session.title,
+          created_at: new Date(session.created_at).getTime()
+        }))
+
+        setSessionsData(sessionEntries)
+      } catch (error) {
+        console.error('Error loading sessions:', error)
+        setSessionsData([])
+      } finally {
+        setIsSessionsLoading(false)
+      }
+    }
+
+    loadSessions()
+  }, [setSessionsData, setIsSessionsLoading])
 
   const handleSessionClick = (id: string) => {
     router.push(`/app?session=${id}`)
