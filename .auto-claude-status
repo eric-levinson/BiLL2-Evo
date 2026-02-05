@@ -3,23 +3,23 @@
   "spec": "004-chat-persistence-via-supabase",
   "state": "building",
   "subtasks": {
-    "completed": 2,
+    "completed": 5,
     "total": 10,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Chat Persistence Logic",
+    "current": "Session List UI",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
+    "number": 7,
     "started_at": "2026-02-04T21:15:44.768266"
   },
-  "last_update": "2026-02-04T21:26:25.203448"
+  "last_update": "2026-02-04T21:32:44.055796"
 }

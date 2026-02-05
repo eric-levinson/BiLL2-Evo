@@ -4,6 +4,7 @@ import useChatActions from '@/hooks/useChatActions'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Icon from '@/components/ui/icon'
+import SessionsList from './SessionsList'
 
 const SidebarHeader = () => (
   <div className="flex items-center gap-2">
@@ -73,6 +74,7 @@ const Sidebar = () => {
           disabled={messages.length === 0}
           onClick={handleNewChat}
         />
+        <SessionsList />
       </motion.div>
     </motion.aside>
   )
