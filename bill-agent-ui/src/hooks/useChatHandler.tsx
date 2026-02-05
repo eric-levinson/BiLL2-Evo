@@ -54,51 +54,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     onError: (error: Error) => {
       console.error('Chat error:', error)
       toast.error('Failed to send message. Please try again.')
-    },
-    onFinish: async ({ message }) => {
-      try {
-        // Get current user
-        const {
-          data: { user },
-          error: userError
-        } = await supabase.auth.getUser()
-        if (userError || !user) {
-          console.warn('No user found, skipping session save:', userError)
-          return
-        }
-
-        // Build updated messages array with the new message
-        const updatedMessages = [...messages, message]
-
-        // If no session exists, create one
-        if (!sessionId) {
-          // Generate title from first user message (max 50 chars, truncate with '...' if longer)
-          const firstUserMessage = updatedMessages.find(m => m.role === 'user')
-          const content =
-            typeof firstUserMessage?.content === 'string'
-              ? firstUserMessage.content
-              : String(firstUserMessage?.content || 'New Chat')
-          const title =
-            content.length > 50
-              ? content.substring(0, 47) + '...'
-              : content || 'New Chat'
-
-          const newSession = await createSession(
-            user.id,
-            title,
-            updatedMessages
-          )
-          if (newSession) {
-            setSessionId(newSession.id)
-          }
-        } else {
-          // Update existing session
-          await updateSession(sessionId, updatedMessages)
-        }
-      } catch (error) {
-        console.error('Error saving chat session:', error)
-      }
     }
+    // NO onFinish callback here anymore - server handles everything via consumeStream
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
