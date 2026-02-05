@@ -72,13 +72,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         // If no session exists, create one
         if (!sessionId) {
-          // Generate title from first user message (max 50 chars)
+          // Generate title from first user message (max 50 chars, truncate with '...' if longer)
           const firstUserMessage = updatedMessages.find(m => m.role === 'user')
-          const title =
-            (typeof firstUserMessage?.content === 'string'
+          const content =
+            typeof firstUserMessage?.content === 'string'
               ? firstUserMessage.content
               : String(firstUserMessage?.content || 'New Chat')
-            ).substring(0, 50) || 'New Chat'
+          const title =
+            content.length > 50
+              ? content.substring(0, 47) + '...'
+              : content || 'New Chat'
 
           const newSession = await createSession(
             user.id,
