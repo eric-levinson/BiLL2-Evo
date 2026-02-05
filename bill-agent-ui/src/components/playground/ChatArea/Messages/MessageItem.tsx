@@ -1,21 +1,21 @@
 import Icon from '@/components/ui/icon'
 import MarkdownRenderer from '@/components/ui/typography/MarkdownRenderer'
 import { usePlaygroundStore } from '@/store'
-import type { PlaygroundChatMessage } from '@/types/playground'
-import Videos from './Multimedia/Videos'
-import Images from './Multimedia/Images'
-import Audios from './Multimedia/Audios'
+import type { AdaptedMessage } from '@/lib/messageAdapter'
 import { memo } from 'react'
 import AgentThinkingLoader from './AgentThinkingLoader'
 
 interface MessageProps {
-  message: PlaygroundChatMessage
+  message: AdaptedMessage
+  streamingError?: boolean
 }
 
-const AgentMessage = ({ message }: MessageProps) => {
+const AgentMessage = ({ message, streamingError }: MessageProps) => {
   const { streamingErrorMessage } = usePlaygroundStore()
   let messageContent
-  if (message.streamingError) {
+
+  // Handle streaming errors
+  if (streamingError) {
     messageContent = (
       <p className="text-destructive">
         Oops! Something went wrong while streaming.{' '}
@@ -27,40 +27,14 @@ const AgentMessage = ({ message }: MessageProps) => {
       </p>
     )
   } else if (message.content) {
+    // Render text content from UIMessage parts
     messageContent = (
       <div className="flex w-full flex-col gap-4">
         <MarkdownRenderer>{message.content}</MarkdownRenderer>
-        {message.videos && message.videos.length > 0 && (
-          <Videos videos={message.videos} />
-        )}
-        {message.images && message.images.length > 0 && (
-          <Images images={message.images} />
-        )}
-        {message.audio && message.audio.length > 0 && (
-          <Audios audio={message.audio} />
-        )}
       </div>
     )
-  } else if (message.response_audio) {
-    if (!message.response_audio.transcript) {
-      messageContent = (
-        <div className="mt-2 flex items-start">
-          <AgentThinkingLoader />
-        </div>
-      )
-    } else {
-      messageContent = (
-        <div className="flex w-full flex-col gap-4">
-          <MarkdownRenderer>
-            {message.response_audio.transcript}
-          </MarkdownRenderer>
-          {message.response_audio.content && message.response_audio && (
-            <Audios audio={[message.response_audio]} />
-          )}
-        </div>
-      )
-    }
   } else {
+    // Show thinking loader when streaming but no content yet
     messageContent = (
       <div className="mt-2">
         <AgentThinkingLoader />

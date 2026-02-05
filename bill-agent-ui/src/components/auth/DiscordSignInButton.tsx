@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { Button } from '@/components/ui/button'
 
@@ -10,7 +10,12 @@ export default function DiscordSignInButton() {
   }
 
   return (
-    <Button type="button" variant="outline" onClick={handleDiscordSignIn} className="w-full">
+    <Button
+      type="button"
+      variant="outline"
+      onClick={handleDiscordSignIn}
+      className="w-full"
+    >
       Continue with Discord
     </Button>
   )

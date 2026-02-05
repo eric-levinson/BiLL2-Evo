@@ -17,6 +17,7 @@
     "@ai-sdk/anthropic": "^3.0.36",
     "@ai-sdk/mcp": "^1.0.18",
     "@ai-sdk/openai": "^3.0.25",
+    "@ai-sdk/react": "^3.0.72",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-dialog": "^1.1.5",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
