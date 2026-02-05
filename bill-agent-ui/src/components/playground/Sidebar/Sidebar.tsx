@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Icon from '@/components/ui/icon'
 import SessionsList from './SessionsList'
+import { useRouter } from 'next/navigation'
 
 const SidebarHeader = () => (
   <div className="flex items-center gap-2">
@@ -34,9 +35,11 @@ const NewChatButton = ({
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { messages, clearChat, focusChatInput } = useChatActions()
+  const router = useRouter()
 
   const handleNewChat = () => {
     clearChat()
+    router.push('/app')
     focusChatInput()
   }
 
