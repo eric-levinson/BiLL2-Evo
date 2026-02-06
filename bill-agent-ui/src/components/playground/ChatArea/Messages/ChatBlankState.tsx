@@ -53,7 +53,8 @@ const ChatBlankState = () => {
             Your AI-powered fantasy football analytics platform
           </p>
           <p className="mt-2 text-sm font-normal text-neutral-500">
-            Get advanced NFL stats, Sleeper league insights, and dynasty rankings
+            Get advanced NFL stats, Sleeper league insights, and dynasty
+            rankings
           </p>
         </motion.h1>
         <motion.div
