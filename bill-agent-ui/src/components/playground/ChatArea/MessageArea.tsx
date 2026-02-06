@@ -10,8 +10,8 @@ import UserMessage from './UserMessage'
 
 const MessageArea = () => {
   return (
-    <ThreadPrimitive.Root className="relative mb-4 flex max-h-[calc(100vh-64px)] min-h-0 flex-grow flex-col">
-      <ThreadPrimitive.Viewport className="flex min-h-full flex-col justify-center">
+    <ThreadPrimitive.Root className="relative flex min-h-0 flex-grow flex-col overflow-hidden">
+      <ThreadPrimitive.Viewport className="flex min-h-0 flex-grow flex-col overflow-y-auto">
         <div className="mx-auto w-full max-w-2xl space-y-9 px-4 pb-4">
           <ThreadPrimitive.Empty>
             <ChatBlankState />
