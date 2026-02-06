@@ -9,8 +9,8 @@ The monorepo contains two active services:
 1. **bill-agent-ui** — Next.js 15 chat frontend + AI backend (TypeScript, Vercel AI SDK 6)
 2. **fantasy-tools-mcp** — MCP tool server with ~40 fantasy football tools (Python / FastMCP)
 
-Legacy service (archived, not actively used):
-3. **bill-agno** — Old Python/Agno agent backend (being replaced by Vercel AI SDK in bill-agent-ui)
+Legacy service (archived to `_archived-services/bill-agno/`):
+3. **bill-agno** — Old Python/Agno agent backend (replaced by Vercel AI SDK in bill-agent-ui)
 
 ## Architecture
 
@@ -122,8 +122,8 @@ Each service needs a `.env` file. See `.env.example` in each directory. Never co
 - `docs/metrics_catalog.py` — Full metrics definitions
 - `docs/game_stats_catalog.py` — Game stats field definitions
 
-### bill-agno (Python / Agno) — ARCHIVED
-- `team_playground.py` — Old Agno Playground entry point (4-agent team). Being replaced by AI SDK route.
+### bill-agno (Python / Agno) — ARCHIVED (in `_archived-services/bill-agno/`)
+- `team_playground.py` — Old Agno Playground entry point (4-agent team). Replaced by AI SDK route.
 - `gridiron_toolkit/info.py` — Old GridironTools MCP wrapper. No longer needed.
 - `_archive/` — Archived entry point variants (bill_api.py, bill_agui.py, discord_team.py)
 
@@ -246,7 +246,7 @@ The fantasy-tools-mcp server exposes these tool categories:
 - Model IDs configurable via `AI_MODEL_ID` env var
 
 ## Known Technical Debt
-- bill-agno directory still exists (archived) — can be removed once AI SDK migration is complete
+- `_archived-services/bill-agno/` can be fully removed once team confirms it's no longer needed for reference
 - `bill-agent-ui/package-lock.json` coexists with `pnpm-lock.yaml` (should remove package-lock.json)
 - MCP tool responses return too much data (need `columns` parameter, lower default limits)
 - No automated test suite for MCP tools or UI components
