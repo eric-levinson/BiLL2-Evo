@@ -27,12 +27,13 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     @mcp.tool(
         description=(
-            "Get the raw league data for a given Sleeper league ID. "
-            "Returns the league object as returned by the Sleeper API."
+            "Get rosters for a given Sleeper league ID. If summary is True, returns compact "
+            "roster info with player names/positions/teams instead of full player ID arrays. "
+            "If False (default), returns full roster data."
         )
     )
-    def get_sleeper_league_rosters(league_id: str) -> list[dict]:
-        return _get_sleeper_league_rosters(league_id)
+    def get_sleeper_league_rosters(league_id: str, summary: bool = False) -> list[dict]:
+        return _get_sleeper_league_rosters(league_id, summary)
 
     @mcp.tool(
         description=(
@@ -45,12 +46,13 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     @mcp.tool(
         description=(
-            "Get the raw matchup data for a given Sleeper league ID and week. "
-            "The caller must provide the target week."
+            "Get matchups for a given Sleeper league ID and week. If summary is True, returns "
+            "compact matchup info with player names/positions/teams instead of full player ID arrays. "
+            "If False (default), returns full matchup data. The caller must provide the target week."
         )
     )
-    def get_sleeper_league_matchups(league_id: str, week: int) -> list[dict]:
-        return _get_sleeper_league_matchups(league_id, week)
+    def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False) -> list[dict]:
+        return _get_sleeper_league_matchups(league_id, week, summary)
 
     @mcp.tool(
         description=(
