@@ -114,8 +114,14 @@ def get_sleeper_league_users(league_id: str) -> list[dict]:
         raise Exception(f"Error fetching sleeper leagues: {str(e)}")
 
 
-def get_sleeper_league_matchups(league_id: str, week: int) -> list[dict]:
+def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False) -> list[dict]:
     """Retrieve matchups for a given Sleeper league and week.
+
+    Args:
+        league_id: The Sleeper league ID.
+        week: The week number to retrieve matchups for.
+        summary: If True, returns compact matchup info with player names/positions/teams
+                 instead of full player ID arrays. If False (default), returns full data.
 
     The caller must supply the target week. Each matchup is annotated with
     the username of the roster's owner.
@@ -141,7 +147,49 @@ def get_sleeper_league_matchups(league_id: str, week: int) -> list[dict]:
             rid = matchup.get("roster_id")
             owner = roster_to_owner.get(rid)
             matchup["owner_name"] = user_map.get(owner)
-        return matchups
+
+        if not summary:
+            return matchups
+
+        # Summary mode: return compact player info
+        players_wrapper = Players()
+        all_players = players_wrapper.get_all_players()
+
+        summary_matchups = []
+        for matchup in matchups:
+            summary_matchup = {
+                "matchup_id": matchup.get("matchup_id"),
+                "roster_id": matchup.get("roster_id"),
+                "owner_name": matchup.get("owner_name"),
+                "points": matchup.get("points"),
+            }
+
+            # Convert player IDs to compact player info
+            player_ids = matchup.get("players") or []
+            summary_matchup["players"] = [
+                {
+                    "name": all_players.get(pid, {}).get("full_name", "Unknown"),
+                    "position": all_players.get(pid, {}).get("position", ""),
+                    "team": all_players.get(pid, {}).get("team", "")
+                }
+                for pid in player_ids
+            ]
+
+            # Also include starters if present
+            starter_ids = matchup.get("starters") or []
+            if starter_ids:
+                summary_matchup["starters"] = [
+                    {
+                        "name": all_players.get(pid, {}).get("full_name", "Unknown"),
+                        "position": all_players.get(pid, {}).get("position", ""),
+                        "team": all_players.get(pid, {}).get("team", "")
+                    }
+                    for pid in starter_ids
+                ]
+
+            summary_matchups.append(summary_matchup)
+
+        return summary_matchups
     except Exception as e:
         raise Exception(f"Error fetching sleeper matchups: {str(e)}")
 
