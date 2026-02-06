@@ -4,7 +4,6 @@
  */
 
 import { anthropic } from '@ai-sdk/anthropic'
-import type { AITool } from './toolMetadata'
 
 /**
  * Registers Anthropic's native Tool Search and marks all MCP tools for deferred loading
@@ -13,8 +12,8 @@ import type { AITool } from './toolMetadata'
  * to Claude initially. The agent then discovers and loads relevant tools on demand via
  * Anthropic's server-side BM25 indexing.
  *
- * @param tools - Array of MCP tools to optimize
- * @returns Modified tools array with Tool Search registered and deferLoading enabled
+ * @param tools - Record of MCP tools to optimize
+ * @returns Modified tools record with Tool Search registered and deferLoading enabled
  *
  * @example
  * const mcpTools = await mcpClient.tools()
@@ -22,15 +21,18 @@ import type { AITool } from './toolMetadata'
  * // Only Tool Search meta-tool (~500 tokens) sent initially
  * // Claude discovers relevant tools on demand
  */
-export function registerToolSearch(tools: AITool[]): unknown[] {
+export function registerToolSearch<T extends Record<string, any>>(tools: T): T {
   // Mark all MCP tools with providerOptions.anthropic.deferLoading = true
   // This tells Anthropic to not send these tool definitions initially
-  const deferredTools = tools.map(tool => {
-    const existingProviderOptions = (tool.providerOptions || {}) as Record<string, unknown>
-    const existingAnthropicOptions = (existingProviderOptions.anthropic || {}) as Record<string, unknown>
+  const deferredTools: Record<string, any> = {}
 
-    return {
-      ...tool,
+  for (const [toolName, tool] of Object.entries(tools)) {
+    const toolObj = tool as Record<string, any>
+    const existingProviderOptions = (toolObj.providerOptions || {}) as Record<string, any>
+    const existingAnthropicOptions = (existingProviderOptions.anthropic || {}) as Record<string, any>
+
+    deferredTools[toolName] = {
+      ...toolObj,
       providerOptions: {
         ...existingProviderOptions,
         anthropic: {
@@ -39,14 +41,17 @@ export function registerToolSearch(tools: AITool[]): unknown[] {
         }
       }
     }
-  })
+  }
 
   // Add Anthropic's native Tool Search meta-tool
   // This allows Claude to search and discover tools via server-side BM25 indexing
   const toolSearchTool = anthropic.tools.toolSearchBm25_20251119()
 
-  // Return array with Tool Search first, followed by all deferred MCP tools
-  return [toolSearchTool, ...deferredTools]
+  // Return record with Tool Search tool and all deferred MCP tools
+  return {
+    toolSearchBm25_20251119: toolSearchTool,
+    ...deferredTools
+  } as unknown as T
 }
 
 /**

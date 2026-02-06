@@ -9,6 +9,8 @@ import {
   type UIMessage
 } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
+import { detectProvider } from '@/lib/ai/providerDetection'
+import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
 
 // Helper to extract text content from UIMessage v3 parts
 function getMessageText(message: UIMessage | undefined): string {
@@ -58,11 +60,21 @@ export async function POST(req: Request) {
     // Get all available tools from MCP server
     const tools = await mcpClient.tools()
 
-    // Create ToolLoopAgent with Claude
+    // Detect provider from model ID
     const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-20250514'
+    const provider = detectProvider(modelId)
+
+    // Apply Tool Search optimization for Anthropic models
+    // For Claude, this marks all MCP tools with deferLoading: true
+    // and adds the Tool Search meta-tool for on-demand discovery
+    const optimizedTools = provider === 'anthropic'
+      ? registerToolSearch(tools)
+      : tools
+
+    // Create ToolLoopAgent with Claude
     const agent = new ToolLoopAgent({
       model: anthropic(modelId),
-      tools,
+      tools: optimizedTools,
       stopWhen: stepCountIs(10),
       instructions: `You are BiLL, an advanced fantasy football analyst powered by AI.
 
