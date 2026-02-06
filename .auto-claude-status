@@ -3,23 +3,23 @@
   "spec": "005-adopt-assistant-ui-for-chat-components",
   "state": "building",
   "subtasks": {
-    "completed": 6,
+    "completed": 8,
     "total": 18,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Migrate Input Component",
+    "current": "Wire New Components",
     "id": null,
-    "total": 1
+    "total": 5
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 8,
+    "number": 10,
     "started_at": "2026-02-05T20:00:45.841477"
   },
-  "last_update": "2026-02-05T20:24:15.724856"
+  "last_update": "2026-02-05T20:28:50.419796"
 }
