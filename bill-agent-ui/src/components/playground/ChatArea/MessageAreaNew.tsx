@@ -1,52 +1,12 @@
 'use client'
 
-import { ThreadPrimitive, MessagePrimitive } from '@assistant-ui/react'
+import { ThreadPrimitive } from '@assistant-ui/react'
 import ChatBlankState from './Messages/ChatBlankState'
 import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/icon'
 import { motion, AnimatePresence } from 'framer-motion'
-import MarkdownRenderer from '@/components/ui/typography/MarkdownRenderer'
-
-// Temporary message components - will be replaced in subtask-3-2
-const UserMessageComponent = () => {
-  return (
-    <div className="flex items-start pt-4 text-start max-md:break-words">
-      <div className="flex flex-row gap-x-3">
-        <p className="flex items-center gap-x-2 text-sm font-medium text-muted">
-          <Icon type="user" size="sm" />
-        </p>
-        <MessagePrimitive.Parts
-          components={{
-            Text: ({ text }) => (
-              <div className="text-md rounded-lg py-1 font-geist text-secondary">
-                {text}
-              </div>
-            )
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
-const AssistantMessageComponent = () => {
-  return (
-    <div className="flex flex-row items-start gap-4 font-geist">
-      <div className="flex-shrink-0">
-        <Icon type="agent" size="sm" />
-      </div>
-      <MessagePrimitive.Parts
-        components={{
-          Text: ({ text }) => (
-            <div className="flex w-full flex-col gap-4">
-              <MarkdownRenderer>{text}</MarkdownRenderer>
-            </div>
-          )
-        }}
-      />
-    </div>
-  )
-}
+import AssistantMessage from './AssistantMessage'
+import UserMessageNew from './UserMessageNew'
 
 const MessageAreaNew = () => {
   return (
@@ -58,8 +18,8 @@ const MessageAreaNew = () => {
           </ThreadPrimitive.Empty>
           <ThreadPrimitive.Messages
             components={{
-              UserMessage: UserMessageComponent,
-              AssistantMessage: AssistantMessageComponent
+              UserMessage: UserMessageNew,
+              AssistantMessage: AssistantMessage
             }}
           />
         </div>
