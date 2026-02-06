@@ -8,8 +8,8 @@ import {
   consumeStream,
   type UIMessage
 } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
 import { detectProvider } from '@/lib/ai/providerDetection'
+import { createModelInstance } from '@/lib/ai/modelFactory'
 import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
 import { buildBM25Index } from '@/lib/ai/bm25Index'
 import { createPrepareStepCallback } from '@/lib/ai/toolFiltering'
@@ -174,9 +174,9 @@ export async function POST(req: Request) {
         }
       : undefined
 
-    // Create ToolLoopAgent with Claude
+    // Create ToolLoopAgent with detected provider model
     const agent = new ToolLoopAgent({
-      model: anthropic(modelId),
+      model: createModelInstance(modelId),
       tools: optimizedTools,
       stopWhen: stepCountIs(10),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
