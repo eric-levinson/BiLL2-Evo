@@ -16,7 +16,7 @@ export default async function AppPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <AssistantRuntimeProviderWrapper>
-        <div className="flex h-screen bg-background/80">
+        <div className="flex h-screen overflow-hidden bg-background/80">
           <Sidebar />
           <ChatArea />
         </div>
