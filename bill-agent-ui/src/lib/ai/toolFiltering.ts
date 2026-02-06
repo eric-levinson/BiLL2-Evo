@@ -7,6 +7,14 @@ import { type BM25Index, searchBM25Index, getToolNames } from './bm25Index'
 import { type AITool } from './toolMetadata'
 
 /**
+ * Tools that should always be available in every request, regardless of BM25 score.
+ * These are fundamental tools needed for most queries.
+ */
+const ALWAYS_ON_TOOLS = [
+  'get_player_info_tool' // Player lookup is fundamental to most fantasy football queries
+]
+
+/**
  * Step context from AI SDK ToolLoopAgent
  * Contains messages and other step information
  */
@@ -73,9 +81,11 @@ export function createPrepareStepCallback(
     // Extract the latest user query
     const query = getLatestUserQuery(context)
 
-    // If no query, return all tools (fallback)
+    // If no query, return only always-on tools
     if (!query || query.trim().length === 0) {
-      return {}
+      return {
+        activeTools: [...ALWAYS_ON_TOOLS]
+      }
     }
 
     // Search the BM25 index for relevant tools
@@ -84,14 +94,13 @@ export function createPrepareStepCallback(
     // Extract tool names for activeTools
     const activeToolNames = getToolNames(searchResults)
 
-    // If no results, return all tools (fallback)
-    if (activeToolNames.length === 0) {
-      return {}
-    }
+    // Merge always-on tools with BM25 results, removing duplicates
+    const mergedTools = Array.from(new Set([...ALWAYS_ON_TOOLS, ...activeToolNames]))
 
-    // Return the filtered activeTools list
+    // If BM25 returned no results, we still have always-on tools
+    // Return the merged list (always-on tools + BM25 results)
     return {
-      activeTools: activeToolNames
+      activeTools: mergedTools
     }
   }
 }
