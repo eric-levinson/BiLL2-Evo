@@ -72,7 +72,7 @@ def get_offensive_players_game_stats(
     weekly_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -85,7 +85,7 @@ def get_offensive_players_game_stats(
         weekly_list: optional list of weeks to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (position column). Defaults to ["WR","TE","RB"].
 
     Returns:
@@ -148,7 +148,7 @@ def get_defensive_players_game_stats(
     weekly_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -161,7 +161,7 @@ def get_defensive_players_game_stats(
         weekly_list: optional list of weeks to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (position column). Defaults to ["WR","TE","RB"].
 
     Returns:
