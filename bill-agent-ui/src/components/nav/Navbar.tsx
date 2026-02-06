@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { UserIcon, AgnoIcon } from '@/components/ui/icon/custom-icons'
+import { UserIcon } from '@/components/ui/icon/custom-icons'
 import DropdownMenu, {
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -24,10 +24,7 @@ export default function Navbar() {
     <header className="w-full border-b bg-background/50">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-3">
-          <span className="inline-flex items-center">
-            <AgnoIcon />
-          </span>
-          <span className="font-medium">Agent UI</span>
+          <span className="font-medium">BiLL-2</span>
         </Link>
 
         <nav className="flex items-center gap-3">
