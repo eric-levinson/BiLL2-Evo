@@ -14,6 +14,42 @@ import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
 import { buildBM25Index } from '@/lib/ai/bm25Index'
 import { createPrepareStepCallback } from '@/lib/ai/toolFiltering'
 
+/**
+ * Estimates token count for a tool definition
+ * Rough heuristic: ~1.3 tokens per character (includes name, description, parameters)
+ * @param toolName - Name of the tool
+ * @param toolDef - Tool definition object with description and parameters
+ * @returns Estimated token count
+ */
+function estimateToolTokens(toolName: string, toolDef: unknown): number {
+  // Serialize the tool definition to JSON to estimate size
+  const toolJson = JSON.stringify({
+    name: toolName,
+    ...toolDef
+  })
+  // Rough estimate: ~1.3 tokens per character (includes JSON structure overhead)
+  return Math.ceil(toolJson.length / 0.77)
+}
+
+/**
+ * Calculates total estimated tokens for a set of tools
+ * @param tools - Record of tools or array of tool names with definitions
+ * @returns Total estimated token count
+ */
+function calculateTotalTokens(tools: Record<string, unknown> | unknown[]): number {
+  if (Array.isArray(tools)) {
+    return tools.reduce((total, tool) => {
+      // For BM25 search results, estimate based on the tool object
+      return total + estimateToolTokens('tool', tool)
+    }, 0)
+  }
+
+  // For tools Record from MCP
+  return Object.entries(tools).reduce((total, [name, def]) => {
+    return total + estimateToolTokens(name, def)
+  }, 0)
+}
+
 // Helper to extract text content from UIMessage v3 parts
 function getMessageText(message: UIMessage | undefined): string {
   if (!message) return 'New Chat'
@@ -69,6 +105,14 @@ export async function POST(req: Request) {
     // Get max results for tool filtering from env var
     const maxResults = parseInt(process.env.TOOL_SEARCH_MAX_RESULTS || '7', 10)
 
+    // Calculate baseline token count (all tools)
+    const totalToolCount = Object.keys(tools).length
+    const baselineTokens = calculateTotalTokens(tools)
+
+    console.log(`[Tool Filtering] Provider: ${provider}, Model: ${modelId}`)
+    console.log(`[Tool Filtering] Total tools available: ${totalToolCount}`)
+    console.log(`[Tool Filtering] Estimated baseline tokens (all tools): ${baselineTokens.toLocaleString()}`)
+
     // Convert tools Record to array for BM25 indexing
     const toolsArray = Object.values(tools)
 
@@ -82,10 +126,48 @@ export async function POST(req: Request) {
       ? registerToolSearch(tools)
       : tools
 
+    // Log path-specific optimization strategy
+    if (provider === 'anthropic') {
+      // Anthropic Tool Search: Server-side on-demand tool loading
+      // Estimated tokens: ~500 for Tool Search meta-tool + selected tools loaded on-demand
+      const estimatedFilteredTokens = 500 + (maxResults * (baselineTokens / totalToolCount))
+      const tokenSavings = baselineTokens - estimatedFilteredTokens
+      const savingsPercentage = ((tokenSavings / baselineTokens) * 100).toFixed(1)
+
+      console.log(`[Tool Filtering] Strategy: Anthropic Tool Search (server-side)`)
+      console.log(`[Tool Filtering] Estimated filtered tokens: ${estimatedFilteredTokens.toLocaleString()} (Tool Search meta-tool + ~${maxResults} tools on-demand)`)
+      console.log(`[Tool Filtering] Estimated token savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercentage}% reduction)`)
+    } else {
+      // Client-side BM25: Tools filtered before each LLM step via prepareStep
+      const estimatedFilteredTokens = maxResults * (baselineTokens / totalToolCount)
+      const tokenSavings = baselineTokens - estimatedFilteredTokens
+      const savingsPercentage = ((tokenSavings / baselineTokens) * 100).toFixed(1)
+
+      console.log(`[Tool Filtering] Strategy: Client-side BM25 filtering via prepareStep`)
+      console.log(`[Tool Filtering] Estimated filtered tokens: ${estimatedFilteredTokens.toLocaleString()} (~${maxResults} tools per request)`)
+      console.log(`[Tool Filtering] Estimated token savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercentage}% reduction)`)
+    }
+
     // Create prepareStep callback for BM25 filtering (non-Anthropic providers)
     // For Anthropic providers, Tool Search handles this server-side, so no prepareStep needed
-    const prepareStep = provider !== 'anthropic'
+    // Wrap the callback to add logging
+    const basePrepareStep = provider !== 'anthropic'
       ? createPrepareStepCallback(bm25Index, toolsArray, maxResults)
+      : undefined
+
+    const prepareStep = basePrepareStep
+      ? (context: Parameters<typeof basePrepareStep>[0]) => {
+          const result = basePrepareStep(context)
+
+          // Log selected tools for this step
+          if (result.activeTools && result.activeTools.length > 0) {
+            console.log(`[Tool Selection] BM25 selected ${result.activeTools.length} tools: ${result.activeTools.join(', ')}`)
+          } else {
+            console.log(`[Tool Selection] BM25 fallback: using all ${totalToolCount} tools`)
+          }
+
+          return result
+        }
       : undefined
 
     // Create ToolLoopAgent with Claude
