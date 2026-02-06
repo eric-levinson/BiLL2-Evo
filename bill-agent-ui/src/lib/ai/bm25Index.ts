@@ -85,11 +85,14 @@ export function searchBM25Index(
   // Map results to tool objects and take top-k
   return results
     .slice(0, topK)
-    .map((result) => ({
-      tool: index.metadata[results.indexOf(result)].originalTool,
-      name: index.metadata[results.indexOf(result)].name,
-      score: result.score
-    }))
+    .map((result) => {
+      const originalIndex = index.documents.indexOf(result.document)
+      return {
+        tool: index.metadata[originalIndex].originalTool,
+        name: index.metadata[originalIndex].name,
+        score: result.score
+      }
+    })
     .filter(result => result.score > 0) // Filter out zero-score results
 }
 

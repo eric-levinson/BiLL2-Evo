@@ -114,8 +114,11 @@ export async function POST(req: Request) {
     console.log(`[Tool Filtering] Total tools available: ${totalToolCount}`)
     console.log(`[Tool Filtering] Estimated baseline tokens (all tools): ${baselineTokens.toLocaleString()}`)
 
-    // Convert tools Record to array for BM25 indexing
-    const toolsArray = Object.values(tools) as unknown as AITool[]
+    // Convert tools Record to array for BM25 indexing, injecting name from Record keys
+    const toolsArray = Object.entries(tools).map(([name, tool]) => ({
+      ...(tool as Record<string, unknown>),
+      name,
+    })) as AITool[]
 
     // Build BM25 index for client-side tool filtering (used by non-Anthropic providers)
     const bm25Index = buildBM25Index(toolsArray)
