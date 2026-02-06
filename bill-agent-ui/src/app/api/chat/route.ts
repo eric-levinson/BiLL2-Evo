@@ -11,6 +11,8 @@ import {
 import { anthropic } from '@ai-sdk/anthropic'
 import { detectProvider } from '@/lib/ai/providerDetection'
 import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
+import { buildBM25Index } from '@/lib/ai/bm25Index'
+import { createPrepareStepCallback } from '@/lib/ai/toolFiltering'
 
 // Helper to extract text content from UIMessage v3 parts
 function getMessageText(message: UIMessage | undefined): string {
@@ -64,6 +66,15 @@ export async function POST(req: Request) {
     const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-20250514'
     const provider = detectProvider(modelId)
 
+    // Get max results for tool filtering from env var
+    const maxResults = parseInt(process.env.TOOL_SEARCH_MAX_RESULTS || '7', 10)
+
+    // Convert tools Record to array for BM25 indexing
+    const toolsArray = Object.values(tools)
+
+    // Build BM25 index for client-side tool filtering (used by non-Anthropic providers)
+    const bm25Index = buildBM25Index(toolsArray)
+
     // Apply Tool Search optimization for Anthropic models
     // For Claude, this marks all MCP tools with deferLoading: true
     // and adds the Tool Search meta-tool for on-demand discovery
@@ -71,11 +82,18 @@ export async function POST(req: Request) {
       ? registerToolSearch(tools)
       : tools
 
+    // Create prepareStep callback for BM25 filtering (non-Anthropic providers)
+    // For Anthropic providers, Tool Search handles this server-side, so no prepareStep needed
+    const prepareStep = provider !== 'anthropic'
+      ? createPrepareStepCallback(bm25Index, toolsArray, maxResults)
+      : undefined
+
     // Create ToolLoopAgent with Claude
     const agent = new ToolLoopAgent({
       model: anthropic(modelId),
       tools: optimizedTools,
       stopWhen: stepCountIs(10),
+      prepareStep,
       instructions: `You are BiLL, an advanced fantasy football analyst powered by AI.
 
 Your capabilities:
