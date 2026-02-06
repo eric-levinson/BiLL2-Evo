@@ -1,6 +1,6 @@
 'use client'
 
-import { MessagePrimitive, useMessage } from '@assistant-ui/react'
+import { MessagePrimitive, useMessage, ActionBarPrimitive } from '@assistant-ui/react'
 import Icon from '@/components/ui/icon'
 import MarkdownRenderer from '@/components/ui/typography/MarkdownRenderer'
 import { usePlaygroundStore } from '@/store'
@@ -77,6 +77,24 @@ const AssistantMessage = () => {
               }
             }}
           />
+
+          {/* Action bar for copy and regenerate functionality */}
+          <ActionBarPrimitive.Root
+            hideWhenRunning
+            autohide="not-last"
+            className="flex items-center gap-2"
+          >
+            <Tooltip content="Copy message">
+              <ActionBarPrimitive.Copy className="flex items-center justify-center rounded-lg border border-primaryAccent bg-background p-2 transition-colors hover:bg-primaryAccent">
+                <Icon type="copy" size="xs" />
+              </ActionBarPrimitive.Copy>
+            </Tooltip>
+            <Tooltip content="Regenerate response">
+              <ActionBarPrimitive.Reload className="flex items-center justify-center rounded-lg border border-primaryAccent bg-background p-2 transition-colors hover:bg-primaryAccent">
+                <Icon type="refresh" size="xs" />
+              </ActionBarPrimitive.Reload>
+            </Tooltip>
+          </ActionBarPrimitive.Root>
         </div>
       </div>
     </MessagePrimitive.Root>
