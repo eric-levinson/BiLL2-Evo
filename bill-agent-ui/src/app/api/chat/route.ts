@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     const tools = await mcpClient.tools()
 
     // Detect provider from model ID
-    const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-20250514'
+    const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-5-20250929'
     const provider = detectProvider(modelId)
 
     // Get max results for tool filtering from env var
