@@ -11,10 +11,9 @@ const ChatInput = () => {
   return (
     <ComposerPrimitive.Root className="relative mx-auto mb-1 flex w-full max-w-2xl items-end justify-center gap-x-2 font-geist">
       <ComposerPrimitive.Input
-        asChild
         autoFocus
         placeholder="Ask anything"
-        className="w-full border border-accent bg-primaryAccent px-4 text-sm text-primary focus:border-accent"
+        className="w-full rounded-xl border border-accent bg-primaryAccent px-4 py-3 text-sm text-primary focus:border-accent focus:outline-none"
         ref={chatInputRef}
       />
       <ComposerPrimitive.Send asChild>
