@@ -4,7 +4,7 @@ import { MessagePrimitive } from '@assistant-ui/react'
 import Icon from '@/components/ui/icon'
 import { memo } from 'react'
 
-const UserMessageNew = memo(() => {
+const UserMessage = memo(() => {
   return (
     <MessagePrimitive.Root>
       <div className="flex items-start pt-4 text-start max-md:break-words">
@@ -27,6 +27,6 @@ const UserMessageNew = memo(() => {
   )
 })
 
-UserMessageNew.displayName = 'UserMessageNew'
+UserMessage.displayName = 'UserMessage'
 
-export default UserMessageNew
+export default UserMessage

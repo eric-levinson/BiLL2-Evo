@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { usePlaygroundStore } from '@/store'
 import Icon from '@/components/ui/icon'
 
-const ChatInputNew = () => {
+const ChatInput = () => {
   const { chatInputRef } = usePlaygroundStore()
 
   return (
@@ -29,4 +29,4 @@ const ChatInputNew = () => {
   )
 }
 
-export default ChatInputNew
+export default ChatInput

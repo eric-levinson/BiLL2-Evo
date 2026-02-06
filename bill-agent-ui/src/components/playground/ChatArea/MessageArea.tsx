@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/icon'
 import { motion, AnimatePresence } from 'framer-motion'
 import AssistantMessage from './AssistantMessage'
-import UserMessageNew from './UserMessageNew'
+import UserMessage from './UserMessage'
 
-const MessageAreaNew = () => {
+const MessageArea = () => {
   return (
     <ThreadPrimitive.Root className="relative mb-4 flex max-h-[calc(100vh-64px)] min-h-0 flex-grow flex-col">
       <ThreadPrimitive.Viewport className="flex min-h-full flex-col justify-center">
@@ -18,7 +18,7 @@ const MessageAreaNew = () => {
           </ThreadPrimitive.Empty>
           <ThreadPrimitive.Messages
             components={{
-              UserMessage: UserMessageNew,
+              UserMessage: UserMessage,
               AssistantMessage: AssistantMessage
             }}
           />
@@ -54,4 +54,4 @@ const ScrollToBottomButton = () => {
   )
 }
 
-export default MessageAreaNew
+export default MessageArea

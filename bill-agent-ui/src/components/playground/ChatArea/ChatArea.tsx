@@ -1,13 +1,13 @@
 'use client'
 
-import ChatInputNew from './ChatInput/ChatInputNew'
-import MessageAreaNew from './MessageAreaNew'
+import ChatInput from './ChatInput/ChatInput'
+import MessageArea from './MessageArea'
 const ChatArea = () => {
   return (
     <main className="relative m-1.5 flex flex-grow flex-col rounded-xl bg-background">
-      <MessageAreaNew />
+      <MessageArea />
       <div className="sticky bottom-0 ml-9 px-4 pb-2">
-        <ChatInputNew />
+        <ChatInput />
       </div>
     </main>
   )
