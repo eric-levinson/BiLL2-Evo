@@ -44,7 +44,7 @@ interface PrepareStepResult {
  */
 function getLatestUserQuery(context: StepContext): string {
   // Find the last user message
-  const userMessages = context.messages.filter(m => m.role === 'user')
+  const userMessages = context.messages.filter((m: { role: string }) => m.role === 'user')
   const lastUserMessage = userMessages[userMessages.length - 1]
 
   if (!lastUserMessage) return ''
@@ -57,7 +57,7 @@ function getLatestUserQuery(context: StepContext): string {
   // Handle parts-based content (UIMessage v3)
   if (Array.isArray(lastUserMessage.content)) {
     const textPart = lastUserMessage.content.find(
-      (p): p is { type: 'text'; text: string } => p.type === 'text' && typeof p.text === 'string'
+      (p: { type: string; text?: string; [key: string]: unknown }): p is { type: 'text'; text: string } => p.type === 'text' && typeof p.text === 'string'
     )
     return textPart?.text || ''
   }

@@ -13,6 +13,7 @@ import { detectProvider } from '@/lib/ai/providerDetection'
 import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
 import { buildBM25Index } from '@/lib/ai/bm25Index'
 import { createPrepareStepCallback } from '@/lib/ai/toolFiltering'
+import { type AITool } from '@/lib/ai/toolMetadata'
 
 /**
  * Estimates token count for a tool definition
@@ -25,7 +26,7 @@ function estimateToolTokens(toolName: string, toolDef: unknown): number {
   // Serialize the tool definition to JSON to estimate size
   const toolJson = JSON.stringify({
     name: toolName,
-    ...toolDef
+    ...(toolDef as Record<string, unknown>)
   })
   // Rough estimate: ~1.3 tokens per character (includes JSON structure overhead)
   return Math.ceil(toolJson.length / 0.77)
@@ -38,14 +39,14 @@ function estimateToolTokens(toolName: string, toolDef: unknown): number {
  */
 function calculateTotalTokens(tools: Record<string, unknown> | unknown[]): number {
   if (Array.isArray(tools)) {
-    return tools.reduce((total, tool) => {
+    return tools.reduce((total: number, tool) => {
       // For BM25 search results, estimate based on the tool object
       return total + estimateToolTokens('tool', tool)
     }, 0)
   }
 
   // For tools Record from MCP
-  return Object.entries(tools).reduce((total, [name, def]) => {
+  return Object.entries(tools).reduce((total: number, [name, def]) => {
     return total + estimateToolTokens(name, def)
   }, 0)
 }
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
     console.log(`[Tool Filtering] Estimated baseline tokens (all tools): ${baselineTokens.toLocaleString()}`)
 
     // Convert tools Record to array for BM25 indexing
-    const toolsArray = Object.values(tools)
+    const toolsArray = Object.values(tools) as unknown as AITool[]
 
     // Build BM25 index for client-side tool filtering (used by non-Anthropic providers)
     const bm25Index = buildBM25Index(toolsArray)
@@ -160,7 +161,7 @@ export async function POST(req: Request) {
           const result = basePrepareStep(context)
 
           // Log selected tools for this step
-          if (result.activeTools && result.activeTools.length > 0) {
+          if (result?.activeTools && result.activeTools.length > 0) {
             console.log(`[Tool Selection] BM25 selected ${result.activeTools.length} tools: ${result.activeTools.join(', ')}`)
           } else {
             console.log(`[Tool Selection] BM25 fallback: using all ${totalToolCount} tools`)
@@ -175,7 +176,8 @@ export async function POST(req: Request) {
       model: anthropic(modelId),
       tools: optimizedTools,
       stopWhen: stepCountIs(10),
-      prepareStep,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      prepareStep: prepareStep as any,
       instructions: `You are BiLL, an advanced fantasy football analyst powered by AI.
 
 Your capabilities:
