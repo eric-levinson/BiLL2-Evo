@@ -10,6 +10,13 @@ export interface ChatSession {
   updated_at: string
 }
 
+// Lightweight type for session listings (without messages)
+export interface ChatSessionSummary {
+  id: string
+  title: string
+  created_at: string
+}
+
 /**
  * Creates a new chat session for a user
  * @param userId - UUID of the user creating the session
@@ -89,15 +96,16 @@ export async function getSession(
 
 /**
  * Retrieves all chat sessions for a user, sorted by most recent first
+ * Only fetches id, title, created_at for efficiency (no messages JSONB)
  * @param userId - UUID of the user whose sessions to retrieve
- * @returns Array of sessions or empty array if none found
+ * @returns Array of session summaries or empty array if none found
  */
 export async function getUserSessions(
   userId: string
-): Promise<ChatSession[]> {
+): Promise<ChatSessionSummary[]> {
   const { data, error } = await supabase
     .from('chat_sessions')
-    .select('*')
+    .select('id, title, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
