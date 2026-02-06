@@ -32,7 +32,6 @@ export default function NavbarClient({
 
   async function handleSignOut(e: React.MouseEvent) {
     e.preventDefault()
-    e.preventDefault()
     try {
       await fetch('/auth/signout', {
         method: 'POST',
@@ -49,7 +48,7 @@ export default function NavbarClient({
     <header className="w-full border-b bg-background/50">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-3">
-          <span className="inline-flex items-center">Agent UI</span>
+          <span className="inline-flex items-center">BiLL-2</span>
         </Link>
 
         <nav className="flex items-center gap-3">
