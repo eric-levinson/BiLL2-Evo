@@ -1,8 +1,16 @@
 'use client'
 
 import { useChat, Chat } from '@ai-sdk/react'
+import type { UIMessage } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { useMemo, useEffect, useCallback, useRef } from 'react'
+import {
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+  createContext,
+  useContext
+} from 'react'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
 import { useAISDKRuntime } from '@assistant-ui/react-ai-sdk'
@@ -17,11 +25,25 @@ import { usePlaygroundStore } from '@/store'
 import type { SessionEntry } from '@/types/playground'
 
 /**
+ * Context for sharing session-related state across components.
+ * Provides sessionId, refreshSessions, messages, and clearChat.
+ */
+interface AssistantSessionContextValue {
+  sessionId: string | null
+  refreshSessions: () => Promise<void>
+  messages: UIMessage[]
+  clearChat: () => void
+}
+
+const AssistantSessionContext =
+  createContext<AssistantSessionContextValue | null>(null)
+
+/**
  * Hook that creates an AssistantRuntime from the existing AI SDK chat instance.
  * Preserves all session management and Supabase persistence logic.
  */
 export function useAssistantRuntime() {
-  const [sessionId] = useQueryState('session')
+  const [sessionId, setSessionId] = useQueryState('session')
   const lastLoadedSessionId = useRef<string | null>(null)
   const { setSessionsData, setIsSessionsLoading } = usePlaygroundStore()
 
@@ -53,6 +75,13 @@ export function useAssistantRuntime() {
   const chatHelpers = useChat({ chat })
 
   const { messages, error, setMessages } = chatHelpers
+
+  // Clear chat: reset messages and session
+  const clearChat = useCallback(() => {
+    setMessages([])
+    setSessionId(null)
+    lastLoadedSessionId.current = null
+  }, [setMessages, setSessionId])
 
   // Function to refresh sessions list from Supabase
   const refreshSessions = useCallback(async () => {
@@ -122,26 +151,50 @@ export function useAssistantRuntime() {
     runtime,
     sessionId,
     refreshSessions,
-    messages
+    messages,
+    clearChat
   }
 }
 
 /**
  * Provider that creates an AssistantRuntime from the AI SDK chat instance
  * and makes it available to all assistant-ui components.
+ * Also provides session-related state via AssistantSessionContext.
  */
 export function AssistantRuntimeProviderWrapper({
   children
 }: {
   children: React.ReactNode
 }) {
-  const { runtime } = useAssistantRuntime()
+  const { runtime, sessionId, refreshSessions, messages, clearChat } =
+    useAssistantRuntime()
+
+  const sessionContextValue = useMemo(
+    () => ({ sessionId, refreshSessions, messages, clearChat }),
+    [sessionId, refreshSessions, messages, clearChat]
+  )
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      {children}
+      <AssistantSessionContext.Provider value={sessionContextValue}>
+        {children}
+      </AssistantSessionContext.Provider>
     </AssistantRuntimeProvider>
   )
+}
+
+/**
+ * Hook to access session-related state from AssistantRuntimeProviderWrapper.
+ * Must be used within an AssistantRuntimeProviderWrapper.
+ */
+export function useAssistantSession(): AssistantSessionContextValue {
+  const ctx = useContext(AssistantSessionContext)
+  if (!ctx) {
+    throw new Error(
+      'useAssistantSession must be used within an AssistantRuntimeProviderWrapper'
+    )
+  }
+  return ctx
 }
 
 export default useAssistantRuntime

@@ -1,11 +1,12 @@
 import { useCallback } from 'react'
 
 import { usePlaygroundStore } from '../store'
-import { useChatHandler } from './useChatHandler'
+import { useAssistantSession } from './useAssistantRuntime'
 
 const useChatActions = () => {
   const { chatInputRef } = usePlaygroundStore()
-  const chatHandler = useChatHandler()
+  const { sessionId, refreshSessions, messages, clearChat } =
+    useAssistantSession()
 
   const focusChatInput = useCallback(() => {
     setTimeout(() => {
@@ -14,9 +15,12 @@ const useChatActions = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Pass through all chat handler methods and add focusChatInput
+  // Provide session-related methods and add focusChatInput
   return {
-    ...chatHandler,
+    sessionId,
+    refreshSessions,
+    messages,
+    clearChat,
     focusChatInput
   }
 }
