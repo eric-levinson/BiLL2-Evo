@@ -266,20 +266,25 @@ Remember:
           }
         } catch (err) {
           console.error('Server-side persistence error:', err)
-          // Don't throw - we don't want to break the streaming response
+        } finally {
+          // Close MCP client AFTER stream completes — closing in the outer
+          // finally block causes "request from a closed client" errors because
+          // the finally runs before the stream's tool calls finish executing
+          if (mcpClient) {
+            await mcpClient.close()
+          }
         }
       }
     })
   } catch (err) {
     console.error('Chat API error:', err)
+    // Close MCP client on setup errors (stream never started)
+    if (mcpClient) {
+      await mcpClient.close()
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
-  } finally {
-    // Close MCP client to prevent resource leaks
-    if (mcpClient) {
-      await mcpClient.close()
-    }
   }
 }
