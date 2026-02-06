@@ -32,8 +32,14 @@ def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> lis
     except Exception as e:
         return Exception(f"Error fetching sleeper leagues: {str(e)}")
 
-def get_sleeper_league_rosters(league_id: str) -> list[dict]:
-    """Retrieve rosters for a given Sleeper league ID, annotated with usernames."""
+def get_sleeper_league_rosters(league_id: str, summary: bool = False) -> list[dict]:
+    """Retrieve rosters for a given Sleeper league ID, annotated with usernames.
+
+    Args:
+        league_id: The Sleeper league ID.
+        summary: If True, returns compact roster info with player names/positions/teams
+                 instead of full roster objects. If False (default), returns full data.
+    """
 
     if not league_id:
         return [{"error": "Please provide a valid league_id as a string."}]
@@ -48,11 +54,51 @@ def get_sleeper_league_rosters(league_id: str) -> list[dict]:
                 user_map[user["user_id"]] = user["metadata"]["team_name"]
             except:
                 user_map[user["user_id"]] = user.get("display_name")
-        
+
         for roster in rosters:
             owner = roster.get("owner_id")
             roster["owner_name"] = user_map.get(owner)
-        return rosters
+
+        if not summary:
+            return rosters
+
+        # Summary mode: return compact player info
+        players_wrapper = Players()
+        all_players = players_wrapper.get_all_players()
+
+        summary_rosters = []
+        for roster in rosters:
+            summary_roster = {
+                "roster_id": roster.get("roster_id"),
+                "owner_name": roster.get("owner_name"),
+            }
+
+            # Convert player IDs to compact player info
+            player_ids = roster.get("players") or []
+            summary_roster["players"] = [
+                {
+                    "name": all_players.get(pid, {}).get("full_name", "Unknown"),
+                    "position": all_players.get(pid, {}).get("position", ""),
+                    "team": all_players.get(pid, {}).get("team", "")
+                }
+                for pid in player_ids
+            ]
+
+            # Also include starters if present
+            starter_ids = roster.get("starters") or []
+            if starter_ids:
+                summary_roster["starters"] = [
+                    {
+                        "name": all_players.get(pid, {}).get("full_name", "Unknown"),
+                        "position": all_players.get(pid, {}).get("position", ""),
+                        "team": all_players.get(pid, {}).get("team", "")
+                    }
+                    for pid in starter_ids
+                ]
+
+            summary_rosters.append(summary_roster)
+
+        return summary_rosters
     except Exception as e:
         raise Exception(f"Error fetching sleeper leagues: {str(e)}")
 
