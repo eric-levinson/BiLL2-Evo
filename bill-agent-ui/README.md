@@ -1,46 +1,61 @@
-# Agent UI
+# BiLL-2 Agent UI
 
-A modern chat interface for AI agents built with Next.js, Tailwind CSS, and TypeScript. This template provides a ready-to-use UI for interacting with Agno agents.
-
-<img src="https://github.com/user-attachments/assets/7765fae5-a813-46cb-993b-904af9bc1672" alt="agent-ui" style="border-radius: 10px; width: 100%; max-width: 800px;" />
+A modern chat interface for BiLL-2 Evo, an AI-powered fantasy football analytics platform. Built with Next.js 15, Tailwind CSS, TypeScript, and Vercel AI SDK 6.
 
 ## Features
 
 - 💬 **Modern Chat Interface**: Clean design with real-time streaming support
-- 🧩 **Tool Calls Support**: Visualizes agent tool calls and their results
-- 🧠 **Reasoning Steps**: Displays agent reasoning process (when available)
-- 📚 **References Support**: Show sources used by the agent
-- 🖼️ **Multi-modality Support**: Handles various content types including images, video, and audio
-- 🎨 **Customizable UI**: Built with Tailwind CSS for easy styling
-- 🧰 **Built with Modern Stack**: Next.js, TypeScript, shadcn/ui, Framer Motion, and more
+- 🧩 **Tool Calls Support**: Visualizes AI agent tool calls and their results
+- 🏈 **Fantasy Football Analytics**: Access to ~40 MCP tools for NFL stats, Sleeper league management, and dynasty rankings
+- 🤖 **Single Agent Architecture**: Provider-agnostic AI agent (Claude, GPT, Gemini) with MCP tool integration
+- 📊 **Advanced NFL Stats**: Query 90+ Supabase tables with advanced receiving, passing, rushing, and defensive metrics
+- 🎨 **Customizable UI**: Built with Tailwind CSS and shadcn/ui components
+- 🔐 **Authentication**: Supabase auth with session management
+
+## Architecture
+
+BiLL-2 Agent UI contains both the frontend chat interface and the AI backend:
+
+- **Frontend**: Next.js 15 App Router with React 18 and TypeScript
+- **AI Backend**: `/api/chat` route using Vercel AI SDK 6 with `ToolLoopAgent`
+- **MCP Integration**: Connects to fantasy-tools-mcp server for NFL data and Sleeper API access
+- **Database**: Supabase (PostgreSQL) with 90+ NFL data tables
+- **State Management**: Zustand for client state, Supabase for chat persistence
 
 ## Getting Started
 
 ### Prerequisites
 
-Before setting up Agent UI, you may want to have an Agno Playground running. If you haven't set up the Agno Playground yet, follow the [official guide](https://agno.link/agent-ui#connect-to-local-agents) to run the Playground locally.
+1. **fantasy-tools-mcp server** must be running (see monorepo root for setup)
+2. **Supabase project** with NFL data tables configured
+3. **API keys** for AI providers (Anthropic, OpenAI, or Google)
 
 ### Installation
 
-### Automatic Installation (Recommended)
-
-```bash
-npx create-agent-ui@latest
-```
-
-### Manual Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/agno-agi/agent-ui.git
-cd agent-ui
-```
-
-2. Install dependencies:
+1. Install dependencies:
 
 ```bash
 pnpm install
+```
+
+2. Set up environment variables:
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# AI Provider API Keys
+ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here  # optional
+
+# AI Model Configuration
+AI_MODEL_ID=claude-sonnet-4-20250514
+
+# MCP Server
+MCP_SERVER_URL=http://localhost:8000/mcp/
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 3. Start the development server:
@@ -49,18 +64,47 @@ pnpm install
 pnpm dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-## Connecting to an Agent Backend
+## MCP Server Connection
 
-By default Agent UI connects to `http://localhost:7777`. You can easily change this by hovering over the endpoint URL and clicking the edit option.
+The UI connects to the fantasy-tools-mcp server at `http://localhost:8000/mcp/` by default. Make sure the MCP server is running before starting the UI:
 
-The default endpoint works with the standard Agno Playground setup described in the [official documentation](https://agno.link/agent-ui#connect-to-local-agents).
+```bash
+cd ../fantasy-tools-mcp
+python main.py
+```
 
-## Contributing
+## Available Scripts
 
-Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
+- `pnpm format` - Format code with Prettier
+- `pnpm validate` - Run lint, format check, and type check
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript 5
+- **AI SDK**: Vercel AI SDK 6 (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/mcp`)
+- **UI Components**: shadcn/ui, Radix UI
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Package Manager**: pnpm
+
+## Key Files
+
+- `src/app/api/chat/route.ts` - AI backend with ToolLoopAgent + MCP client
+- `src/app/` - Next.js App Router pages
+- `src/components/playground/` - Chat UI components
+- `src/store.ts` - Zustand state store
+- `src/lib/supabase/` - Supabase client utilities
+- `middleware.ts` - Auth session refresh middleware
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is part of the BiLL-2 Evo monorepo.
