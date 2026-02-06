@@ -90,11 +90,13 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     @mcp.tool(
         description=(
-            "Get a Sleeper league by its ID. Includes basic info, scoring settings, league settings, and roster positions."
+            "Get a Sleeper league by its ID. If summary is True, returns compact "
+            "league data without nested settings objects. If False (default), "
+            "includes basic info, scoring settings, league settings, and roster positions."
         )
     )
-    def get_sleeper_league_by_id(league_id: str) -> dict:
-        return _get_sleeper_league_by_id(league_id)
+    def get_sleeper_league_by_id(league_id: str, summary: bool = False) -> dict:
+        return _get_sleeper_league_by_id(league_id, summary)
     
     @mcp.tool(
         description=(

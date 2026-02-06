@@ -307,13 +307,29 @@ def get_sleeper_user_drafts(
     except Exception as e:
         raise Exception(f"Error fetching sleeper drafts: {str(e)}")
 
-def get_sleeper_league_by_id(league_id: str) -> dict:
-    """Retrieve a Sleeper league by its ID."""
+def get_sleeper_league_by_id(league_id: str, summary: bool = False) -> dict:
+    """Retrieve a Sleeper league by its ID.
+
+    Args:
+        league_id: The Sleeper league ID.
+        summary: If True, returns compact league data without nested settings objects.
+                 If False (default), returns full data.
+    """
     if not league_id:
         return {"error": "Please provide a valid league_id as a string."}
     try:
         league = League(league_id)
-        return league.get_league()
+        league_data = league.get_league()
+
+        if not summary:
+            return league_data
+
+        # Summary mode: return only essential league info, exclude heavy nested objects
+        default_keys = [
+            "status", "name", "draft_id", "season_type", "season", "total_rosters", "league_id"
+        ]
+        summary_data = {k: league_data.get(k) for k in default_keys}
+        return summary_data
     except Exception as e:
         raise Exception(f"Error fetching sleeper league: {str(e)}")
 
