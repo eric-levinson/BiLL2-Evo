@@ -1,6 +1,8 @@
 'use client'
 
 import { FC, useState } from 'react'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -126,6 +128,39 @@ const InlineCode: FC<PreparedTextProps> = ({ children }) => {
     <code className="relative whitespace-pre-wrap rounded-sm bg-background-secondary/50 p-1">
       {children}
     </code>
+  )
+}
+
+const CodeBlock: FC<PreparedTextProps> = ({
+  children,
+  className,
+  ...props
+}) => {
+  // Extract language from className (e.g., "language-python" -> "python")
+  const match = /language-(\w+)/.exec(className || '')
+  const language = match ? match[1] : ''
+
+  // If it's inline code (no language specified), use InlineCode
+  if (!language && !className?.includes('language-')) {
+    return <InlineCode {...props}>{children}</InlineCode>
+  }
+
+  return (
+    <div className="my-4 overflow-hidden rounded-lg border border-border bg-background-secondary">
+      <SyntaxHighlighter
+        language={language}
+        style={vscDarkPlus}
+        customStyle={{
+          margin: 0,
+          padding: '1rem',
+          background: 'transparent',
+          fontSize: '0.875rem'
+        }}
+        {...filterProps(props)}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    </div>
   )
 }
 
@@ -268,7 +303,7 @@ export const components = {
   del: DeletedText,
   hr: HorizontalRule,
   blockquote: Blockquote,
-  code: InlineCode,
+  code: CodeBlock,
   a: AnchorLink,
   img: Img,
   p: Paragraph,

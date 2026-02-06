@@ -4,16 +4,17 @@ import { useChat, Chat } from '@ai-sdk/react'
 import type { UIMessage } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
   useMemo,
+  useEffect,
+  useCallback,
   useRef,
-  useState
+  createContext,
+  useContext
 } from 'react'
 import { toast } from 'sonner'
 import { useQueryState } from 'nuqs'
+import { useAISDKRuntime } from '@assistant-ui/react-ai-sdk'
+import { AssistantRuntimeProvider } from '@assistant-ui/react'
 import {
   getSession,
   getUserSessions,
@@ -23,29 +24,26 @@ import { supabase } from '@/lib/supabase/client'
 import { usePlaygroundStore } from '@/store'
 import type { SessionEntry } from '@/types/playground'
 
-interface ChatHandlerValue {
-  messages: UIMessage[]
-  isLoading: boolean
-  error: Error | undefined
-  input: string
-  setInput: (value: string) => void
-  sendMessage: (content: string) => Promise<void>
-  clearChat: () => void
-  retryLastMessage: () => void
-  stopStreaming: () => void
+/**
+ * Context for sharing session-related state across components.
+ * Provides sessionId, refreshSessions, messages, and clearChat.
+ */
+interface AssistantSessionContextValue {
   sessionId: string | null
   refreshSessions: () => Promise<void>
+  messages: UIMessage[]
+  clearChat: () => void
 }
 
-const ChatContext = createContext<ChatHandlerValue | null>(null)
+const AssistantSessionContext =
+  createContext<AssistantSessionContextValue | null>(null)
 
 /**
- * Provider that creates a single useChat() instance and shares it
- * across all child components via React Context.
+ * Hook that creates an AssistantRuntime from the existing AI SDK chat instance.
+ * Preserves all session management and Supabase persistence logic.
  */
-export function ChatProvider({ children }: { children: React.ReactNode }) {
+export function useAssistantRuntime() {
   const [sessionId, setSessionId] = useQueryState('session')
-  const [input, setInput] = useState('')
   const lastLoadedSessionId = useRef<string | null>(null)
   const { setSessionsData, setIsSessionsLoading } = usePlaygroundStore()
 
@@ -74,17 +72,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     })
   }, [sessionId])
 
-  const {
-    messages,
-    sendMessage: chatSendMessage,
-    regenerate,
-    stop,
-    status,
-    error,
-    setMessages
-  } = useChat({ chat })
+  const chatHelpers = useChat({ chat })
 
-  const isLoading = status === 'submitted' || status === 'streaming'
+  const { messages, error, setMessages } = chatHelpers
+
+  // Clear chat: reset messages and session
+  const clearChat = useCallback(() => {
+    setMessages([])
+    setSessionId(null)
+    lastLoadedSessionId.current = null
+  }, [setMessages, setSessionId])
 
   // Function to refresh sessions list from Supabase
   const refreshSessions = useCallback(async () => {
@@ -112,39 +109,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setSessionsData])
 
-  const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim()) return
-      try {
-        await chatSendMessage({ text: content.trim() })
-        // Refresh sessions after message completes to pick up new/updated sessions
-        // Small delay to allow server-side persistence to complete
-        setTimeout(() => {
-          refreshSessions()
-        }, 1000)
-      } catch (err) {
-        console.error('Error sending message:', err)
-        toast.error('Failed to send message')
-      }
-    },
-    [chatSendMessage, refreshSessions]
-  )
-
-  const clearChat = useCallback(() => {
-    setMessages([])
-    setSessionId(null)
-    setInput('')
-    lastLoadedSessionId.current = null
-  }, [setMessages, setSessionId])
-
-  const retryLastMessage = useCallback(() => {
-    regenerate()
-  }, [regenerate])
-
-  const stopStreaming = useCallback(() => {
-    stop()
-  }, [stop])
-
+  // Show error toast on error
   useEffect(() => {
     if (error) {
       toast.error(error.message || 'An error occurred')
@@ -179,37 +144,57 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     loadSession()
   }, [sessionId, setMessages, setIsSessionsLoading])
 
+  // Wrap the AI SDK chat with assistant-ui runtime adapter
+  const runtime = useAISDKRuntime(chatHelpers)
+
+  return {
+    runtime,
+    sessionId,
+    refreshSessions,
+    messages,
+    clearChat
+  }
+}
+
+/**
+ * Provider that creates an AssistantRuntime from the AI SDK chat instance
+ * and makes it available to all assistant-ui components.
+ * Also provides session-related state via AssistantSessionContext.
+ */
+export function AssistantRuntimeProviderWrapper({
+  children
+}: {
+  children: React.ReactNode
+}) {
+  const { runtime, sessionId, refreshSessions, messages, clearChat } =
+    useAssistantRuntime()
+
+  const sessionContextValue = useMemo(
+    () => ({ sessionId, refreshSessions, messages, clearChat }),
+    [sessionId, refreshSessions, messages, clearChat]
+  )
+
   return (
-    <ChatContext.Provider
-      value={{
-        messages,
-        isLoading,
-        error,
-        input,
-        setInput,
-        sendMessage,
-        clearChat,
-        retryLastMessage,
-        stopStreaming,
-        sessionId,
-        refreshSessions
-      }}
-    >
-      {children}
-    </ChatContext.Provider>
+    <AssistantRuntimeProvider runtime={runtime}>
+      <AssistantSessionContext.Provider value={sessionContextValue}>
+        {children}
+      </AssistantSessionContext.Provider>
+    </AssistantRuntimeProvider>
   )
 }
 
 /**
- * Hook to access the shared chat state from ChatProvider.
- * Must be used within a ChatProvider.
+ * Hook to access session-related state from AssistantRuntimeProviderWrapper.
+ * Must be used within an AssistantRuntimeProviderWrapper.
  */
-export function useChatHandler(): ChatHandlerValue {
-  const ctx = useContext(ChatContext)
+export function useAssistantSession(): AssistantSessionContextValue {
+  const ctx = useContext(AssistantSessionContext)
   if (!ctx) {
-    throw new Error('useChatHandler must be used within a ChatProvider')
+    throw new Error(
+      'useAssistantSession must be used within an AssistantRuntimeProviderWrapper'
+    )
   }
   return ctx
 }
 
-export default useChatHandler
+export default useAssistantRuntime

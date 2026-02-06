@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "004-chat-persistence-via-supabase",
+  "spec": "005-adopt-assistant-ui-for-chat-components",
   "state": "building",
   "subtasks": {
-    "completed": 9,
-    "total": 10,
+    "completed": 17,
+    "total": 18,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "End-to-End Integration",
+    "current": "Final QA",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 11,
-    "started_at": "2026-02-04T21:15:44.768266"
+    "number": 19,
+    "started_at": "2026-02-05T20:00:45.841477"
   },
-  "last_update": "2026-02-04T21:42:38.869007"
+  "last_update": "2026-02-05T21:02:02.398743"
 }

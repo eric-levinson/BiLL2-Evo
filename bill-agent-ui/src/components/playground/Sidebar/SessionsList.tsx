@@ -1,7 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { usePlaygroundStore } from '@/store'
-import { useChatHandler } from '@/hooks/useChatHandler'
+import { useAssistantSession } from '@/hooks/useAssistantRuntime'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
@@ -11,7 +11,7 @@ dayjs.extend(relativeTime)
 
 const SessionsList = () => {
   const { sessionsData, isSessionsLoading } = usePlaygroundStore()
-  const { sessionId, refreshSessions } = useChatHandler()
+  const { sessionId, refreshSessions } = useAssistantSession()
   const router = useRouter()
 
   // Load user sessions on component mount
