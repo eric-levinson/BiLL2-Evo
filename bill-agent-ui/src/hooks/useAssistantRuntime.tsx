@@ -21,7 +21,7 @@ import type { SessionEntry } from '@/types/playground'
  * Preserves all session management and Supabase persistence logic.
  */
 export function useAssistantRuntime() {
-  const [sessionId, setSessionId] = useQueryState('session')
+  const [sessionId] = useQueryState('session')
   const lastLoadedSessionId = useRef<string | null>(null)
   const { setSessionsData, setIsSessionsLoading } = usePlaygroundStore()
 
