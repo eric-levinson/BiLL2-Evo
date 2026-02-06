@@ -131,7 +131,11 @@ const InlineCode: FC<PreparedTextProps> = ({ children }) => {
   )
 }
 
-const CodeBlock: FC<PreparedTextProps> = ({ children, className, ...props }) => {
+const CodeBlock: FC<PreparedTextProps> = ({
+  children,
+  className,
+  ...props
+}) => {
   // Extract language from className (e.g., "language-python" -> "python")
   const match = /language-(\w+)/.exec(className || '')
   const language = match ? match[1] : ''
