@@ -1,6 +1,6 @@
 'use client'
 
-import { ThreadPrimitive } from '@assistant-ui/react'
+import { ThreadPrimitive, useThreadViewport } from '@assistant-ui/react'
 import ChatBlankState from './Messages/ChatBlankState'
 import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/icon'
@@ -30,27 +30,31 @@ const MessageArea = () => {
 }
 
 const ScrollToBottomButton = () => {
+  const isAtBottom = useThreadViewport((s) => s.isAtBottom)
+
   return (
-    <ThreadPrimitive.ScrollToBottom asChild>
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2"
-        >
-          <Button
-            type="button"
-            size="icon"
-            variant="secondary"
-            className="border border-border bg-background text-primary shadow-md transition-shadow duration-300 hover:bg-background-secondary"
+    <AnimatePresence>
+      {!isAtBottom && (
+        <ThreadPrimitive.ScrollToBottom asChild>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2"
           >
-            <Icon type="arrow-down" size="xs" />
-          </Button>
-        </motion.div>
-      </AnimatePresence>
-    </ThreadPrimitive.ScrollToBottom>
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="border border-border bg-background text-primary shadow-md transition-shadow duration-300 hover:bg-background-secondary"
+            >
+              <Icon type="arrow-down" size="xs" />
+            </Button>
+          </motion.div>
+        </ThreadPrimitive.ScrollToBottom>
+      )}
+    </AnimatePresence>
   )
 }
 

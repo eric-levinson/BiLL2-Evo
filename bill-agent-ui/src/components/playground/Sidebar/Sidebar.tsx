@@ -9,8 +9,7 @@ import { useRouter } from 'next/navigation'
 
 const SidebarHeader = () => (
   <div className="flex items-center gap-2">
-    <Icon type="agno" size="xs" />
-    <span className="text-xs font-medium uppercase text-white">Agent UI</span>
+    <span className="text-xs font-medium uppercase text-white">BiLL-2</span>
   </div>
 )
 

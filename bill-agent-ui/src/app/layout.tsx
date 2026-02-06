@@ -17,9 +17,9 @@ const dmMono = DM_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Agent UI',
+  title: 'BiLL-2',
   description:
-    'A modern chat interface for AI agents built with Next.js, Tailwind CSS, and TypeScript. This template provides a ready-to-use UI for interacting with Agno agents.'
+    'AI-powered fantasy football analytics platform. Get advanced NFL stats, Sleeper league management, dynasty rankings, and expert insights through an intelligent chat interface.'
 }
 
 export default function RootLayout({

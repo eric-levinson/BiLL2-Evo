@@ -4,9 +4,9 @@ import Link from 'next/link'
 export default function Landing() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-      <h1 className="text-4xl font-bold">Welcome to Agent UI</h1>
+      <h1 className="text-4xl font-bold">Welcome to BiLL-2</h1>
       <p className="text-muted-foreground mt-4">
-        A modern chat interface for AI agents. Sign in or create an account to
+        AI-powered fantasy football analytics. Sign in or create an account to
         get started.
       </p>
 

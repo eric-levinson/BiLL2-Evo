@@ -1,107 +1,35 @@
 'use client'
 
-import Link from 'next/link'
-import { motion, Variants } from 'framer-motion'
-import Icon from '@/components/ui/icon'
-import { IconType } from '@/components/ui/icon/types'
-import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import React from 'react'
 
-const EXTERNAL_LINKS = {
-  documentation: 'https://agno.link/agent-ui',
-  playground: 'https://app.agno.com/playground/agents',
-  agno: 'https://agno.com'
-}
-
-const TECH_ICONS = [
-  {
-    type: 'nextjs' as IconType,
-    position: 'left-0',
-    link: 'https://nextjs.org',
-    name: 'Next.js',
-    zIndex: 10
-  },
-  {
-    type: 'shadcn' as IconType,
-    position: 'left-[15px]',
-    link: 'https://ui.shadcn.com',
-    name: 'shadcn/ui',
-    zIndex: 20
-  },
-  {
-    type: 'tailwind' as IconType,
-    position: 'left-[30px]',
-    link: 'https://tailwindcss.com',
-    name: 'Tailwind CSS',
-    zIndex: 30
-  }
+const EXAMPLE_PROMPTS = [
+  'Show me the top 10 dynasty WR rankings',
+  'Compare Bijan Robinson vs Jahmyr Gibbs rushing stats for 2024',
+  'What are the trending players on Sleeper this week?',
+  'Analyze my Sleeper league rosters'
 ]
 
-interface ActionButtonProps {
-  href: string
-  variant?: 'primary'
+interface ExamplePromptButtonProps {
   text: string
+  onClick: () => void
 }
 
-const ActionButton = ({ href, variant, text }: ActionButtonProps) => {
+const ExamplePromptButton = ({ text, onClick }: ExamplePromptButtonProps) => {
   const baseStyles =
-    'px-4 py-2 text-sm transition-colors font-dmmono tracking-tight'
-  const variantStyles = {
-    primary: 'border border-border hover:bg-neutral-800 rounded-xl'
-  }
+    'px-4 py-2 text-sm transition-colors font-dmmono tracking-tight border border-border hover:bg-neutral-800 rounded-xl cursor-pointer'
 
   return (
-    <Link
-      href={href}
-      target="_blank"
-      className={`${baseStyles} ${variant ? variantStyles[variant] : ''}`}
-    >
+    <button onClick={onClick} className={baseStyles}>
       {text}
-    </Link>
+    </button>
   )
 }
 
 const ChatBlankState = () => {
-  const [hoveredIcon, setHoveredIcon] = useState<string | null>(null)
-
-  // Animation variants for the icon
-  const iconVariants: Variants = {
-    initial: { y: 0 },
-    hover: {
-      y: -8,
-      transition: {
-        type: 'spring',
-        stiffness: 150,
-        damping: 10,
-        mass: 0.5
-      }
-    },
-    exit: {
-      y: 0,
-      transition: {
-        type: 'spring',
-        stiffness: 200,
-        damping: 15,
-        mass: 0.6
-      }
-    }
-  }
-
-  // Animation variants for the tooltip
-  const tooltipVariants: Variants = {
-    hidden: {
-      opacity: 0,
-      transition: {
-        duration: 0.15,
-        ease: 'easeInOut'
-      }
-    },
-    visible: {
-      opacity: 1,
-      transition: {
-        duration: 0.15,
-        ease: 'easeInOut'
-      }
-    }
+  const handlePromptClick = (prompt: string) => {
+    // TODO: Implement prompt injection when chat input is wired
+    console.log('Selected prompt:', prompt)
   }
 
   return (
@@ -118,77 +46,35 @@ const ChatBlankState = () => {
         >
           <div className="flex items-center justify-center gap-x-2 whitespace-nowrap font-medium">
             <span className="flex items-center font-[600]">
-              This is an open-source
-            </span>
-            <span className="inline-flex translate-y-[10px] scale-125 items-center transition-transform duration-200 hover:rotate-6">
-              <Link
-                href={EXTERNAL_LINKS.agno}
-                target="_blank"
-                rel="noopener"
-                className="cursor-pointer"
-              >
-                <Icon type="agno-tag" size="default" />
-              </Link>
-            </span>
-            <span className="flex items-center font-[600]">
-              Agent UI, built with
-            </span>
-            <span className="inline-flex translate-y-[5px] scale-125 items-center">
-              <div className="relative ml-2 h-[40px] w-[90px]">
-                {TECH_ICONS.map((icon) => (
-                  <motion.div
-                    key={icon.type}
-                    className={`absolute ${icon.position} top-0`}
-                    style={{ zIndex: icon.zIndex }}
-                    variants={iconVariants}
-                    initial="initial"
-                    whileHover="hover"
-                    animate={hoveredIcon === icon.type ? 'hover' : 'exit'}
-                    onHoverStart={() => setHoveredIcon(icon.type)}
-                    onHoverEnd={() => setHoveredIcon(null)}
-                  >
-                    <Link
-                      href={icon.link}
-                      target="_blank"
-                      rel="noopener"
-                      className="relative block cursor-pointer"
-                    >
-                      <div>
-                        <Icon type={icon.type} size="default" />
-                      </div>
-                      <motion.div
-                        className="pointer-events-none absolute bottom-full left-1/2 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-neutral-800 px-2 py-1 text-xs text-primary"
-                        variants={tooltipVariants}
-                        initial="hidden"
-                        animate={
-                          hoveredIcon === icon.type ? 'visible' : 'hidden'
-                        }
-                      >
-                        {icon.name}
-                      </motion.div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
+              Welcome to BiLL-2 Evo
             </span>
           </div>
-          <p>For the full experience, visit the Agent Playground.</p>
+          <p className="mt-4 text-base font-normal text-neutral-400">
+            Your AI-powered fantasy football analytics platform
+          </p>
+          <p className="mt-2 text-sm font-normal text-neutral-500">
+            Get advanced NFL stats, Sleeper league insights, and dynasty
+            rankings
+          </p>
         </motion.h1>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="flex justify-center gap-4"
+          className="flex flex-col gap-3"
         >
-          <ActionButton
-            href={EXTERNAL_LINKS.documentation}
-            variant="primary"
-            text="GO TO DOCS"
-          />
-          <ActionButton
-            href={EXTERNAL_LINKS.playground}
-            text="VISIT AGENT PLAYGROUND"
-          />
+          <p className="text-sm font-medium text-neutral-400">
+            Try these example prompts:
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {EXAMPLE_PROMPTS.map((prompt) => (
+              <ExamplePromptButton
+                key={prompt}
+                text={prompt}
+                onClick={() => handlePromptClick(prompt)}
+              />
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>
