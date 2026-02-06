@@ -4,6 +4,8 @@ import useChatActions from '@/hooks/useChatActions'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Icon from '@/components/ui/icon'
+import SessionsList from './SessionsList'
+import { useRouter } from 'next/navigation'
 
 const SidebarHeader = () => (
   <div className="flex items-center gap-2">
@@ -33,9 +35,11 @@ const NewChatButton = ({
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { messages, clearChat, focusChatInput } = useChatActions()
+  const router = useRouter()
 
   const handleNewChat = () => {
     clearChat()
+    router.push('/app')
     focusChatInput()
   }
 
@@ -60,7 +64,7 @@ const Sidebar = () => {
         />
       </motion.button>
       <motion.div
-        className="w-60 space-y-5"
+        className="flex h-full w-60 flex-col space-y-5"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
@@ -73,6 +77,9 @@ const Sidebar = () => {
           disabled={messages.length === 0}
           onClick={handleNewChat}
         />
+        <div className="flex-1 overflow-y-auto">
+          <SessionsList />
+        </div>
       </motion.div>
     </motion.aside>
   )
