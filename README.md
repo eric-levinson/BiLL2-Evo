@@ -1,19 +1,21 @@
 # BiLL-2 Evo
 
-AI-powered fantasy football analytics platform with multi-agent orchestration.
+AI-powered fantasy football analytics platform with a single AI agent and ~40 MCP tools.
 
 ## Services
 
 | Service | Stack | Port | Description |
 |---|---|---|---|
-| **bill-agent-ui** | Next.js 15 / TypeScript | 3000 | Chat UI frontend |
-| **bill-agno** | Python / Agno | 7777 | AI agent backend (4 agents + Supervisor) |
+| **bill-agent-ui** | Next.js 15 / TypeScript | 3000 | Chat UI frontend + AI backend (Vercel AI SDK 6) |
 | **fantasy-tools-mcp** | Python / FastMCP | 8000 | MCP server with ~40 fantasy football tools |
 
 ## Architecture
 
 ```
-bill-agent-ui (3000) -> bill-agno (7777) -> fantasy-tools-mcp (8000) -> Supabase (PostgreSQL)
+bill-agent-ui (3000) -> fantasy-tools-mcp (8000) -> Supabase (PostgreSQL)
+                │
+         Vercel AI SDK 6
+     (Claude agent + MCP tools)
 ```
 
 ## Quick Start
@@ -25,10 +27,7 @@ bill-agent-ui (3000) -> bill-agno (7777) -> fantasy-tools-mcp (8000) -> Supabase
 # Terminal 1: MCP server
 cd fantasy-tools-mcp && python main.py
 
-# Terminal 2: Agent backend
-cd bill-agno && python team_playground.py
-
-# Terminal 3: Frontend
+# Terminal 2: Frontend + AI Backend
 cd bill-agent-ui && pnpm install && pnpm dev
 ```
 
