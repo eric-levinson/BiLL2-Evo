@@ -6,6 +6,8 @@ import { createMCPClient } from '@ai-sdk/mcp'
  * Fetches Sleeper leagues for a given username via MCP tool
  */
 export async function POST(request: Request) {
+  let mcpClient: Awaited<ReturnType<typeof createMCPClient>> | undefined
+
   try {
     const { username } = await request.json()
 
@@ -20,9 +22,12 @@ export async function POST(request: Request) {
     const mcpServerUrl =
       process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
 
-    const mcpClient = createMCPClient({
-      name: 'fantasy-tools',
-      url: mcpServerUrl
+    mcpClient = await createMCPClient({
+      transport: {
+        type: 'http',
+        url: mcpServerUrl
+      },
+      name: 'fantasy-tools'
     })
 
     // Call the get_sleeper_leagues_by_username MCP tool
@@ -72,5 +77,8 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     )
+  } finally {
+    // Clean up MCP client resources
+    await mcpClient?.close()
   }
 }
