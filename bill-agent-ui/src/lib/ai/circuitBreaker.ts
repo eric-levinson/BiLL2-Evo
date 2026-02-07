@@ -13,7 +13,7 @@ export enum CircuitState {
   /**
    * Circuit is half-open - testing if service has recovered with a single request
    */
-  HALF_OPEN = 'HALF_OPEN',
+  HALF_OPEN = 'HALF_OPEN'
 }
 
 /**
@@ -124,7 +124,7 @@ export class CircuitBreaker {
         state: CircuitState.CLOSED,
         consecutiveFailures: 0,
         lastFailureTime: null,
-        nextAttemptTime: null,
+        nextAttemptTime: null
       })
     }
     return this.circuits.get(serviceName)!
@@ -151,10 +151,7 @@ export class CircuitBreaker {
   /**
    * Transition circuit to a new state
    */
-  private transitionState(
-    serviceName: string,
-    newState: CircuitState
-  ): void {
+  private transitionState(serviceName: string, newState: CircuitState): void {
     const circuit = this.getCircuit(serviceName)
     const oldState = circuit.state
 
@@ -163,7 +160,10 @@ export class CircuitBreaker {
     circuit.state = newState
 
     // Reset nextAttemptTime when entering HALF_OPEN or CLOSED
-    if (newState === CircuitState.HALF_OPEN || newState === CircuitState.CLOSED) {
+    if (
+      newState === CircuitState.HALF_OPEN ||
+      newState === CircuitState.CLOSED
+    ) {
       circuit.nextAttemptTime = null
     }
 
@@ -281,7 +281,7 @@ export class CircuitBreaker {
         : null,
       nextAttemptTime: circuit.nextAttemptTime
         ? new Date(circuit.nextAttemptTime)
-        : null,
+        : null
     }
   }
 }

@@ -1,7 +1,7 @@
 """
 Retry utilities with exponential backoff for Sleeper API calls.
 
-Uses tenacity library for robust retry logic with rate-limit awareness.
+Uses tenacity library for robust retry logic.
 """
 
 import os
@@ -57,37 +57,6 @@ def is_retryable_http_error(exception: Exception) -> bool:
     return False
 
 
-def get_retry_after_delay(exception: Exception) -> Optional[float]:
-    """
-    Extract Retry-After header value from rate-limited response.
-
-    The Retry-After header indicates how long to wait before retrying.
-    It can be in seconds (integer) or an HTTP date string.
-
-    Args:
-        exception: HTTPError exception with response
-
-    Returns:
-        Delay in seconds if Retry-After header present, None otherwise
-    """
-    if isinstance(exception, requests.exceptions.HTTPError):
-        if hasattr(exception, 'response') and exception.response is not None:
-            response = exception.response
-            if response.status_code == 429:
-                retry_after = response.headers.get('Retry-After')
-                if retry_after:
-                    try:
-                        # Try parsing as integer (seconds)
-                        return float(retry_after)
-                    except ValueError:
-                        # If it's an HTTP date, we'd need to parse it
-                        # For simplicity, fall back to default backoff
-                        logger.warning(
-                            f"Could not parse Retry-After header: {retry_after}"
-                        )
-    return None
-
-
 def retry_with_backoff(
     max_attempts: Optional[int] = None,
     initial_delay: Optional[float] = None,
@@ -109,9 +78,7 @@ def retry_with_backoff(
     - requests.exceptions.Timeout
 
     Rate-limit handling:
-    - Detects 429 responses
-    - Respects Retry-After header if present
-    - Falls back to exponential backoff
+    - Detects 429 responses and retries with exponential backoff
 
     Environment variables (with defaults):
     - RETRY_MAX_ATTEMPTS: Maximum retry attempts (default: 3)

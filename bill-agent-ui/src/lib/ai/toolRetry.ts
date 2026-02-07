@@ -78,8 +78,7 @@ export async function retryWithBackoff<T>(
 ): Promise<T> {
   // Read configuration from environment variables with fallback to options or defaults
   const maxAttempts =
-    options.maxAttempts ??
-    parseInt(process.env.RETRY_MAX_ATTEMPTS || '3', 10)
+    options.maxAttempts ?? parseInt(process.env.RETRY_MAX_ATTEMPTS || '3', 10)
   const initialDelayMs =
     options.initialDelayMs ??
     parseInt(process.env.RETRY_INITIAL_DELAY_MS || '1000', 10)
@@ -153,16 +152,35 @@ export function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const message = error.message.toLowerCase()
 
-    // Network errors
+    // Network errors (check message text)
     if (
       message.includes('econnrefused') ||
       message.includes('etimedout') ||
       message.includes('enotfound') ||
       message.includes('econnreset') ||
       message.includes('network') ||
-      message.includes('timeout')
+      message.includes('timeout') ||
+      message.includes('fetch failed')
     ) {
       return true
+    }
+
+    // Check error.cause chain (Node.js fetch wraps network errors in cause)
+    if ('cause' in error && error.cause) {
+      const cause = error.cause as Record<string, unknown>
+      // Check for error codes like ECONNREFUSED, ETIMEDOUT, etc.
+      if (
+        typeof cause.code === 'string' &&
+        ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET'].includes(
+          cause.code
+        )
+      ) {
+        return true
+      }
+      // Recurse into cause if it's an Error
+      if (cause instanceof Error) {
+        return isRetryableError(cause)
+      }
     }
   }
 

@@ -15,8 +15,8 @@ import unittest
 from unittest.mock import Mock, patch
 import requests
 
-# Add parent directory to path to import helpers
-sys.path.insert(0, os.path.dirname(__file__))
+# Add parent directory to path so we can import from fantasy-tools-mcp root
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from helpers.retry_utils import retry_with_backoff, is_retryable_http_error
 

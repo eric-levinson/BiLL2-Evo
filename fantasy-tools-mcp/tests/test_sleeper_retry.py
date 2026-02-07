@@ -9,16 +9,17 @@ Tests:
 5. Non-retryable errors (4xx client errors)
 """
 
+import os
 import time
 import sys
 import logging
 from unittest.mock import Mock, patch
 import requests
 
-# Add parent directory to path
-sys.path.insert(0, '.')
+# Add parent directory to path so we can import from fantasy-tools-mcp root
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from helpers.retry_utils import retry_with_backoff, is_retryable_http_error, get_retry_after_delay
+from helpers.retry_utils import retry_with_backoff, is_retryable_http_error
 
 # Configure logging to see retry messages
 logging.basicConfig(
@@ -157,7 +158,7 @@ def test_non_retryable_errors():
 def test_helper_functions():
     """Test helper functions for error classification."""
     print("\n" + "="*70)
-    print("TEST 4: Helper Functions (is_retryable_http_error, get_retry_after_delay)")
+    print("TEST 4: Helper Functions (is_retryable_http_error)")
     print("="*70)
 
     # Test is_retryable_http_error
@@ -196,29 +197,6 @@ def test_helper_functions():
     error_404.response = response_404
     assert not is_retryable_http_error(error_404), "404 should not be retryable"
     print("  ✓ 404 errors are not retryable")
-
-    # Test get_retry_after_delay
-    print("\n  Testing get_retry_after_delay()...")
-
-    response_with_header = Mock()
-    response_with_header.status_code = 429
-    response_with_header.headers = {'Retry-After': '5'}
-    error_with_header = requests.exceptions.HTTPError()
-    error_with_header.response = response_with_header
-
-    delay = get_retry_after_delay(error_with_header)
-    assert delay == 5.0, f"Expected 5.0, got {delay}"
-    print("  ✓ Retry-After header parsed correctly")
-
-    response_no_header = Mock()
-    response_no_header.status_code = 429
-    response_no_header.headers = {}
-    error_no_header = requests.exceptions.HTTPError()
-    error_no_header.response = response_no_header
-
-    delay = get_retry_after_delay(error_no_header)
-    assert delay is None, f"Expected None, got {delay}"
-    print("  ✓ Missing Retry-After header handled correctly")
 
     print("\n✅ TEST 4 PASSED: Helper functions working correctly")
     return True

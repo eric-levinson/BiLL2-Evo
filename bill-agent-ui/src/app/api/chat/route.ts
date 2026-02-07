@@ -114,71 +114,63 @@ export async function POST(req: Request) {
       process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
 
     // Wrap MCP client creation with retry logic and circuit breaker
-    mcpClient = await mcpCircuitBreaker.execute(
-      'mcp-server',
-      async () => {
-        return await retryWithBackoff(
-          async () => {
-            console.log(`[MCP Client] Connecting to ${mcpServerUrl}`)
-            return await createMCPClient({
-              transport: {
-                type: 'http',
-                url: mcpServerUrl
-              }
-            })
-          },
-          {
-            shouldRetry: isRetryableError,
-            onRetry: (error, attempt, delayMs) => {
-              const errorType = error instanceof Error ? error.constructor.name : 'Unknown'
-              const errorMsg = error instanceof Error ? error.message : String(error)
-              console.error(
-                `[Error Recovery] MCP Client connection failed`,
-                {
-                  service: 'mcp-server',
-                  operation: 'createMCPClient',
-                  attempt,
-                  delayMs,
-                  errorType,
-                  errorMessage: errorMsg
-                }
-              )
+    mcpClient = await mcpCircuitBreaker.execute('mcp-server', async () => {
+      return await retryWithBackoff(
+        async () => {
+          console.log(`[MCP Client] Connecting to ${mcpServerUrl}`)
+          return await createMCPClient({
+            transport: {
+              type: 'http',
+              url: mcpServerUrl
             }
+          })
+        },
+        {
+          shouldRetry: isRetryableError,
+          onRetry: (error, attempt, delayMs) => {
+            const errorType =
+              error instanceof Error ? error.constructor.name : 'Unknown'
+            const errorMsg =
+              error instanceof Error ? error.message : String(error)
+            console.error(`[Error Recovery] MCP Client connection failed`, {
+              service: 'mcp-server',
+              operation: 'createMCPClient',
+              attempt,
+              delayMs,
+              errorType,
+              errorMessage: errorMsg
+            })
           }
-        )
-      }
-    )
+        }
+      )
+    })
 
     // Get all available tools from MCP server with retry logic and circuit breaker
-    const tools = await mcpCircuitBreaker.execute(
-      'mcp-server',
-      async () => {
-        return await retryWithBackoff(
-          async () => {
-            console.log('[MCP Tools] Fetching available tools from server')
-            return await mcpClient!.tools()
-          },
-          {
-            shouldRetry: isRetryableError,
-            onRetry: (error, attempt, delayMs) => {
-              const errorType = error instanceof Error ? error.constructor.name : 'Unknown'
-              const errorMsg = error instanceof Error ? error.message : String(error)
-              console.error(
-                `[Error Recovery] MCP Tools fetch failed`,
-                {
-                  service: 'mcp-server',
-                  operation: 'mcpClient.tools()',
-                  attempt,
-                  delayMs,
-                  errorType,
-                  errorMessage: errorMsg
-                }
-              )
-            }
+    const tools = await mcpCircuitBreaker.execute('mcp-server', async () => {
+      return await retryWithBackoff(
+        async () => {
+          console.log('[MCP Tools] Fetching available tools from server')
+          return await mcpClient!.tools()
+        },
+        {
+          shouldRetry: isRetryableError,
+          onRetry: (error, attempt, delayMs) => {
+            const errorType =
+              error instanceof Error ? error.constructor.name : 'Unknown'
+            const errorMsg =
+              error instanceof Error ? error.message : String(error)
+            console.error(`[Error Recovery] MCP Tools fetch failed`, {
+              service: 'mcp-server',
+              operation: 'mcpClient.tools()',
+              attempt,
+              delayMs,
+              errorType,
+              errorMessage: errorMsg
+            })
           }
-        )
-      }
-    )
+        }
+      )
+    })
 
     // Detect provider from model ID
     const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-5-20250929'
@@ -390,14 +382,11 @@ Remember:
 
     // Provide user-friendly error messages based on error type
     if (err instanceof CircuitBreakerOpenError) {
-      console.error(
-        `[Circuit Breaker] Service unavailable - circuit open`,
-        {
-          serviceName: err.serviceName,
-          resetAt: err.resetAt.toISOString(),
-          message: err.message
-        }
-      )
+      console.error(`[Circuit Breaker] Service unavailable - circuit open`, {
+        serviceName: err.serviceName,
+        resetAt: err.resetAt.toISOString(),
+        message: err.message
+      })
       return NextResponse.json(
         {
           error:
@@ -409,21 +398,19 @@ Remember:
 
     if (err instanceof RetryExhaustedError) {
       const lastError = err.lastError
-      const lastErrorDetails = lastError instanceof Error
-        ? {
-            type: lastError.constructor.name,
-            message: lastError.message,
-            stack: lastError.stack
-          }
-        : { message: String(lastError) }
+      const lastErrorDetails =
+        lastError instanceof Error
+          ? {
+              type: lastError.constructor.name,
+              message: lastError.message,
+              stack: lastError.stack
+            }
+          : { message: String(lastError) }
 
-      console.error(
-        `[Retry Exhausted] All retry attempts failed`,
-        {
-          attempts: err.attempts,
-          lastError: lastErrorDetails
-        }
-      )
+      console.error(`[Retry Exhausted] All retry attempts failed`, {
+        attempts: err.attempts,
+        lastError: lastErrorDetails
+      })
       return NextResponse.json(
         {
           error:
@@ -444,13 +431,10 @@ Remember:
       errorMessage.includes('network') ||
       errorMessage.includes('connection')
     ) {
-      console.error(
-        `[Network Error] Connection failed`,
-        {
-          type: errorType,
-          message: err instanceof Error ? err.message : String(err)
-        }
-      )
+      console.error(`[Network Error] Connection failed`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
       return NextResponse.json(
         {
           error:
@@ -465,13 +449,10 @@ Remember:
       errorMessage.includes('timeout') ||
       errorMessage.includes('etimedout')
     ) {
-      console.error(
-        `[Timeout Error] Request timed out`,
-        {
-          type: errorType,
-          message: err instanceof Error ? err.message : String(err)
-        }
-      )
+      console.error(`[Timeout Error] Request timed out`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
       return NextResponse.json(
         {
           error:
@@ -482,14 +463,15 @@ Remember:
     }
 
     // Authentication errors
-    if (errorMessage.includes('unauthorized') || errorMessage.includes('auth')) {
-      console.error(
-        `[Auth Error] Authentication failed`,
-        {
-          type: errorType,
-          message: err instanceof Error ? err.message : String(err)
-        }
-      )
+    if (
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('unauthenticated')
+    ) {
+      console.error(`[Auth Error] Authentication failed`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
       return NextResponse.json(
         {
           error:
@@ -501,37 +483,31 @@ Remember:
 
     // Rate limit errors
     if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-      console.error(
-        `[Rate Limit] Too many requests`,
-        {
-          type: errorType,
-          message: err instanceof Error ? err.message : String(err)
-        }
-      )
+      console.error(`[Rate Limit] Too many requests`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
       return NextResponse.json(
         {
-          error:
-            'Too many requests. Please wait a moment before trying again.'
+          error: 'Too many requests. Please wait a moment before trying again.'
         },
         { status: 429 }
       )
     }
 
     // Generic error fallback - log full details for debugging but show friendly message
-    const errorDetails = err instanceof Error
-      ? {
-          type: err.constructor.name,
-          message: err.message,
-          stack: err.stack
-        }
-      : { message: String(err) }
+    const errorDetails =
+      err instanceof Error
+        ? {
+            type: err.constructor.name,
+            message: err.message,
+            stack: err.stack
+          }
+        : { message: String(err) }
 
-    console.error(
-      `[Chat API] Unhandled error occurred`,
-      {
-        error: errorDetails
-      }
-    )
+    console.error(`[Chat API] Unhandled error occurred`, {
+      error: errorDetails
+    })
 
     return NextResponse.json(
       {
