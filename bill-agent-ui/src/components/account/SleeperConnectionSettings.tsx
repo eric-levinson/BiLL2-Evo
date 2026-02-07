@@ -87,7 +87,7 @@ export default function SleeperConnectionSettings() {
         open={showOnboardingModal}
         onOpenChange={setShowOnboardingModal}
         onComplete={handleOnboardingComplete}
-        allowSkip={false}
+        allowSkip={true}
       />
     </>
   )

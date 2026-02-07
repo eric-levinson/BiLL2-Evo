@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -8,9 +9,9 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import SleeperConnect from './SleeperConnect'
 import LeagueSelector, { type SleeperLeague } from './LeagueSelector'
-import ExampleQueries from './ExampleQueries'
 import { markOnboardingComplete } from '@/lib/supabase/onboarding'
 import { supabase } from '@/lib/supabase/client'
 
@@ -21,7 +22,7 @@ interface OnboardingModalProps {
   allowSkip?: boolean
 }
 
-type OnboardingStep = 'connect' | 'select-league' | 'examples'
+type OnboardingStep = 'connect' | 'select-league' | 'complete'
 
 export default function OnboardingModal({
   open,
@@ -29,10 +30,13 @@ export default function OnboardingModal({
   onComplete,
   allowSkip = false
 }: OnboardingModalProps) {
+  const router = useRouter()
   const [step, setStep] = useState<OnboardingStep>('connect')
   const [username, setUsername] = useState<string>('')
   const [leagues, setLeagues] = useState<SleeperLeague[]>([])
-  const [selectedLeague, setSelectedLeague] = useState<SleeperLeague | null>(null)
+  const [selectedLeague, setSelectedLeague] = useState<SleeperLeague | null>(
+    null
+  )
   const [error, setError] = useState<string | null>(null)
 
   /**
@@ -52,11 +56,11 @@ export default function OnboardingModal({
         body: JSON.stringify({ username: sleeperUsername })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch leagues')
-      }
-
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch leagues')
+      }
 
       if (!data.leagues || data.leagues.length === 0) {
         throw new Error('No leagues found for this username')
@@ -74,20 +78,19 @@ export default function OnboardingModal({
    */
   function handleLeagueSelect(league: SleeperLeague) {
     setSelectedLeague(league)
-    setStep('examples')
+    setStep('complete')
   }
 
   /**
-   * Step 3: User completes onboarding
+   * Step 3: Save onboarding data and navigate to chat
    */
-  async function handleComplete() {
+  async function handleGetStarted() {
     if (!selectedLeague || !username) {
       setError('Missing required onboarding data')
       return
     }
 
     try {
-      // Get current user
       const {
         data: { user }
       } = await supabase.auth.getUser()
@@ -96,7 +99,6 @@ export default function OnboardingModal({
         throw new Error('No authenticated user found')
       }
 
-      // Save onboarding data to Supabase
       await markOnboardingComplete(
         user.id,
         username,
@@ -104,23 +106,14 @@ export default function OnboardingModal({
         selectedLeague.name
       )
 
-      // Close modal and trigger completion callback
       onOpenChange(false)
       onComplete?.()
+      router.push('/app')
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to complete onboarding'
       )
     }
-  }
-
-  /**
-   * Auto-fill chat with selected example query
-   */
-  function handleQuerySelect(query: string) {
-    // This will be implemented when integrating with the chat UI
-    // For now, we'll just log it
-    console.info('Selected query:', query)
   }
 
   /**
@@ -149,17 +142,17 @@ export default function OnboardingModal({
       title: 'Select Your League',
       description: 'Choose which league you want to analyze'
     },
-    examples: {
+    complete: {
       title: "You're All Set!",
       description:
-        'Here are some example questions to get you started with BiLL-2'
+        'Your Sleeper account is connected and ready to go'
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-[500px]"
+        className="sm:max-w-[500px] max-h-[85vh]"
         onInteractOutside={(e) => {
           // Prevent closing by clicking outside if skip is not allowed
           if (!allowSkip) {
@@ -200,12 +193,13 @@ export default function OnboardingModal({
             />
           )}
 
-          {step === 'examples' && selectedLeague && (
-            <ExampleQueries
-              league={selectedLeague}
-              onQuerySelect={handleQuerySelect}
-              onComplete={handleComplete}
-            />
+          {step === 'complete' && selectedLeague && (
+            <Button
+              onClick={handleGetStarted}
+              className="w-full text-black"
+            >
+              Get Started
+            </Button>
           )}
         </div>
       </DialogContent>

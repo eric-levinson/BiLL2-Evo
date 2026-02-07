@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createMCPClient } from '@ai-sdk/mcp'
+
+const SLEEPER_API_BASE = 'https://api.sleeper.app/v1'
 
 /**
  * POST /api/sleeper/leagues
- * Fetches Sleeper leagues for a given username via MCP tool
+ * Fetches Sleeper leagues for a given username via the public Sleeper API
  */
 export async function POST(request: Request) {
-  let mcpClient: Awaited<ReturnType<typeof createMCPClient>> | undefined
-
   try {
     const { username } = await request.json()
 
@@ -18,47 +17,40 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create MCP client to connect to fantasy-tools-mcp server
-    const mcpServerUrl =
-      process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
+    // Step 1: Resolve username to user_id
+    const userRes = await fetch(`${SLEEPER_API_BASE}/user/${username}`)
 
-    mcpClient = await createMCPClient({
-      transport: {
-        type: 'http',
-        url: mcpServerUrl
-      },
-      name: 'fantasy-tools'
-    })
-
-    // Call the get_sleeper_leagues_by_username MCP tool
-    const result = await mcpClient.callTool({
-      name: 'get_sleeper_leagues_by_username',
-      arguments: {
-        username,
-        verbose: false // Don't need full settings for onboarding
-      }
-    })
-
-    // Parse the result
-    // MCP tool returns result in result.content array
-    if (!result.content || result.content.length === 0) {
+    if (!userRes.ok || userRes.status === 404) {
       return NextResponse.json(
-        { error: 'No response from MCP server' },
-        { status: 500 }
+        { error: 'Sleeper user not found. Please check your username.' },
+        { status: 404 }
       )
     }
 
-    // Extract leagues from MCP response
-    // The content is typically an array with a text item containing JSON
-    const content = result.content[0]
-    let leagues = []
+    const userData = await userRes.json()
 
-    if (content.type === 'text') {
-      const data = JSON.parse(content.text)
-      leagues = data.leagues || data || []
+    if (!userData?.user_id) {
+      return NextResponse.json(
+        { error: 'Sleeper user not found. Please check your username.' },
+        { status: 404 }
+      )
     }
 
-    if (!leagues || leagues.length === 0) {
+    // Step 2: Fetch leagues for the user
+    const leaguesRes = await fetch(
+      `${SLEEPER_API_BASE}/user/${userData.user_id}/leagues/nfl/2025`
+    )
+
+    if (!leaguesRes.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch leagues from Sleeper' },
+        { status: 502 }
+      )
+    }
+
+    const leagues = await leaguesRes.json()
+
+    if (!Array.isArray(leagues) || leagues.length === 0) {
       return NextResponse.json(
         { error: 'No leagues found for this username' },
         { status: 404 }
@@ -77,8 +69,5 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     )
-  } finally {
-    // Clean up MCP client resources
-    await mcpClient?.close()
   }
 }

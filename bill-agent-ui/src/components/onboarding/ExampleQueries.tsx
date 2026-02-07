@@ -1,6 +1,12 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { SleeperLeague } from './LeagueSelector'
 
@@ -37,7 +43,8 @@ export default function ExampleQueries({
         <CardHeader>
           <CardTitle>Try These Questions</CardTitle>
           <CardDescription>
-            Click any question below to see what BiLL-2 can do with your {league.name} data
+            Click any question below to see what BiLL-2 can do with your{' '}
+            {league.name} data
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -46,7 +53,7 @@ export default function ExampleQueries({
               <Button
                 key={index}
                 variant="outline"
-                className="justify-start text-left h-auto py-3 px-4"
+                className="h-auto justify-start px-4 py-3 text-left"
                 onClick={() => handleQueryClick(query)}
               >
                 <span className="text-sm">{query}</span>
@@ -60,8 +67,9 @@ export default function ExampleQueries({
         <Button onClick={onComplete} className="w-full text-black">
           Get Started
         </Button>
-        <p className="text-xs text-muted-foreground text-center">
-          You can ask any of these questions (or anything else!) once you complete setup
+        <p className="text-muted-foreground text-center text-xs">
+          You can ask any of these questions (or anything else!) once you
+          complete setup
         </p>
       </div>
     </div>

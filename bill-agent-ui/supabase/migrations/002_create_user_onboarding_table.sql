@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.user_onboarding (
 );
 
 -- Add indexes for performance
-CREATE INDEX IF NOT EXISTS idx_user_onboarding_user_id ON public.user_onboarding(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_onboarding_user_id ON public.user_onboarding(user_id);
 
 -- Create trigger to auto-update updated_at on row update
 -- Note: Reuses the handle_updated_at() function created in 001_create_chat_sessions_table.sql

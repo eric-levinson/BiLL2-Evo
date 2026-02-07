@@ -27,7 +27,7 @@ export default async function AccountPage() {
         <SleeperConnectionSettings />
       </section>
 
-      <section className="mt-6">
+      <section className="mt-6 space-y-4">
         <form action="/auth/signout" method="post">
           <Button type="submit" variant="destructive">
             Sign out

@@ -78,8 +78,8 @@ export default function LeagueSelector({
         <CardHeader>
           <CardTitle>No Leagues Found</CardTitle>
           <CardDescription>
-            We couldn't find any leagues for this Sleeper username. Please check
-            your username and try again.
+            We couldn&apos;t find any leagues for this Sleeper username. Please
+            check your username and try again.
           </CardDescription>
         </CardHeader>
       </Card>

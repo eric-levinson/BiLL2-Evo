@@ -32,7 +32,9 @@ export default function SleeperConnect({
     // Basic username validation (alphanumeric, underscore, hyphen)
     const usernameRegex = /^[a-zA-Z0-9_-]+$/
     if (!usernameRegex.test(trimmedUsername)) {
-      setError('Username can only contain letters, numbers, underscores, and hyphens')
+      setError(
+        'Username can only contain letters, numbers, underscores, and hyphens'
+      )
       return
     }
 
