@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import SleeperConnectionSettings from '@/components/account/SleeperConnectionSettings'
 
 export default async function AccountPage() {
   const supabase = await createServerSupabaseClient()
@@ -20,7 +21,13 @@ export default async function AccountPage() {
           <p className="text-muted-foreground text-sm">Email</p>
           <p className="mt-1 font-medium">{user?.email}</p>
         </div>
+      </section>
 
+      <section className="mt-6">
+        <SleeperConnectionSettings />
+      </section>
+
+      <section className="mt-6 space-y-4">
         <form action="/auth/signout" method="post">
           <Button type="submit" variant="destructive">
             Sign out

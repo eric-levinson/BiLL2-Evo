@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Sidebar from '@/components/playground/Sidebar/Sidebar'
 import { ChatArea } from '@/components/playground/ChatArea'
 import { AssistantRuntimeProviderWrapper } from '@/hooks/useAssistantRuntime'
+import OnboardingWrapper from '@/components/onboarding/OnboardingWrapper'
 import { Suspense } from 'react'
 
 export default async function AppPage() {
@@ -20,6 +21,7 @@ export default async function AppPage() {
           <Sidebar />
           <ChatArea />
         </div>
+        <OnboardingWrapper />
       </AssistantRuntimeProviderWrapper>
     </Suspense>
   )
