@@ -14,6 +14,15 @@ import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
 import { buildBM25Index } from '@/lib/ai/bm25Index'
 import { createPrepareStepCallback } from '@/lib/ai/toolFiltering'
 import { type AITool } from '@/lib/ai/toolMetadata'
+import {
+  retryWithBackoff,
+  isRetryableError,
+  RetryExhaustedError
+} from '@/lib/ai/toolRetry'
+import {
+  CircuitBreaker,
+  CircuitBreakerOpenError
+} from '@/lib/ai/circuitBreaker'
 
 /**
  * Estimates token count for a tool definition
@@ -63,6 +72,18 @@ function getMessageText(message: UIMessage | undefined): string {
   return textPart?.text || 'New Chat'
 }
 
+/**
+ * Global circuit breaker instance for MCP server protection
+ * Tracks consecutive failures and opens circuit after threshold is reached
+ */
+const mcpCircuitBreaker = new CircuitBreaker({
+  onStateChange: (serviceName, oldState, newState) => {
+    console.log(
+      `[Circuit Breaker] ${serviceName} state changed: ${oldState} -> ${newState}`
+    )
+  }
+})
+
 export async function POST(req: Request) {
   // Verify authentication
   const supabase = await createServerSupabaseClient()
@@ -91,15 +112,65 @@ export async function POST(req: Request) {
     // Create MCP client with streamable HTTP transport
     const mcpServerUrl =
       process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
-    mcpClient = await createMCPClient({
-      transport: {
-        type: 'http',
-        url: mcpServerUrl
-      }
+
+    // Wrap MCP client creation with retry logic and circuit breaker
+    mcpClient = await mcpCircuitBreaker.execute('mcp-server', async () => {
+      return await retryWithBackoff(
+        async () => {
+          console.log(`[MCP Client] Connecting to ${mcpServerUrl}`)
+          return await createMCPClient({
+            transport: {
+              type: 'http',
+              url: mcpServerUrl
+            }
+          })
+        },
+        {
+          shouldRetry: isRetryableError,
+          onRetry: (error, attempt, delayMs) => {
+            const errorType =
+              error instanceof Error ? error.constructor.name : 'Unknown'
+            const errorMsg =
+              error instanceof Error ? error.message : String(error)
+            console.error(`[Error Recovery] MCP Client connection failed`, {
+              service: 'mcp-server',
+              operation: 'createMCPClient',
+              attempt,
+              delayMs,
+              errorType,
+              errorMessage: errorMsg
+            })
+          }
+        }
+      )
     })
 
-    // Get all available tools from MCP server
-    const tools = await mcpClient.tools()
+    // Get all available tools from MCP server with retry logic and circuit breaker
+    const tools = await mcpCircuitBreaker.execute('mcp-server', async () => {
+      return await retryWithBackoff(
+        async () => {
+          console.log('[MCP Tools] Fetching available tools from server')
+          return await mcpClient!.tools()
+        },
+        {
+          shouldRetry: isRetryableError,
+          onRetry: (error, attempt, delayMs) => {
+            const errorType =
+              error instanceof Error ? error.constructor.name : 'Unknown'
+            const errorMsg =
+              error instanceof Error ? error.message : String(error)
+            console.error(`[Error Recovery] MCP Tools fetch failed`, {
+              service: 'mcp-server',
+              operation: 'mcpClient.tools()',
+              attempt,
+              delayMs,
+              errorType,
+              errorMessage: errorMsg
+            })
+          }
+        }
+      )
+    })
 
     // Detect provider from model ID
     const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-5-20250929'
@@ -308,8 +379,141 @@ Remember:
     if (mcpClient) {
       await mcpClient.close()
     }
+
+    // Provide user-friendly error messages based on error type
+    if (err instanceof CircuitBreakerOpenError) {
+      console.error(`[Circuit Breaker] Service unavailable - circuit open`, {
+        serviceName: err.serviceName,
+        resetAt: err.resetAt.toISOString(),
+        message: err.message
+      })
+      return NextResponse.json(
+        {
+          error:
+            'The fantasy football data service is temporarily unavailable. Please try again in a moment.'
+        },
+        { status: 503 }
+      )
+    }
+
+    if (err instanceof RetryExhaustedError) {
+      const lastError = err.lastError
+      const lastErrorDetails =
+        lastError instanceof Error
+          ? {
+              type: lastError.constructor.name,
+              message: lastError.message,
+              stack: lastError.stack
+            }
+          : { message: String(lastError) }
+
+      console.error(`[Retry Exhausted] All retry attempts failed`, {
+        attempts: err.attempts,
+        lastError: lastErrorDetails
+      })
+      return NextResponse.json(
+        {
+          error:
+            'Unable to connect to the fantasy football data service. Please ensure the MCP server is running and try again.'
+        },
+        { status: 503 }
+      )
+    }
+
+    // Check for specific error types to provide context-aware messages
+    const errorMessage = err instanceof Error ? err.message.toLowerCase() : ''
+    const errorType = err instanceof Error ? err.constructor.name : ''
+
+    // Network and connection errors
+    if (
+      errorMessage.includes('econnrefused') ||
+      errorMessage.includes('econnreset') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('connection')
+    ) {
+      console.error(`[Network Error] Connection failed`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
+      return NextResponse.json(
+        {
+          error:
+            'Unable to connect to the data service. Please check your network connection and ensure all required services are running.'
+        },
+        { status: 503 }
+      )
+    }
+
+    // Timeout errors
+    if (
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('etimedout')
+    ) {
+      console.error(`[Timeout Error] Request timed out`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
+      return NextResponse.json(
+        {
+          error:
+            'The request took too long to complete. The service may be experiencing high load. Please try again.'
+        },
+        { status: 504 }
+      )
+    }
+
+    // Authentication errors
+    if (
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('unauthenticated')
+    ) {
+      console.error(`[Auth Error] Authentication failed`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
+      return NextResponse.json(
+        {
+          error:
+            'Authentication failed. Please log out and log back in to continue.'
+        },
+        { status: 401 }
+      )
+    }
+
+    // Rate limit errors
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+      console.error(`[Rate Limit] Too many requests`, {
+        type: errorType,
+        message: err instanceof Error ? err.message : String(err)
+      })
+      return NextResponse.json(
+        {
+          error: 'Too many requests. Please wait a moment before trying again.'
+        },
+        { status: 429 }
+      )
+    }
+
+    // Generic error fallback - log full details for debugging but show friendly message
+    const errorDetails =
+      err instanceof Error
+        ? {
+            type: err.constructor.name,
+            message: err.message,
+            stack: err.stack
+          }
+        : { message: String(err) }
+
+    console.error(`[Chat API] Unhandled error occurred`, {
+      error: errorDetails
+    })
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error:
+          'An unexpected error occurred while processing your request. Please try again or contact support if the problem persists.'
+      },
       { status: 500 }
     )
   }
