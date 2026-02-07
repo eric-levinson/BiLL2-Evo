@@ -9,6 +9,7 @@ from tools.fantasy.registry import register_tools as register_fantasy_tools
 from tools.dictionary.registry import register_tools as register_dictionary_tools
 from tools.metrics.registry import register_tools as register_metrics_tools
 from tools.league.registry import register_tools as _register_league_tools
+from tools.websearch.registry import register_tools as register_websearch_tools
 from .metrics.info import get_metrics_metadata as _get_metrics_metadata
 from .metrics.info import get_advanced_receiving_stats as _get_advanced_receiving_stats
 from .metrics.info import get_advanced_passing_stats as _get_advanced_passing_stats
@@ -53,6 +54,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     # Register league tools
     _register_league_tools(mcp, supabase)
+
+    # Register websearch tools
+    register_websearch_tools(mcp, supabase)
 
 
 def _register_resources(mcp: FastMCP):
