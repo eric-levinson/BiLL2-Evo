@@ -36,7 +36,7 @@ def test_web_search_basic():
         print(f"\n  Result {i}:")
         print(f"    Title: {item.get('title', 'N/A')}")
         print(f"    URL: {item.get('url', 'N/A')}")
-        print(f"    Snippet: {item.get('snippet', 'N/A')[:100]}...")
+        print(f"    Content: {item.get('content', 'N/A')[:100]}...")
 
     # Verify structure
     assert 'results' in result, "Missing 'results' key"
@@ -45,7 +45,7 @@ def test_web_search_basic():
     for item in result['results']:
         assert 'title' in item, "Missing 'title' in result"
         assert 'url' in item, "Missing 'url' in result"
-        assert 'snippet' in item, "Missing 'snippet' in result"
+        assert 'content' in item, "Missing 'content' in result"
 
     return True
 
@@ -71,8 +71,8 @@ def test_web_search_injury():
         print(f"\n  Result {i}:")
         print(f"    Title: {item.get('title', 'N/A')}")
         print(f"    URL: {item.get('url', 'N/A')}")
-        snippet = item.get('snippet', 'N/A')
-        print(f"    Snippet: {snippet[:150]}...")
+        content = item.get('content', 'N/A')
+        print(f"    Content: {content[:150]}...")
 
     return True
 
