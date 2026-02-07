@@ -33,7 +33,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
     )
     def get_sleeper_league_rosters(league_id: str, summary: bool = False) -> list[dict]:
-        return _get_sleeper_league_rosters(league_id, summary)
+        return _get_sleeper_league_rosters(league_id, summary, supabase=supabase)
 
     @mcp.tool(
         description=(
@@ -52,7 +52,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
     )
     def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False) -> list[dict]:
-        return _get_sleeper_league_matchups(league_id, week, summary)
+        return _get_sleeper_league_matchups(league_id, week, summary, supabase=supabase)
 
     @mcp.tool(
         description=(

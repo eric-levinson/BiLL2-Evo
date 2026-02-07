@@ -1,11 +1,41 @@
+from supabase import Client
 from tools.fantasy.sleeper_wrapper.user import User
 from tools.fantasy.sleeper_wrapper.league import League
 from tools.fantasy.sleeper_wrapper.players import Players
 from tools.fantasy.sleeper_wrapper.drafts import Drafts
-#from sleeper_wrapper.roster import get_roster
 
 #Test league ID:
 #1225572389929099264
+
+
+def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
+    """Convert Sleeper player IDs to compact player info via Supabase (not Sleeper API).
+
+    Returns list of {name, position, team} dicts in the same order as input IDs.
+    """
+    if not player_ids:
+        return []
+
+    # Query our own DB instead of hitting Sleeper's get_all_players endpoint
+    or_filter = ",".join([f"sleeper_id.eq.{pid}" for pid in player_ids])
+    response = (
+        supabase.table("vw_nfl_players_with_dynasty_ids")
+        .select("sleeper_id, display_name, latest_team, position")
+        .or_(or_filter)
+        .execute()
+    )
+
+    # Build lookup dict from results
+    lookup = {}
+    for row in response.data:
+        lookup[str(row["sleeper_id"])] = {
+            "name": row.get("display_name", "Unknown"),
+            "position": row.get("position", ""),
+            "team": row.get("latest_team", ""),
+        }
+
+    # Return in same order as input, with fallback for unmatched IDs
+    return [lookup.get(str(pid), {"name": f"ID:{pid}", "position": "", "team": ""}) for pid in player_ids]
 
 #tool definition to get sleeper leagues from an EXACT username with verbose option
 def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> list[dict]:
@@ -32,13 +62,14 @@ def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> lis
     except Exception as e:
         return Exception(f"Error fetching sleeper leagues: {str(e)}")
 
-def get_sleeper_league_rosters(league_id: str, summary: bool = False) -> list[dict]:
+def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: Client | None = None) -> list[dict]:
     """Retrieve rosters for a given Sleeper league ID, annotated with usernames.
 
     Args:
         league_id: The Sleeper league ID.
         summary: If True, returns compact roster info with player names/positions/teams
                  instead of full roster objects. If False (default), returns full data.
+        supabase: Supabase client (required when summary=True).
     """
 
     if not league_id:
@@ -62,10 +93,6 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False) -> list[di
         if not summary:
             return rosters
 
-        # Summary mode: return compact player info
-        players_wrapper = Players()
-        all_players = players_wrapper.get_all_players()
-
         summary_rosters = []
         for roster in rosters:
             summary_roster = {
@@ -73,28 +100,12 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False) -> list[di
                 "owner_name": roster.get("owner_name"),
             }
 
-            # Convert player IDs to compact player info
             player_ids = roster.get("players") or []
-            summary_roster["players"] = [
-                {
-                    "name": all_players.get(pid, {}).get("full_name", "Unknown"),
-                    "position": all_players.get(pid, {}).get("position", ""),
-                    "team": all_players.get(pid, {}).get("team", "")
-                }
-                for pid in player_ids
-            ]
+            summary_roster["players"] = _resolve_player_ids(supabase, player_ids)
 
-            # Also include starters if present
             starter_ids = roster.get("starters") or []
             if starter_ids:
-                summary_roster["starters"] = [
-                    {
-                        "name": all_players.get(pid, {}).get("full_name", "Unknown"),
-                        "position": all_players.get(pid, {}).get("position", ""),
-                        "team": all_players.get(pid, {}).get("team", "")
-                    }
-                    for pid in starter_ids
-                ]
+                summary_roster["starters"] = _resolve_player_ids(supabase, starter_ids)
 
             summary_rosters.append(summary_roster)
 
@@ -114,7 +125,7 @@ def get_sleeper_league_users(league_id: str) -> list[dict]:
         raise Exception(f"Error fetching sleeper leagues: {str(e)}")
 
 
-def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False) -> list[dict]:
+def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False, supabase: Client | None = None) -> list[dict]:
     """Retrieve matchups for a given Sleeper league and week.
 
     Args:
@@ -122,6 +133,7 @@ def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False
         week: The week number to retrieve matchups for.
         summary: If True, returns compact matchup info with player names/positions/teams
                  instead of full player ID arrays. If False (default), returns full data.
+        supabase: Supabase client (required when summary=True).
 
     The caller must supply the target week. Each matchup is annotated with
     the username of the roster's owner.
@@ -151,10 +163,6 @@ def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False
         if not summary:
             return matchups
 
-        # Summary mode: return compact player info
-        players_wrapper = Players()
-        all_players = players_wrapper.get_all_players()
-
         summary_matchups = []
         for matchup in matchups:
             summary_matchup = {
@@ -164,28 +172,12 @@ def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False
                 "points": matchup.get("points"),
             }
 
-            # Convert player IDs to compact player info
             player_ids = matchup.get("players") or []
-            summary_matchup["players"] = [
-                {
-                    "name": all_players.get(pid, {}).get("full_name", "Unknown"),
-                    "position": all_players.get(pid, {}).get("position", ""),
-                    "team": all_players.get(pid, {}).get("team", "")
-                }
-                for pid in player_ids
-            ]
+            summary_matchup["players"] = _resolve_player_ids(supabase, player_ids)
 
-            # Also include starters if present
             starter_ids = matchup.get("starters") or []
             if starter_ids:
-                summary_matchup["starters"] = [
-                    {
-                        "name": all_players.get(pid, {}).get("full_name", "Unknown"),
-                        "position": all_players.get(pid, {}).get("position", ""),
-                        "team": all_players.get(pid, {}).get("team", "")
-                    }
-                    for pid in starter_ids
-                ]
+                summary_matchup["starters"] = _resolve_player_ids(supabase, starter_ids)
 
             summary_matchups.append(summary_matchup)
 
