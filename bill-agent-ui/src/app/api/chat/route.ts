@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { createMCPClient } from '@ai-sdk/mcp'
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp'
 import {
   ToolLoopAgent,
   stepCountIs,
@@ -37,7 +37,9 @@ function estimateToolTokens(toolName: string, toolDef: unknown): number {
  * @param tools - Record of tools or array of tool names with definitions
  * @returns Total estimated token count
  */
-function calculateTotalTokens(tools: Record<string, unknown> | unknown[]): number {
+function calculateTotalTokens(
+  tools: Record<string, unknown> | unknown[]
+): number {
   if (Array.isArray(tools)) {
     return tools.reduce((total: number, tool) => {
       // For BM25 search results, estimate based on the tool object
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let mcpClient
+  let mcpClient: MCPClient | undefined
 
   try {
     // Parse request body
@@ -112,12 +114,14 @@ export async function POST(req: Request) {
 
     console.log(`[Tool Filtering] Provider: ${provider}, Model: ${modelId}`)
     console.log(`[Tool Filtering] Total tools available: ${totalToolCount}`)
-    console.log(`[Tool Filtering] Estimated baseline tokens (all tools): ${baselineTokens.toLocaleString()}`)
+    console.log(
+      `[Tool Filtering] Estimated baseline tokens (all tools): ${baselineTokens.toLocaleString()}`
+    )
 
     // Convert tools Record to array for BM25 indexing, injecting name from Record keys
     const toolsArray = Object.entries(tools).map(([name, tool]) => ({
       ...(tool as Record<string, unknown>),
-      name,
+      name
     })) as AITool[]
 
     // Build BM25 index for client-side tool filtering (used by non-Anthropic providers)
@@ -126,38 +130,56 @@ export async function POST(req: Request) {
     // Apply Tool Search optimization for Anthropic models
     // For Claude, this marks all MCP tools with deferLoading: true
     // and adds the Tool Search meta-tool for on-demand discovery
-    const optimizedTools = provider === 'anthropic'
-      ? registerToolSearch(tools)
-      : tools
+    const optimizedTools =
+      provider === 'anthropic' ? registerToolSearch(tools) : tools
 
     // Log path-specific optimization strategy
     if (provider === 'anthropic') {
       // Anthropic Tool Search: Server-side on-demand tool loading
       // Estimated tokens: ~500 for Tool Search meta-tool + selected tools loaded on-demand
-      const estimatedFilteredTokens = 500 + (maxResults * (baselineTokens / totalToolCount))
+      const estimatedFilteredTokens =
+        500 + maxResults * (baselineTokens / totalToolCount)
       const tokenSavings = baselineTokens - estimatedFilteredTokens
-      const savingsPercentage = ((tokenSavings / baselineTokens) * 100).toFixed(1)
+      const savingsPercentage = ((tokenSavings / baselineTokens) * 100).toFixed(
+        1
+      )
 
-      console.log(`[Tool Filtering] Strategy: Anthropic Tool Search (server-side)`)
-      console.log(`[Tool Filtering] Estimated filtered tokens: ${estimatedFilteredTokens.toLocaleString()} (Tool Search meta-tool + ~${maxResults} tools on-demand)`)
-      console.log(`[Tool Filtering] Estimated token savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercentage}% reduction)`)
+      console.log(
+        `[Tool Filtering] Strategy: Anthropic Tool Search (server-side)`
+      )
+      console.log(
+        `[Tool Filtering] Estimated filtered tokens: ${estimatedFilteredTokens.toLocaleString()} (Tool Search meta-tool + ~${maxResults} tools on-demand)`
+      )
+      console.log(
+        `[Tool Filtering] Estimated token savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercentage}% reduction)`
+      )
     } else {
       // Client-side BM25: Tools filtered before each LLM step via prepareStep
-      const estimatedFilteredTokens = maxResults * (baselineTokens / totalToolCount)
+      const estimatedFilteredTokens =
+        maxResults * (baselineTokens / totalToolCount)
       const tokenSavings = baselineTokens - estimatedFilteredTokens
-      const savingsPercentage = ((tokenSavings / baselineTokens) * 100).toFixed(1)
+      const savingsPercentage = ((tokenSavings / baselineTokens) * 100).toFixed(
+        1
+      )
 
-      console.log(`[Tool Filtering] Strategy: Client-side BM25 filtering via prepareStep`)
-      console.log(`[Tool Filtering] Estimated filtered tokens: ${estimatedFilteredTokens.toLocaleString()} (~${maxResults} tools per request)`)
-      console.log(`[Tool Filtering] Estimated token savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercentage}% reduction)`)
+      console.log(
+        `[Tool Filtering] Strategy: Client-side BM25 filtering via prepareStep`
+      )
+      console.log(
+        `[Tool Filtering] Estimated filtered tokens: ${estimatedFilteredTokens.toLocaleString()} (~${maxResults} tools per request)`
+      )
+      console.log(
+        `[Tool Filtering] Estimated token savings: ${tokenSavings.toLocaleString()} tokens (${savingsPercentage}% reduction)`
+      )
     }
 
     // Create prepareStep callback for BM25 filtering (non-Anthropic providers)
     // For Anthropic providers, Tool Search handles this server-side, so no prepareStep needed
     // Wrap the callback to add logging
-    const basePrepareStep = provider !== 'anthropic'
-      ? createPrepareStepCallback(bm25Index, toolsArray, maxResults)
-      : undefined
+    const basePrepareStep =
+      provider !== 'anthropic'
+        ? createPrepareStepCallback(bm25Index, toolsArray, maxResults)
+        : undefined
 
     const prepareStep = basePrepareStep
       ? (context: Parameters<typeof basePrepareStep>[0]) => {
@@ -165,9 +187,13 @@ export async function POST(req: Request) {
 
           // Log selected tools for this step
           if (result?.activeTools && result.activeTools.length > 0) {
-            console.log(`[Tool Selection] BM25 selected ${result.activeTools.length} tools: ${result.activeTools.join(', ')}`)
+            console.log(
+              `[Tool Selection] BM25 selected ${result.activeTools.length} tools: ${result.activeTools.join(', ')}`
+            )
           } else {
-            console.log(`[Tool Selection] BM25 fallback: using all ${totalToolCount} tools`)
+            console.log(
+              `[Tool Selection] BM25 fallback: using all ${totalToolCount} tools`
+            )
           }
 
           return result

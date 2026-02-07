@@ -21,7 +21,9 @@ const ALWAYS_ON_TOOLS = [
 interface StepContext {
   messages: Array<{
     role: string
-    content: string | Array<{ type: string; text?: string; [key: string]: unknown }>
+    content:
+      | string
+      | Array<{ type: string; text?: string; [key: string]: unknown }>
     [key: string]: unknown
   }>
   [key: string]: unknown
@@ -44,7 +46,9 @@ interface PrepareStepResult {
  */
 function getLatestUserQuery(context: StepContext): string {
   // Find the last user message
-  const userMessages = context.messages.filter((m: { role: string }) => m.role === 'user')
+  const userMessages = context.messages.filter(
+    (m: { role: string }) => m.role === 'user'
+  )
   const lastUserMessage = userMessages[userMessages.length - 1]
 
   if (!lastUserMessage) return ''
@@ -57,7 +61,12 @@ function getLatestUserQuery(context: StepContext): string {
   // Handle parts-based content (UIMessage v3)
   if (Array.isArray(lastUserMessage.content)) {
     const textPart = lastUserMessage.content.find(
-      (p: { type: string; text?: string; [key: string]: unknown }): p is { type: 'text'; text: string } => p.type === 'text' && typeof p.text === 'string'
+      (p: {
+        type: string
+        text?: string
+        [key: string]: unknown
+      }): p is { type: 'text'; text: string } =>
+        p.type === 'text' && typeof p.text === 'string'
     )
     return textPart?.text || ''
   }
@@ -95,7 +104,9 @@ export function createPrepareStepCallback(
     const activeToolNames = getToolNames(searchResults)
 
     // Merge always-on tools with BM25 results, removing duplicates
-    const mergedTools = Array.from(new Set([...ALWAYS_ON_TOOLS, ...activeToolNames]))
+    const mergedTools = Array.from(
+      new Set([...ALWAYS_ON_TOOLS, ...activeToolNames])
+    )
 
     // If BM25 returned no results, we still have always-on tools
     // Return the merged list (always-on tools + BM25 results)

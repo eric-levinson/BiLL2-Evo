@@ -37,7 +37,9 @@ function createModelForProvider(provider: AIProvider, modelId: string) {
       return google(modelId)
     case 'other':
       // Default to OpenAI-compatible API for unknown providers
-      console.warn(`[Model Factory] Unknown provider for model '${modelId}', falling back to OpenAI SDK`)
+      console.warn(
+        `[Model Factory] Unknown provider for model '${modelId}', falling back to OpenAI SDK`
+      )
       return openai(modelId)
   }
 }
