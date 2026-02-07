@@ -50,7 +50,7 @@ def get_advanced_receiving_stats(
     season_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -62,7 +62,7 @@ def get_advanced_receiving_stats(
         season_list: optional list of seasons to include
         metrics: list of metric codes to return (optional)
         order_by_metric: optional metric/column to order by (str). If provided, orders by this metric desc.
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (ff_position column). Defaults to ["WR","TE","RB"] if not provided.
 
     Returns:
@@ -123,7 +123,7 @@ def get_advanced_passing_stats(
     season_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -135,7 +135,7 @@ def get_advanced_passing_stats(
         season_list: optional list of seasons to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (ff_position column). Defaults to ["QB"].
 
     Returns:
@@ -194,7 +194,7 @@ def get_advanced_rushing_stats(
     season_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -206,7 +206,7 @@ def get_advanced_rushing_stats(
         season_list: optional list of seasons to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (ff_position column). Defaults to ["RB","QB"].
 
     Returns:
@@ -266,7 +266,7 @@ def get_advanced_defense_stats(
     season_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -278,7 +278,7 @@ def get_advanced_defense_stats(
         season_list: optional list of seasons to include in results
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (position column).
                    Defaults to common defensive roles if not provided.
 
@@ -339,7 +339,7 @@ def get_advanced_receiving_stats_weekly(
     weekly_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -352,7 +352,7 @@ def get_advanced_receiving_stats_weekly(
         weekly_list: optional list of weeks to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (ff_position column). Defaults to ["WR","TE","RB"].
 
     Returns:
@@ -415,7 +415,7 @@ def get_advanced_passing_stats_weekly(
     weekly_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -428,7 +428,7 @@ def get_advanced_passing_stats_weekly(
         weekly_list: optional list of weeks to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (position column). Defaults to ["QB"].
 
     Returns:
@@ -491,7 +491,7 @@ def get_advanced_rushing_stats_weekly(
     weekly_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -504,7 +504,7 @@ def get_advanced_rushing_stats_weekly(
         weekly_list: optional list of weeks to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (position column). Defaults to ["RB","QB"].
 
     Returns:
@@ -567,7 +567,7 @@ def get_advanced_defense_stats_weekly(
     weekly_list: list[int] | None = None,
     metrics: list[str] | None = None,
     order_by_metric: str | None = None,
-    limit: int | None = 100,
+    limit: int | None = 25,
     positions: list[str] | None = None,
 ) -> dict:
     """
@@ -580,7 +580,7 @@ def get_advanced_defense_stats_weekly(
         weekly_list: optional list of weeks to include
         metrics: optional list of metric codes to return
         order_by_metric: optional metric/column to order by (DESC)
-        limit: optional max rows to return (defaults to 100). Enforced cap applied.
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
         positions: optional list of positions to filter (position column).
                    Defaults to common defensive roles if not provided.
 

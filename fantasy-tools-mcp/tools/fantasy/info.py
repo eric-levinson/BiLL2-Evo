@@ -1,11 +1,44 @@
+from supabase import Client
 from tools.fantasy.sleeper_wrapper.user import User
 from tools.fantasy.sleeper_wrapper.league import League
 from tools.fantasy.sleeper_wrapper.players import Players
 from tools.fantasy.sleeper_wrapper.drafts import Drafts
-#from sleeper_wrapper.roster import get_roster
 
 #Test league ID:
 #1225572389929099264
+
+
+def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
+    """Convert Sleeper player IDs to compact player info via Supabase (not Sleeper API).
+
+    Returns list of {name, position, team} dicts in the same order as input IDs.
+    Non-numeric IDs (e.g. team defense "HOU") are kept as-is since they won't
+    exist in the player table.
+    """
+    if not player_ids:
+        return []
+
+    # sleeper_id is numeric in the DB — filter out non-numeric IDs (team defenses like "HOU")
+    numeric_ids = [pid for pid in player_ids if pid.isdigit()]
+
+    lookup = {}
+    if numeric_ids:
+        # Use in_ filter for a single clean query
+        response = (
+            supabase.table("vw_nfl_players_with_dynasty_ids")
+            .select("sleeper_id, display_name, latest_team, position")
+            .in_("sleeper_id", [int(pid) for pid in numeric_ids])
+            .execute()
+        )
+        for row in response.data:
+            lookup[str(int(row["sleeper_id"]))] = {
+                "name": row.get("display_name", "Unknown"),
+                "position": row.get("position", ""),
+                "team": row.get("latest_team", ""),
+            }
+
+    # Return in same order as input; non-numeric IDs (team defenses) get a readable fallback
+    return [lookup.get(str(pid), {"name": pid, "position": "DEF" if not pid.isdigit() else "", "team": pid if not pid.isdigit() else ""}) for pid in player_ids]
 
 #tool definition to get sleeper leagues from an EXACT username with verbose option
 def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> list[dict]:
@@ -32,8 +65,15 @@ def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> lis
     except Exception as e:
         return Exception(f"Error fetching sleeper leagues: {str(e)}")
 
-def get_sleeper_league_rosters(league_id: str) -> list[dict]:
-    """Retrieve rosters for a given Sleeper league ID, annotated with usernames."""
+def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: Client | None = None) -> list[dict]:
+    """Retrieve rosters for a given Sleeper league ID, annotated with usernames.
+
+    Args:
+        league_id: The Sleeper league ID.
+        summary: If True, returns compact roster info with player names/positions/teams
+                 instead of full roster objects. If False (default), returns full data.
+        supabase: Supabase client (required when summary=True).
+    """
 
     if not league_id:
         return [{"error": "Please provide a valid league_id as a string."}]
@@ -48,11 +88,31 @@ def get_sleeper_league_rosters(league_id: str) -> list[dict]:
                 user_map[user["user_id"]] = user["metadata"]["team_name"]
             except:
                 user_map[user["user_id"]] = user.get("display_name")
-        
+
         for roster in rosters:
             owner = roster.get("owner_id")
             roster["owner_name"] = user_map.get(owner)
-        return rosters
+
+        if not summary:
+            return rosters
+
+        summary_rosters = []
+        for roster in rosters:
+            summary_roster = {
+                "roster_id": roster.get("roster_id"),
+                "owner_name": roster.get("owner_name"),
+            }
+
+            player_ids = roster.get("players") or []
+            summary_roster["players"] = _resolve_player_ids(supabase, player_ids)
+
+            starter_ids = roster.get("starters") or []
+            if starter_ids:
+                summary_roster["starters"] = _resolve_player_ids(supabase, starter_ids)
+
+            summary_rosters.append(summary_roster)
+
+        return summary_rosters
     except Exception as e:
         raise Exception(f"Error fetching sleeper leagues: {str(e)}")
 
@@ -68,8 +128,15 @@ def get_sleeper_league_users(league_id: str) -> list[dict]:
         raise Exception(f"Error fetching sleeper leagues: {str(e)}")
 
 
-def get_sleeper_league_matchups(league_id: str, week: int) -> list[dict]:
+def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False, supabase: Client | None = None) -> list[dict]:
     """Retrieve matchups for a given Sleeper league and week.
+
+    Args:
+        league_id: The Sleeper league ID.
+        week: The week number to retrieve matchups for.
+        summary: If True, returns compact matchup info with player names/positions/teams
+                 instead of full player ID arrays. If False (default), returns full data.
+        supabase: Supabase client (required when summary=True).
 
     The caller must supply the target week. Each matchup is annotated with
     the username of the roster's owner.
@@ -95,7 +162,29 @@ def get_sleeper_league_matchups(league_id: str, week: int) -> list[dict]:
             rid = matchup.get("roster_id")
             owner = roster_to_owner.get(rid)
             matchup["owner_name"] = user_map.get(owner)
-        return matchups
+
+        if not summary:
+            return matchups
+
+        summary_matchups = []
+        for matchup in matchups:
+            summary_matchup = {
+                "matchup_id": matchup.get("matchup_id"),
+                "roster_id": matchup.get("roster_id"),
+                "owner_name": matchup.get("owner_name"),
+                "points": matchup.get("points"),
+            }
+
+            player_ids = matchup.get("players") or []
+            summary_matchup["players"] = _resolve_player_ids(supabase, player_ids)
+
+            starter_ids = matchup.get("starters") or []
+            if starter_ids:
+                summary_matchup["starters"] = _resolve_player_ids(supabase, starter_ids)
+
+            summary_matchups.append(summary_matchup)
+
+        return summary_matchups
     except Exception as e:
         raise Exception(f"Error fetching sleeper matchups: {str(e)}")
 
@@ -213,13 +302,29 @@ def get_sleeper_user_drafts(
     except Exception as e:
         raise Exception(f"Error fetching sleeper drafts: {str(e)}")
 
-def get_sleeper_league_by_id(league_id: str) -> dict:
-    """Retrieve a Sleeper league by its ID."""
+def get_sleeper_league_by_id(league_id: str, summary: bool = False) -> dict:
+    """Retrieve a Sleeper league by its ID.
+
+    Args:
+        league_id: The Sleeper league ID.
+        summary: If True, returns compact league data without nested settings objects.
+                 If False (default), returns full data.
+    """
     if not league_id:
         return {"error": "Please provide a valid league_id as a string."}
     try:
         league = League(league_id)
-        return league.get_league()
+        league_data = league.get_league()
+
+        if not summary:
+            return league_data
+
+        # Summary mode: return only essential league info, exclude heavy nested objects
+        default_keys = [
+            "status", "name", "draft_id", "season_type", "season", "total_rosters", "league_id"
+        ]
+        summary_data = {k: league_data.get(k) for k in default_keys}
+        return summary_data
     except Exception as e:
         raise Exception(f"Error fetching sleeper league: {str(e)}")
 
