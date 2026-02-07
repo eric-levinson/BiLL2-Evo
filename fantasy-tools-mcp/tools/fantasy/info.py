@@ -12,30 +12,33 @@ def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
     """Convert Sleeper player IDs to compact player info via Supabase (not Sleeper API).
 
     Returns list of {name, position, team} dicts in the same order as input IDs.
+    Non-numeric IDs (e.g. team defense "HOU") are kept as-is since they won't
+    exist in the player table.
     """
     if not player_ids:
         return []
 
-    # Query our own DB instead of hitting Sleeper's get_all_players endpoint
-    or_filter = ",".join([f"sleeper_id.eq.{pid}" for pid in player_ids])
-    response = (
-        supabase.table("vw_nfl_players_with_dynasty_ids")
-        .select("sleeper_id, display_name, latest_team, position")
-        .or_(or_filter)
-        .execute()
-    )
+    # sleeper_id is numeric in the DB — filter out non-numeric IDs (team defenses like "HOU")
+    numeric_ids = [pid for pid in player_ids if pid.isdigit()]
 
-    # Build lookup dict from results
     lookup = {}
-    for row in response.data:
-        lookup[str(row["sleeper_id"])] = {
-            "name": row.get("display_name", "Unknown"),
-            "position": row.get("position", ""),
-            "team": row.get("latest_team", ""),
-        }
+    if numeric_ids:
+        # Use in_ filter for a single clean query
+        response = (
+            supabase.table("vw_nfl_players_with_dynasty_ids")
+            .select("sleeper_id, display_name, latest_team, position")
+            .in_("sleeper_id", [int(pid) for pid in numeric_ids])
+            .execute()
+        )
+        for row in response.data:
+            lookup[str(int(row["sleeper_id"]))] = {
+                "name": row.get("display_name", "Unknown"),
+                "position": row.get("position", ""),
+                "team": row.get("latest_team", ""),
+            }
 
-    # Return in same order as input, with fallback for unmatched IDs
-    return [lookup.get(str(pid), {"name": f"ID:{pid}", "position": "", "team": ""}) for pid in player_ids]
+    # Return in same order as input; non-numeric IDs (team defenses) get a readable fallback
+    return [lookup.get(str(pid), {"name": pid, "position": "DEF" if not pid.isdigit() else "", "team": pid if not pid.isdigit() else ""}) for pid in player_ids]
 
 #tool definition to get sleeper leagues from an EXACT username with verbose option
 def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> list[dict]:
