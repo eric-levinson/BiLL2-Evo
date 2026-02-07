@@ -21,15 +21,21 @@ import { anthropic } from '@ai-sdk/anthropic'
  * // Only Tool Search meta-tool (~500 tokens) sent initially
  * // Claude discovers relevant tools on demand
  */
-export function registerToolSearch<T extends Record<string, unknown>>(tools: T): T {
+export function registerToolSearch<T extends Record<string, unknown>>(
+  tools: T
+): T {
   // Mark all MCP tools with providerOptions.anthropic.deferLoading = true
   // This tells Anthropic to not send these tool definitions initially
   const deferredTools: Record<string, unknown> = {}
 
   for (const [toolName, tool] of Object.entries(tools)) {
     const toolObj = tool as Record<string, unknown>
-    const existingProviderOptions = (toolObj.providerOptions || {}) as Record<string, unknown>
-    const existingAnthropicOptions = (existingProviderOptions.anthropic || {}) as Record<string, unknown>
+    const existingProviderOptions = (toolObj.providerOptions || {}) as Record<
+      string,
+      unknown
+    >
+    const existingAnthropicOptions = (existingProviderOptions.anthropic ||
+      {}) as Record<string, unknown>
 
     deferredTools[toolName] = {
       ...toolObj,

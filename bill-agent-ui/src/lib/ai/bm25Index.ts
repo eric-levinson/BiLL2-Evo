@@ -4,7 +4,12 @@
  */
 
 import BM25, { type BMDocument } from 'okapibm25'
-import { extractAllToolMetadata, getSearchableTexts, type ToolMetadata, type AITool } from './toolMetadata'
+import {
+  extractAllToolMetadata,
+  getSearchableTexts,
+  type ToolMetadata,
+  type AITool
+} from './toolMetadata'
 
 /**
  * BM25 index for tool search
@@ -54,7 +59,7 @@ function tokenizeQuery(query: string): string[] {
   return query
     .toLowerCase()
     .split(/\s+/)
-    .filter(word => word.length > 0)
+    .filter((word) => word.length > 0)
 }
 
 /**
@@ -80,7 +85,12 @@ export function searchBM25Index(
   // Score documents using BM25 with default constants (k1=1.2, b=0.75)
   // Use sorter to get BMDocument[] with scores
   const sorter = (a: BMDocument, b: BMDocument) => b.score - a.score
-  const results = BM25(index.documents, keywords, undefined, sorter) as BMDocument[]
+  const results = BM25(
+    index.documents,
+    keywords,
+    undefined,
+    sorter
+  ) as BMDocument[]
 
   // Map results to tool objects and take top-k
   return results
@@ -93,7 +103,7 @@ export function searchBM25Index(
         score: result.score
       }
     })
-    .filter(result => result.score > 0) // Filter out zero-score results
+    .filter((result) => result.score > 0) // Filter out zero-score results
 }
 
 /**
@@ -103,7 +113,7 @@ export function searchBM25Index(
  * @returns Array of tool names
  */
 export function getToolNames(results: BM25SearchResult[]): string[] {
-  return results.map(r => r.name)
+  return results.map((r) => r.name)
 }
 
 /**
@@ -112,5 +122,5 @@ export function getToolNames(results: BM25SearchResult[]): string[] {
  * @returns Array of AI tools
  */
 export function getTools(results: BM25SearchResult[]): AITool[] {
-  return results.map(r => r.tool)
+  return results.map((r) => r.tool)
 }

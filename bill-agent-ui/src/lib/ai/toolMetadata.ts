@@ -35,9 +35,7 @@ export interface ToolMetadata {
  * @param parameters - The tool's parameter schema
  * @returns Array of parameter names
  */
-function extractParameterNames(
-  parameters?: AITool['parameters']
-): string[] {
+function extractParameterNames(parameters?: AITool['parameters']): string[] {
   if (!parameters?.properties) return []
   return Object.keys(parameters.properties)
 }
@@ -55,11 +53,7 @@ function createSearchableText(
   description: string,
   parameterNames: string[]
 ): string {
-  const parts = [
-    name,
-    description,
-    ...parameterNames
-  ].filter(Boolean)
+  const parts = [name, description, ...parameterNames].filter(Boolean)
 
   return parts.join(' ')
 }
@@ -104,9 +98,7 @@ export function findToolsByName(
   names: string[]
 ): AITool[] {
   const nameSet = new Set(names)
-  return metadata
-    .filter(m => nameSet.has(m.name))
-    .map(m => m.originalTool)
+  return metadata.filter((m) => nameSet.has(m.name)).map((m) => m.originalTool)
 }
 
 /**
@@ -116,5 +108,5 @@ export function findToolsByName(
  * @returns Array of searchable text strings, one per tool
  */
 export function getSearchableTexts(metadata: ToolMetadata[]): string[] {
-  return metadata.map(m => m.searchableText)
+  return metadata.map((m) => m.searchableText)
 }
