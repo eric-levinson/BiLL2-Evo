@@ -13,7 +13,7 @@ from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
+    retry_if_exception,
     before_sleep_log,
     RetryError,
 )
@@ -138,16 +138,27 @@ def retry_with_backoff(
         ```
     """
     # Read configuration from environment with fallbacks
-    _max_attempts = max_attempts or int(os.getenv('RETRY_MAX_ATTEMPTS', '3'))
-    _initial_delay_ms = initial_delay or int(os.getenv('RETRY_INITIAL_DELAY_MS', '1000'))
-    _max_delay_ms = max_delay or int(os.getenv('RETRY_MAX_DELAY_MS', '4000'))
-    _multiplier = multiplier or float(os.getenv('RETRY_BACKOFF_MULTIPLIER', '2'))
+    _max_attempts = max_attempts if max_attempts is not None else int(os.getenv('RETRY_MAX_ATTEMPTS', '3'))
 
-    # Convert milliseconds to seconds for tenacity
-    _initial_delay_s = _initial_delay_ms / 1000.0
-    _max_delay_s = _max_delay_ms / 1000.0
+    # Handle delay parameters: direct params are in seconds, env vars are in milliseconds
+    if initial_delay is not None:
+        _initial_delay_s = initial_delay
+    else:
+        _initial_delay_s = int(os.getenv('RETRY_INITIAL_DELAY_MS', '1000')) / 1000.0
+
+    if max_delay is not None:
+        _max_delay_s = max_delay
+    else:
+        _max_delay_s = int(os.getenv('RETRY_MAX_DELAY_MS', '4000')) / 1000.0
+
+    _multiplier = multiplier if multiplier is not None else float(os.getenv('RETRY_BACKOFF_MULTIPLIER', '2'))
 
     def decorator(func: Callable) -> Callable:
+        # Custom retry condition that checks if exception is retryable
+        def should_retry(exception: Exception) -> bool:
+            """Check if exception should trigger a retry."""
+            return is_retryable_http_error(exception)
+
         # Apply tenacity retry decorator
         retrying_func = retry(
             # Stop after max attempts
@@ -162,20 +173,14 @@ def retry_with_backoff(
                 exp_base=_multiplier,
             ),
 
-            # Only retry on specific exceptions
-            retry=retry_if_exception_type((
-                requests.exceptions.HTTPError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-            )),
+            # Only retry on specific retryable exceptions
+            retry=retry_if_exception(should_retry),
 
             # Log before sleeping (retrying)
             before_sleep=before_sleep_log(logger, logging.WARNING),
 
-            # Custom retry condition
-            retry_error_callback=lambda retry_state: is_retryable_http_error(
-                retry_state.outcome.exception()
-            ) if retry_state.outcome and retry_state.outcome.failed else False,
+            # Re-raise exceptions immediately if not retryable
+            reraise=True,
         )(func)
 
         @wraps(func)
