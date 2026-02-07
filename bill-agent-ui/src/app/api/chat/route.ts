@@ -14,6 +14,15 @@ import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
 import { buildBM25Index } from '@/lib/ai/bm25Index'
 import { createPrepareStepCallback } from '@/lib/ai/toolFiltering'
 import { type AITool } from '@/lib/ai/toolMetadata'
+import {
+  retryWithBackoff,
+  isRetryableError,
+  RetryExhaustedError
+} from '@/lib/ai/toolRetry'
+import {
+  CircuitBreaker,
+  CircuitBreakerOpenError
+} from '@/lib/ai/circuitBreaker'
 
 /**
  * Estimates token count for a tool definition
@@ -63,6 +72,18 @@ function getMessageText(message: UIMessage | undefined): string {
   return textPart?.text || 'New Chat'
 }
 
+/**
+ * Global circuit breaker instance for MCP server protection
+ * Tracks consecutive failures and opens circuit after threshold is reached
+ */
+const mcpCircuitBreaker = new CircuitBreaker({
+  onStateChange: (serviceName, oldState, newState) => {
+    console.log(
+      `[Circuit Breaker] ${serviceName} state changed: ${oldState} -> ${newState}`
+    )
+  }
+})
+
 export async function POST(req: Request) {
   // Verify authentication
   const supabase = await createServerSupabaseClient()
@@ -91,15 +112,55 @@ export async function POST(req: Request) {
     // Create MCP client with streamable HTTP transport
     const mcpServerUrl =
       process.env.MCP_SERVER_URL || 'http://localhost:8000/mcp/'
-    mcpClient = await createMCPClient({
-      transport: {
-        type: 'http',
-        url: mcpServerUrl
-      }
-    })
 
-    // Get all available tools from MCP server
-    const tools = await mcpClient.tools()
+    // Wrap MCP client creation with retry logic and circuit breaker
+    mcpClient = await mcpCircuitBreaker.execute(
+      'mcp-server',
+      async () => {
+        return await retryWithBackoff(
+          async () => {
+            console.log(`[MCP Client] Connecting to ${mcpServerUrl}`)
+            return await createMCPClient({
+              transport: {
+                type: 'http',
+                url: mcpServerUrl
+              }
+            })
+          },
+          {
+            shouldRetry: isRetryableError,
+            onRetry: (error, attempt, delayMs) => {
+              console.log(
+                `[MCP Client] Retry attempt ${attempt} after ${delayMs}ms due to error:`,
+                error instanceof Error ? error.message : String(error)
+              )
+            }
+          }
+        )
+      }
+    )
+
+    // Get all available tools from MCP server with retry logic and circuit breaker
+    const tools = await mcpCircuitBreaker.execute(
+      'mcp-server',
+      async () => {
+        return await retryWithBackoff(
+          async () => {
+            console.log('[MCP Tools] Fetching available tools from server')
+            return await mcpClient!.tools()
+          },
+          {
+            shouldRetry: isRetryableError,
+            onRetry: (error, attempt, delayMs) => {
+              console.log(
+                `[MCP Tools] Retry attempt ${attempt} after ${delayMs}ms due to error:`,
+                error instanceof Error ? error.message : String(error)
+              )
+            }
+          }
+        )
+      }
+    )
 
     // Detect provider from model ID
     const modelId = process.env.AI_MODEL_ID || 'claude-sonnet-4-5-20250929'
@@ -308,6 +369,36 @@ Remember:
     if (mcpClient) {
       await mcpClient.close()
     }
+
+    // Provide user-friendly error messages based on error type
+    if (err instanceof CircuitBreakerOpenError) {
+      console.error(
+        `[Circuit Breaker] Service unavailable: ${err.serviceName}, reset at ${err.resetAt.toISOString()}`
+      )
+      return NextResponse.json(
+        {
+          error:
+            'MCP server is temporarily unavailable. Please try again in a moment.'
+        },
+        { status: 503 }
+      )
+    }
+
+    if (err instanceof RetryExhaustedError) {
+      console.error(
+        `[Retry] All ${err.attempts} retry attempts exhausted:`,
+        err.lastError
+      )
+      return NextResponse.json(
+        {
+          error:
+            'Unable to connect to MCP server after multiple attempts. Please check if the server is running.'
+        },
+        { status: 503 }
+      )
+    }
+
+    // Generic error fallback
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
