@@ -401,7 +401,7 @@ Remember:
       return NextResponse.json(
         {
           error:
-            'MCP server is temporarily unavailable. Please try again in a moment.'
+            'The fantasy football data service is temporarily unavailable. Please try again in a moment.'
         },
         { status: 503 }
       )
@@ -427,13 +427,97 @@ Remember:
       return NextResponse.json(
         {
           error:
-            'Unable to connect to MCP server after multiple attempts. Please check if the server is running.'
+            'Unable to connect to the fantasy football data service. Please ensure the MCP server is running and try again.'
         },
         { status: 503 }
       )
     }
 
-    // Generic error fallback - log full details for debugging
+    // Check for specific error types to provide context-aware messages
+    const errorMessage = err instanceof Error ? err.message.toLowerCase() : ''
+    const errorType = err instanceof Error ? err.constructor.name : ''
+
+    // Network and connection errors
+    if (
+      errorMessage.includes('econnrefused') ||
+      errorMessage.includes('econnreset') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('connection')
+    ) {
+      console.error(
+        `[Network Error] Connection failed`,
+        {
+          type: errorType,
+          message: err instanceof Error ? err.message : String(err)
+        }
+      )
+      return NextResponse.json(
+        {
+          error:
+            'Unable to connect to the data service. Please check your network connection and ensure all required services are running.'
+        },
+        { status: 503 }
+      )
+    }
+
+    // Timeout errors
+    if (
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('etimedout')
+    ) {
+      console.error(
+        `[Timeout Error] Request timed out`,
+        {
+          type: errorType,
+          message: err instanceof Error ? err.message : String(err)
+        }
+      )
+      return NextResponse.json(
+        {
+          error:
+            'The request took too long to complete. The service may be experiencing high load. Please try again.'
+        },
+        { status: 504 }
+      )
+    }
+
+    // Authentication errors
+    if (errorMessage.includes('unauthorized') || errorMessage.includes('auth')) {
+      console.error(
+        `[Auth Error] Authentication failed`,
+        {
+          type: errorType,
+          message: err instanceof Error ? err.message : String(err)
+        }
+      )
+      return NextResponse.json(
+        {
+          error:
+            'Authentication failed. Please log out and log back in to continue.'
+        },
+        { status: 401 }
+      )
+    }
+
+    // Rate limit errors
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+      console.error(
+        `[Rate Limit] Too many requests`,
+        {
+          type: errorType,
+          message: err instanceof Error ? err.message : String(err)
+        }
+      )
+      return NextResponse.json(
+        {
+          error:
+            'Too many requests. Please wait a moment before trying again.'
+        },
+        { status: 429 }
+      )
+    }
+
+    // Generic error fallback - log full details for debugging but show friendly message
     const errorDetails = err instanceof Error
       ? {
           type: err.constructor.name,
@@ -450,7 +534,10 @@ Remember:
     )
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error:
+          'An unexpected error occurred while processing your request. Please try again or contact support if the problem persists.'
+      },
       { status: 500 }
     )
   }
