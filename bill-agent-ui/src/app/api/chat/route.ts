@@ -130,9 +130,18 @@ export async function POST(req: Request) {
           {
             shouldRetry: isRetryableError,
             onRetry: (error, attempt, delayMs) => {
-              console.log(
-                `[MCP Client] Retry attempt ${attempt} after ${delayMs}ms due to error:`,
-                error instanceof Error ? error.message : String(error)
+              const errorType = error instanceof Error ? error.constructor.name : 'Unknown'
+              const errorMsg = error instanceof Error ? error.message : String(error)
+              console.error(
+                `[Error Recovery] MCP Client connection failed`,
+                {
+                  service: 'mcp-server',
+                  operation: 'createMCPClient',
+                  attempt,
+                  delayMs,
+                  errorType,
+                  errorMessage: errorMsg
+                }
               )
             }
           }
@@ -152,9 +161,18 @@ export async function POST(req: Request) {
           {
             shouldRetry: isRetryableError,
             onRetry: (error, attempt, delayMs) => {
-              console.log(
-                `[MCP Tools] Retry attempt ${attempt} after ${delayMs}ms due to error:`,
-                error instanceof Error ? error.message : String(error)
+              const errorType = error instanceof Error ? error.constructor.name : 'Unknown'
+              const errorMsg = error instanceof Error ? error.message : String(error)
+              console.error(
+                `[Error Recovery] MCP Tools fetch failed`,
+                {
+                  service: 'mcp-server',
+                  operation: 'mcpClient.tools()',
+                  attempt,
+                  delayMs,
+                  errorType,
+                  errorMessage: errorMsg
+                }
               )
             }
           }
@@ -373,7 +391,12 @@ Remember:
     // Provide user-friendly error messages based on error type
     if (err instanceof CircuitBreakerOpenError) {
       console.error(
-        `[Circuit Breaker] Service unavailable: ${err.serviceName}, reset at ${err.resetAt.toISOString()}`
+        `[Circuit Breaker] Service unavailable - circuit open`,
+        {
+          serviceName: err.serviceName,
+          resetAt: err.resetAt.toISOString(),
+          message: err.message
+        }
       )
       return NextResponse.json(
         {
@@ -385,9 +408,21 @@ Remember:
     }
 
     if (err instanceof RetryExhaustedError) {
+      const lastError = err.lastError
+      const lastErrorDetails = lastError instanceof Error
+        ? {
+            type: lastError.constructor.name,
+            message: lastError.message,
+            stack: lastError.stack
+          }
+        : { message: String(lastError) }
+
       console.error(
-        `[Retry] All ${err.attempts} retry attempts exhausted:`,
-        err.lastError
+        `[Retry Exhausted] All retry attempts failed`,
+        {
+          attempts: err.attempts,
+          lastError: lastErrorDetails
+        }
       )
       return NextResponse.json(
         {
@@ -398,7 +433,22 @@ Remember:
       )
     }
 
-    // Generic error fallback
+    // Generic error fallback - log full details for debugging
+    const errorDetails = err instanceof Error
+      ? {
+          type: err.constructor.name,
+          message: err.message,
+          stack: err.stack
+        }
+      : { message: String(err) }
+
+    console.error(
+      `[Chat API] Unhandled error occurred`,
+      {
+        error: errorDetails
+      }
+    )
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
