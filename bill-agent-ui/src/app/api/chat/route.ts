@@ -222,27 +222,34 @@ function formatPreferencesForPrompt(preferences: unknown): string {
 function createUpdateUserPreferenceTool(userId: string) {
   return tool({
     description:
-      "Update a user's preference. Use this when the user asks you to remember something about their analysis style, favorite players, or general preferences.",
+      "Update a user's preference. Use this when the user asks you to remember something about their analysis style, favorite players, or general preferences. REQUIRED: You must provide preference_type (one of: analysis_style, favorite_players, preference_tag, custom), value (string), and action (one of: set, add, remove).",
     parameters: z.object({
-      preference_type: z.enum([
-        'analysis_style',
-        'favorite_players',
-        'preference_tag',
-        'custom'
-      ]),
-      key: z
+      preference_type: z
         .string()
-        .optional()
-        .describe('The preference key (for custom type only)'),
+        .describe('Type of preference: analysis_style, favorite_players, preference_tag, or custom'),
       value: z
-        .union([z.string(), z.array(z.string())])
-        .describe('The preference value'),
+        .string()
+        .describe('The preference value to set'),
       action: z
-        .enum(['set', 'add', 'remove'])
-        .default('set')
-        .describe('Whether to set, add to array, or remove from array')
+        .string()
+        .describe('Action: set, add, or remove. Default is set')
     }),
-    execute: async ({ preference_type, key, value, action }) => {
+    execute: async (args) => {
+      console.log('[update_user_preference] RAW ARGS:', JSON.stringify(args, null, 2))
+
+      // Handle different AI providers sending different parameter names
+      const argsObj = args as any
+      let preference_type = argsObj.preference_type || argsObj.field || argsObj.type
+      let value = argsObj.value
+      let action = argsObj.action || 'set'
+      let key = argsObj.key
+
+      // Convert Gemini-style field names to our schema
+      if (argsObj.field === 'preferred_analysis_style' || argsObj.field === 'analysis_style') {
+        preference_type = 'analysis_style'
+      }
+
+      console.log('[update_user_preference] Normalized params:', { preference_type, key, value, action })
       const supabase = await createServerSupabaseClient()
 
       // Ensure user preferences record exists
@@ -710,18 +717,26 @@ export async function POST(req: Request) {
       ? (context: Parameters<typeof basePrepareStep>[0]) => {
           const result = basePrepareStep(context)
 
+          // ALWAYS include preference tools in addition to BM25 selection
+          const preferenceToolNames = ['update_user_preference', 'add_connected_league', 'update_roster_notes']
+          const selectedTools = result?.activeTools || []
+          const toolsWithPreferences = [...new Set([...selectedTools, ...preferenceToolNames])]
+
           // Log selected tools for this step
           if (result?.activeTools && result.activeTools.length > 0) {
             console.log(
-              `[Tool Selection] BM25 selected ${result.activeTools.length} tools: ${result.activeTools.join(', ')}`
+              `[Tool Selection] BM25 selected ${result.activeTools.length} tools + ${preferenceToolNames.length} preference tools: ${toolsWithPreferences.join(', ')}`
             )
           } else {
             console.log(
-              `[Tool Selection] BM25 fallback: using all ${totalToolCount} tools`
+              `[Tool Selection] BM25 fallback: using all ${totalToolCount} tools + ${preferenceToolNames.length} preference tools`
             )
           }
 
-          return result
+          return {
+            ...result,
+            activeTools: toolsWithPreferences
+          }
         }
       : undefined
 
