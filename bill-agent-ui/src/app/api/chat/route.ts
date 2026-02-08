@@ -6,8 +6,10 @@ import {
   stepCountIs,
   createAgentUIStreamResponse,
   consumeStream,
-  type UIMessage
+  type UIMessage,
+  tool
 } from 'ai'
+import { z } from 'zod'
 import { detectProvider } from '@/lib/ai/providerDetection'
 import { createModelInstance } from '@/lib/ai/modelFactory'
 import { registerToolSearch } from '@/lib/ai/anthropicToolSearch'
@@ -115,6 +117,382 @@ function filterBM25ToolCalls(messages: UIMessage[]): UIMessage[] {
     return {
       ...message,
       parts: filteredParts
+    }
+  })
+}
+
+/**
+ * Fetches user preferences from the database
+ * Returns default empty preferences if user has not set any yet
+ * @param userId - The user's ID
+ * @returns User preferences object
+ */
+async function getUserPreferences(userId: string) {
+  const supabase = await createServerSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('user_preferences')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error || !data) {
+    // Return empty preferences if not found
+    return {
+      connected_leagues: [],
+      favorite_players: [],
+      analysis_style: 'balanced',
+      preference_tags: [],
+      custom_preferences: {}
+    }
+  }
+
+  return data
+}
+
+/**
+ * Formats user preferences into a markdown string for system prompt injection
+ * @param preferences - User preferences object
+ * @returns Formatted markdown string
+ */
+function formatPreferencesForPrompt(preferences: unknown): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prefs = preferences as any
+
+  if (!prefs || prefs.connected_leagues?.length === 0) {
+    return 'No user preferences stored yet.'
+  }
+
+  let context = '## User Context\n\n'
+
+  // Connected Leagues
+  if (prefs.connected_leagues?.length > 0) {
+    context += '**Connected Sleeper Leagues:**\n'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prefs.connected_leagues.forEach((league: any) => {
+      context += `- ${league.name} (${league.season}, ${league.scoring_format})${league.is_primary ? ' [PRIMARY]' : ''}\n`
+    })
+    context += '\n'
+  }
+
+  // Favorite Players
+  if (prefs.favorite_players?.length > 0) {
+    context += `**Favorite Players:** ${prefs.favorite_players.join(', ')}\n\n`
+  }
+
+  // Analysis Style
+  if (prefs.analysis_style) {
+    context += `**Preferred Analysis Style:** ${prefs.analysis_style}\n\n`
+  }
+
+  // Tags
+  if (prefs.preference_tags?.length > 0) {
+    context += `**User Focus Areas:** ${prefs.preference_tags.join(', ')}\n\n`
+  }
+
+  // Roster Notes (if primary league set)
+  if (prefs.primary_league_id && prefs.roster_notes?.[prefs.primary_league_id]) {
+    const notes = prefs.roster_notes[prefs.primary_league_id]
+    context += '**Primary Team Context:**\n'
+    if (notes.team_name) context += `- Team: ${notes.team_name}\n`
+    if (notes.key_players?.length)
+      context += `- Key Players: ${notes.key_players.join(', ')}\n`
+    if (notes.strengths?.length)
+      context += `- Strengths: ${notes.strengths.join(', ')}\n`
+    if (notes.needs?.length) context += `- Needs: ${notes.needs.join(', ')}\n`
+  }
+
+  return context
+}
+
+/**
+ * Creates the update_user_preference custom tool for the AI agent
+ * Allows the agent to update user preferences when explicitly asked by the user
+ * @param userId - The authenticated user's ID
+ * @returns Tool definition for updating user preferences
+ */
+function createUpdateUserPreferenceTool(userId: string) {
+  return tool({
+    description:
+      "Update a user's preference. Use this when the user asks you to remember something about their analysis style, favorite players, or general preferences.",
+    parameters: z.object({
+      preference_type: z.enum([
+        'analysis_style',
+        'favorite_players',
+        'preference_tag',
+        'custom'
+      ]),
+      key: z
+        .string()
+        .optional()
+        .describe('The preference key (for custom type only)'),
+      value: z
+        .union([z.string(), z.array(z.string())])
+        .describe('The preference value'),
+      action: z
+        .enum(['set', 'add', 'remove'])
+        .default('set')
+        .describe('Whether to set, add to array, or remove from array')
+    }),
+    execute: async ({ preference_type, key, value, action }) => {
+      const supabase = await createServerSupabaseClient()
+
+      // Ensure user preferences record exists
+      const { data: existing } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (!existing) {
+        await supabase.from('user_preferences').insert({ user_id: userId })
+      }
+
+      // Build update object based on preference_type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let update: any = {}
+
+      switch (preference_type) {
+        case 'analysis_style':
+          update.analysis_style = value
+          break
+
+        case 'favorite_players':
+          if (action === 'add') {
+            update.favorite_players = [
+              ...(existing?.favorite_players || []),
+              ...(Array.isArray(value) ? value : [value])
+            ]
+          } else if (action === 'remove') {
+            update.favorite_players = (
+              existing?.favorite_players || []
+            ).filter((p: string) => {
+              const valuesToRemove = Array.isArray(value) ? value : [value]
+              return !valuesToRemove.includes(p)
+            })
+          } else {
+            update.favorite_players = Array.isArray(value) ? value : [value]
+          }
+          break
+
+        case 'preference_tag':
+          if (action === 'add') {
+            update.preference_tags = [
+              ...(existing?.preference_tags || []),
+              ...(Array.isArray(value) ? value : [value])
+            ]
+          } else if (action === 'remove') {
+            update.preference_tags = (existing?.preference_tags || []).filter(
+              (t: string) => {
+                const valuesToRemove = Array.isArray(value) ? value : [value]
+                return !valuesToRemove.includes(t)
+              }
+            )
+          } else {
+            update.preference_tags = Array.isArray(value) ? value : [value]
+          }
+          break
+
+        case 'custom':
+          if (!key) {
+            return {
+              success: false,
+              error: 'key parameter is required for custom preference type'
+            }
+          }
+          const customPrefs = existing?.custom_preferences || {}
+          customPrefs[key] = value
+          update.custom_preferences = customPrefs
+          break
+      }
+
+      const { error } = await supabase
+        .from('user_preferences')
+        .update(update)
+        .eq('user_id', userId)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, updated: update }
+    }
+  })
+}
+
+/**
+ * Creates the add_connected_league custom tool for the AI agent
+ * Allows the agent to save a Sleeper league to the user's connected leagues
+ * @param userId - The authenticated user's ID
+ * @returns Tool definition for adding a connected league
+ */
+function createAddConnectedLeagueTool(userId: string) {
+  return tool({
+    description:
+      "Add a Sleeper league to the user's connected leagues. Use this when the user shares their league ID or you fetch their leagues via Sleeper tools.",
+    parameters: z.object({
+      league_id: z.string().describe('The Sleeper league ID'),
+      league_name: z.string().describe('The name of the league'),
+      scoring_format: z
+        .string()
+        .describe("e.g., 'PPR', 'Half-PPR', 'Standard', 'Superflex'"),
+      season: z.number().describe('The season year (e.g., 2025)'),
+      set_as_primary: z
+        .boolean()
+        .default(false)
+        .describe("Whether this should be the user's primary league")
+    }),
+    execute: async ({
+      league_id,
+      league_name,
+      scoring_format,
+      season,
+      set_as_primary
+    }) => {
+      const supabase = await createServerSupabaseClient()
+
+      // Get existing preferences
+      const { data: existing } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      const connectedLeagues = existing?.connected_leagues || []
+
+      // Check if league already exists
+      const existingIndex = connectedLeagues.findIndex(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (l: any) => l.league_id === league_id
+      )
+
+      const newLeague = {
+        league_id,
+        name: league_name,
+        scoring_format,
+        season,
+        is_primary: set_as_primary
+      }
+
+      if (existingIndex >= 0) {
+        // Update existing league
+        connectedLeagues[existingIndex] = newLeague
+      } else {
+        // Add new league
+        connectedLeagues.push(newLeague)
+      }
+
+      // If setting as primary, unset is_primary on other leagues
+      if (set_as_primary) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        connectedLeagues.forEach((l: any) => {
+          if (l.league_id !== league_id) {
+            l.is_primary = false
+          }
+        })
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const update: any = { connected_leagues: connectedLeagues }
+
+      if (set_as_primary) {
+        update.primary_league_id = league_id
+      }
+
+      // Upsert preferences (insert if not exists, update if exists)
+      if (!existing) {
+        const { error } = await supabase
+          .from('user_preferences')
+          .insert({ user_id: userId, ...update })
+
+        if (error) {
+          return { success: false, error: error.message }
+        }
+      } else {
+        const { error } = await supabase
+          .from('user_preferences')
+          .update(update)
+          .eq('user_id', userId)
+
+        if (error) {
+          return { success: false, error: error.message }
+        }
+      }
+
+      return { success: true, league_added: newLeague }
+    }
+  })
+}
+
+/**
+ * Creates the update_roster_notes custom tool for the AI agent
+ * Allows the agent to remember the user's team composition, strengths, and needs per league
+ * @param userId - The authenticated user's ID
+ * @returns Tool definition for updating roster notes
+ */
+function createUpdateRosterNotesTool(userId: string) {
+  return tool({
+    description:
+      "Update roster notes for a specific league. Use this to remember the user's team composition, strengths, and needs.",
+    parameters: z.object({
+      league_id: z.string().describe('The Sleeper league ID'),
+      team_name: z.string().optional().describe('The name of the user\'s team'),
+      key_players: z
+        .array(z.string())
+        .optional()
+        .describe('Array of key players on the user\'s roster'),
+      strengths: z
+        .array(z.string())
+        .optional()
+        .describe('Array of team strengths (e.g., "RB depth", "Elite WR1")'),
+      needs: z
+        .array(z.string())
+        .optional()
+        .describe('Array of team needs (e.g., "WR2", "TE upgrade")')
+    }),
+    execute: async ({ league_id, team_name, key_players, strengths, needs }) => {
+      const supabase = await createServerSupabaseClient()
+
+      // Get existing preferences
+      const { data: existing } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      // Get or initialize roster_notes JSONB field
+      const rosterNotes = existing?.roster_notes || {}
+
+      // Update notes for this league (merge with existing if present)
+      rosterNotes[league_id] = {
+        ...rosterNotes[league_id],
+        ...(team_name !== undefined && { team_name }),
+        ...(key_players !== undefined && { key_players }),
+        ...(strengths !== undefined && { strengths }),
+        ...(needs !== undefined && { needs })
+      }
+
+      // Upsert preferences (insert if not exists, update if exists)
+      if (!existing) {
+        const { error } = await supabase
+          .from('user_preferences')
+          .insert({ user_id: userId, roster_notes: rosterNotes })
+
+        if (error) {
+          return { success: false, error: error.message }
+        }
+      } else {
+        const { error } = await supabase
+          .from('user_preferences')
+          .update({ roster_notes: rosterNotes })
+          .eq('user_id', userId)
+
+        if (error) {
+          return { success: false, error: error.message }
+        }
+      }
+
+      return { success: true, updated_notes: rosterNotes[league_id] }
     }
   })
 }
@@ -318,10 +696,27 @@ export async function POST(req: Request) {
         }
       : undefined
 
+    // Fetch user preferences for cross-session memory
+    const userPreferences = await getUserPreferences(user.id)
+    const userContextSection = formatPreferencesForPrompt(userPreferences)
+
+    // Create preference management tools
+    const preferenceTools = {
+      update_user_preference: createUpdateUserPreferenceTool(user.id),
+      add_connected_league: createAddConnectedLeagueTool(user.id),
+      update_roster_notes: createUpdateRosterNotesTool(user.id)
+    }
+
+    // Merge preference tools with MCP tools
+    const allTools = {
+      ...optimizedTools,
+      ...preferenceTools
+    }
+
     // Create ToolLoopAgent with detected provider model
     const agent = new ToolLoopAgent({
       model: createModelInstance(modelId),
-      tools: optimizedTools,
+      tools: allTools,
       stopWhen: stepCountIs(10),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       prepareStep: prepareStep as any,
@@ -331,12 +726,15 @@ Today's date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month:
 The 2025 NFL season is COMPLETE. The database contains data through the 2025 season.
 The most recent completed NFL season is 2025. The 2026 NFL season has not started yet.
 
+${userContextSection}
+
 Your capabilities:
 - Access to comprehensive NFL player stats (season & weekly advanced metrics)
 - Real-time Sleeper league data (rosters, matchups, transactions, trending players)
 - Dynasty and redraft rankings
 - Game-level offensive and defensive statistics
 - Player information and metrics metadata
+- User preference management (store and retrieve user context across sessions)
 
 Guidelines for tool usage:
 1. NEVER assume data doesn't exist — always query the tools first. Your training data may be outdated.
@@ -348,13 +746,15 @@ Guidelines for tool usage:
 7. If you need clarification on available metrics, use get_metrics_metadata
 8. If seasonal aggregate data isn't available, check the weekly stats tools — they may have more recent data
 9. Do NOT make more than 4 tool calls for a single question. If data isn't found after a few attempts, tell the user what's available instead of endlessly retrying.
+10. When users ask you to remember something (league, preferences, favorite players, roster notes), use the update_user_preference, add_connected_league, or update_roster_notes tools to persist that information.
 
 Remember:
 - Be conversational but analytical
 - Cite specific stats when making recommendations
 - Consider both current performance and historical trends
 - For dynasty leagues, factor in player age and long-term value
-- Always verify player names and team affiliations before making claims`
+- Always verify player names and team affiliations before making claims
+- Use the user context above to personalize your responses without asking the user to re-state their preferences`
     })
 
     // Use createAgentUIStreamResponse which properly handles the agent stream
