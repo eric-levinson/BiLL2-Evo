@@ -159,7 +159,15 @@ function formatPreferencesForPrompt(preferences: unknown): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prefs = preferences as any
 
-  if (!prefs || prefs.connected_leagues?.length === 0) {
+  // Check if user has ANY preferences set (not just connected leagues)
+  const hasPreferences =
+    prefs &&
+    (prefs.connected_leagues?.length > 0 ||
+      prefs.favorite_players?.length > 0 ||
+      (prefs.analysis_style && prefs.analysis_style !== 'balanced') ||
+      prefs.preference_tags?.length > 0)
+
+  if (!hasPreferences) {
     return 'No user preferences stored yet.'
   }
 
