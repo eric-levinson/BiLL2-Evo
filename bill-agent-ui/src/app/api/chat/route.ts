@@ -73,6 +73,53 @@ function getMessageText(message: UIMessage | undefined): string {
 }
 
 /**
+ * Filters out BM25 tool search calls from message history
+ * BM25 is an internal tool filtering mechanism for non-Anthropic providers
+ * These tool calls should not be persisted as they cause validation errors on replay
+ * @param messages - Array of UI messages to filter
+ * @returns Filtered messages with BM25 tool calls removed
+ */
+function filterBM25ToolCalls(messages: UIMessage[]): UIMessage[] {
+  return messages.map((message) => {
+    if (!message.parts || message.role !== 'assistant') {
+      return message
+    }
+
+    // Filter out tool-call and tool-result parts that reference BM25
+    const filteredParts = message.parts.filter((part) => {
+      // Remove BM25 tool call parts (tool name starts with "toolSearchBm25_")
+      if (part.type === 'tool-call' && 'toolName' in part) {
+        const toolName = (part as { toolName: string }).toolName
+        if (toolName.startsWith('toolSearchBm25_')) {
+          console.log(
+            `[Message Filter] Removing BM25 tool call from history: ${toolName}`
+          )
+          return false
+        }
+      }
+
+      // Remove BM25 tool result parts (tool name starts with "toolSearchBm25_")
+      if (part.type === 'tool-result' && 'toolName' in part) {
+        const toolName = (part as { toolName: string }).toolName
+        if (toolName.startsWith('toolSearchBm25_')) {
+          console.log(
+            `[Message Filter] Removing BM25 tool result from history: ${toolName}`
+          )
+          return false
+        }
+      }
+
+      return true
+    })
+
+    return {
+      ...message,
+      parts: filteredParts
+    }
+  })
+}
+
+/**
  * Global circuit breaker instance for MCP server protection
  * Tracks consecutive failures and opens circuit after threshold is reached
  */
@@ -314,9 +361,12 @@ Remember:
       // SERVER-SIDE persistence - fires even when client disconnects
       onFinish: async ({ messages: completedMessages }) => {
         try {
+          // Filter out BM25 tool calls before persisting to avoid replay validation errors
+          const filteredMessages = filterBM25ToolCalls(completedMessages)
+
           if (!sessionId) {
             // Create new session with title from first user message
-            const firstUserMessage = completedMessages.find(
+            const firstUserMessage = filteredMessages.find(
               (m: UIMessage) => m.role === 'user'
             )
             const content = getMessageText(firstUserMessage)
@@ -331,7 +381,7 @@ Remember:
               .insert({
                 user_id: user.id,
                 title,
-                messages: completedMessages
+                messages: filteredMessages
               })
               .select('id')
               .single()
@@ -351,7 +401,7 @@ Remember:
             const { error: updateError } = await supabase
               .from('chat_sessions')
               .update({
-                messages: completedMessages
+                messages: filteredMessages
               })
               .eq('id', sessionId)
 
