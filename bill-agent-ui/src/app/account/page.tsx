@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import SleeperConnectionSettings from '@/components/account/SleeperConnectionSettings'
+import UserPreferencesSettings from '@/components/account/UserPreferencesSettings'
 
 export default async function AccountPage() {
   const supabase = await createServerSupabaseClient()
@@ -25,6 +26,10 @@ export default async function AccountPage() {
 
       <section className="mt-6">
         <SleeperConnectionSettings />
+      </section>
+
+      <section className="mt-6">
+        <UserPreferencesSettings />
       </section>
 
       <section className="mt-6 space-y-4">
