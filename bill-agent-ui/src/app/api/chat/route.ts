@@ -246,14 +246,31 @@ function createUpdateUserPreferenceTool(userId: string) {
       const supabase = await createServerSupabaseClient()
 
       // Ensure user preferences record exists
-      const { data: existing } = await supabase
+      let { data: existing } = await supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
         .single()
 
       if (!existing) {
-        await supabase.from('user_preferences').insert({ user_id: userId })
+        // Insert new record and refetch it
+        const { error: insertError } = await supabase
+          .from('user_preferences')
+          .insert({ user_id: userId })
+
+        if (insertError) {
+          console.error('[update_user_preference] Insert error:', insertError)
+          return { success: false, error: insertError.message }
+        }
+
+        // Refetch the newly created record
+        const { data: refetched } = await supabase
+          .from('user_preferences')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+
+        existing = refetched
       }
 
       // Build update object based on preference_type
@@ -314,15 +331,19 @@ function createUpdateUserPreferenceTool(userId: string) {
           break
       }
 
+      console.log('[update_user_preference] Updating with:', update)
+
       const { error } = await supabase
         .from('user_preferences')
         .update(update)
         .eq('user_id', userId)
 
       if (error) {
+        console.error('[update_user_preference] Update error:', error)
         return { success: false, error: error.message }
       }
 
+      console.log('[update_user_preference] Success! Updated:', update)
       return { success: true, updated: update }
     }
   })
