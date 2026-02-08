@@ -122,6 +122,67 @@ function filterBM25ToolCalls(messages: UIMessage[]): UIMessage[] {
 }
 
 /**
+ * Deduplicates tool calls and tool results by toolCallId
+ * Prevents "Duplicate key toolCallId-xyz in tapResources" errors in Assistant UI
+ * Keeps the first occurrence and removes subsequent duplicates
+ * @param messages - Array of UI messages to deduplicate
+ * @returns Messages with duplicate tool call IDs removed
+ */
+function deduplicateToolCalls(messages: UIMessage[]): UIMessage[] {
+  // Track tool-call and tool-result IDs separately
+  // A tool-call and tool-result SHOULD share the same ID (call -> result)
+  // But we shouldn't have TWO tool-calls with the same ID, or TWO tool-results with the same ID
+  const seenToolCallIds = new Set<string>()
+  const seenToolResultIds = new Set<string>()
+
+  return messages.map((message) => {
+    if (!message.parts) {
+      return message
+    }
+
+    // Filter out duplicate tool-call and tool-result parts
+    const deduplicatedParts = message.parts.filter((part) => {
+      // Check if part has a toolCallId (any tool-related part)
+      if ('toolCallId' in part && part.toolCallId) {
+        const toolCallId = (part as { toolCallId: string }).toolCallId
+
+        // Determine if this is a tool call or tool result based on part type
+        // Tool calls: 'tool-call', 'tool-{toolName}', 'dynamic-tool'
+        // Tool results: 'tool-result'
+        const isToolResult = part.type === 'tool-result'
+
+        if (isToolResult) {
+          // Check for duplicate tool results
+          if (seenToolResultIds.has(toolCallId)) {
+            console.log(
+              `[Message Dedup] Removing duplicate tool-result with ID: ${toolCallId}`
+            )
+            return false
+          }
+          seenToolResultIds.add(toolCallId)
+        } else {
+          // Check for duplicate tool calls (any other tool type)
+          if (seenToolCallIds.has(toolCallId)) {
+            console.log(
+              `[Message Dedup] Removing duplicate tool-call (type: ${part.type}) with ID: ${toolCallId}`
+            )
+            return false
+          }
+          seenToolCallIds.add(toolCallId)
+        }
+      }
+
+      return true
+    })
+
+    return {
+      ...message,
+      parts: deduplicatedParts
+    }
+  })
+}
+
+/**
  * Fetches user preferences from the database
  * Returns default empty preferences if user has not set any yet
  * @param userId - The user's ID
@@ -534,6 +595,89 @@ function createUpdateRosterNotesTool(userId: string) {
 }
 
 /**
+ * Creates the update_sleeper_connection custom tool for the AI agent
+ * Allows the agent to update the user's Sleeper username and primary league connection
+ * @param userId - The authenticated user's ID
+ * @returns Tool definition for updating Sleeper connection
+ */
+function createUpdateSleeperConnectionTool(userId: string) {
+  return tool({
+    description:
+      "Update the user's Sleeper account connection (username and primary league). Use this when the user tells you their Sleeper username or wants to set their primary league.",
+    parameters: z.object({
+      sleeper_username: z
+        .string()
+        .optional()
+        .describe('The user\'s Sleeper platform username'),
+      selected_league_id: z
+        .string()
+        .optional()
+        .describe('ID of the user\'s primary Sleeper league'),
+      league_name: z
+        .string()
+        .optional()
+        .describe('Name of the primary Sleeper league')
+    }),
+    execute: async ({ sleeper_username, selected_league_id, league_name }) => {
+      const supabase = await createServerSupabaseClient()
+
+      // Check if at least one field is provided
+      if (!sleeper_username && !selected_league_id && !league_name) {
+        return {
+          success: false,
+          error: 'At least one field (sleeper_username, selected_league_id, or league_name) must be provided'
+        }
+      }
+
+      // Build update object with only provided fields
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const update: any = {}
+      if (sleeper_username !== undefined) update.sleeper_username = sleeper_username
+      if (selected_league_id !== undefined) update.selected_league_id = selected_league_id
+      if (league_name !== undefined) update.league_name = league_name
+      update.updated_at = new Date().toISOString()
+
+      // Check if user has an onboarding record
+      const { data: existing } = await supabase
+        .from('user_onboarding')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (!existing) {
+        // Insert new onboarding record
+        const { error } = await supabase
+          .from('user_onboarding')
+          .insert({
+            user_id: userId,
+            ...update,
+            completed: true // Mark as completed since user is providing connection info
+          })
+
+        if (error) {
+          console.error('[update_sleeper_connection] Insert error:', error)
+          return { success: false, error: error.message }
+        }
+      } else {
+        // Update existing onboarding record
+        const { error } = await supabase
+          .from('user_onboarding')
+          .update(update)
+          .eq('user_id', userId)
+
+        if (error) {
+          console.error('[update_sleeper_connection] Update error:', error)
+          return { success: false, error: error.message }
+        }
+      }
+
+      console.log('[update_sleeper_connection] Success! Updated:', update)
+      return { success: true, updated: update }
+    }
+  })
+}
+
+/**
  * Global circuit breaker instance for MCP server protection
  * Tracks consecutive failures and opens circuit after threshold is reached
  */
@@ -560,8 +704,16 @@ export async function POST(req: Request) {
   try {
     // Parse request body
     const body = await req.json()
-    // `id` is auto-generated by useChat SDK - we use a separate `sessionId` for DB persistence
-    const { messages, sessionId } = body
+    // AI SDK sends session ID as `id` in the request body
+    // Ignore short random IDs generated by AI SDK - only accept UUIDs
+    let { messages, id: sessionId } = body
+
+    // Validate that sessionId is a valid UUID (if provided)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (sessionId && !uuidRegex.test(sessionId)) {
+      console.log('[Session] Ignoring non-UUID session ID:', sessionId)
+      sessionId = undefined
+    }
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -718,7 +870,7 @@ export async function POST(req: Request) {
           const result = basePrepareStep(context)
 
           // ALWAYS include preference tools in addition to BM25 selection
-          const preferenceToolNames = ['update_user_preference', 'add_connected_league', 'update_roster_notes']
+          const preferenceToolNames = ['update_user_preference', 'add_connected_league', 'update_roster_notes', 'update_sleeper_connection']
           const selectedTools = result?.activeTools || []
           const toolsWithPreferences = [...new Set([...selectedTools, ...preferenceToolNames])]
 
@@ -748,7 +900,8 @@ export async function POST(req: Request) {
     const preferenceTools = {
       update_user_preference: createUpdateUserPreferenceTool(user.id),
       add_connected_league: createAddConnectedLeagueTool(user.id),
-      update_roster_notes: createUpdateRosterNotesTool(user.id)
+      update_roster_notes: createUpdateRosterNotesTool(user.id),
+      update_sleeper_connection: createUpdateSleeperConnectionTool(user.id)
     }
 
     // Merge preference tools with MCP tools
@@ -779,6 +932,7 @@ Your capabilities:
 - Game-level offensive and defensive statistics
 - Player information and metrics metadata
 - User preference management (store and retrieve user context across sessions)
+- Sleeper account connection management (update username and primary league)
 
 Guidelines for tool usage:
 1. NEVER assume data doesn't exist — always query the tools first. Your training data may be outdated.
@@ -790,7 +944,7 @@ Guidelines for tool usage:
 7. If you need clarification on available metrics, use get_metrics_metadata
 8. If seasonal aggregate data isn't available, check the weekly stats tools — they may have more recent data
 9. Do NOT make more than 4 tool calls for a single question. If data isn't found after a few attempts, tell the user what's available instead of endlessly retrying.
-10. When users ask you to remember something (league, preferences, favorite players, roster notes), use the update_user_preference, add_connected_league, or update_roster_notes tools to persist that information.
+10. When users tell you their Sleeper username or primary league, use update_sleeper_connection to save it. For other preferences (analysis style, favorite players, league connections, roster notes), use the appropriate preference tools (update_user_preference, add_connected_league, update_roster_notes).
 
 Remember:
 - Be conversational but analytical
@@ -811,10 +965,22 @@ Remember:
       // SERVER-SIDE persistence - fires even when client disconnects
       onFinish: async ({ messages: completedMessages }) => {
         try {
-          // Filter out BM25 tool calls before persisting to avoid replay validation errors
-          const filteredMessages = filterBM25ToolCalls(completedMessages)
+          // Filter out BM25 tool calls and deduplicate tool call IDs before persisting
+          const bm25Filtered = filterBM25ToolCalls(completedMessages)
+          const filteredMessages = deduplicateToolCalls(bm25Filtered)
 
-          if (!sessionId) {
+          // Check if session exists in database (for auto-generated client IDs)
+          let sessionExists = false
+          if (sessionId) {
+            const { data: existingSession } = await supabase
+              .from('chat_sessions')
+              .select('id')
+              .eq('id', sessionId)
+              .single()
+            sessionExists = !!existingSession
+          }
+
+          if (!sessionId || !sessionExists) {
             // Create new session with title from first user message
             const firstUserMessage = filteredMessages.find(
               (m: UIMessage) => m.role === 'user'
@@ -825,10 +991,11 @@ Remember:
             const title =
               content.length > 50 ? content.substring(0, 47) + '...' : content
 
-            // Insert new session into database
+            // Insert new session into database with provided or generated ID
             const { data: newSession, error: insertError } = await supabase
               .from('chat_sessions')
               .insert({
+                id: sessionId, // Use client-provided ID if available
                 user_id: user.id,
                 title,
                 messages: filteredMessages
