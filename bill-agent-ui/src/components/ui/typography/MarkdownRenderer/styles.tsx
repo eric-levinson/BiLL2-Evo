@@ -34,6 +34,7 @@ import type {
 
 import { HEADING_SIZES } from '../Heading/constants'
 import { PARAGRAPH_SIZES } from '../Paragraph/constants'
+import { ChartRenderer } from '@/components/ui/charts/ChartRenderer'
 
 const filterProps = (props: object) => {
   const newProps = { ...props }
@@ -143,6 +144,15 @@ const CodeBlock: FC<PreparedTextProps> = ({
   // If it's inline code (no language specified), use InlineCode
   if (!language && !className?.includes('language-')) {
     return <InlineCode {...props}>{children}</InlineCode>
+  }
+
+  // If it's a chart, render ChartRenderer
+  if (language === 'chart') {
+    return (
+      <div className="my-4">
+        <ChartRenderer chartData={String(children).trim()} />
+      </div>
+    )
   }
 
   return (
