@@ -42,8 +42,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
       className,
       showLegend = true,
       showGrid = true,
-      stacked = false,
-      ...props
+      stacked = false
     },
     ref
   ) => {
@@ -54,7 +53,6 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
           'bg-card text-card-foreground rounded-xl border shadow-sm',
           className
         )}
-        {...props}
       >
         {title && (
           <div className="flex flex-col space-y-1.5 p-6 pb-4">

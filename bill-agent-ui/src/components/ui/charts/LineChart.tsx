@@ -43,8 +43,7 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
       showLegend = true,
       showGrid = true,
       showDots = true,
-      curved = true,
-      ...props
+      curved = true
     },
     ref
   ) => {
@@ -55,7 +54,6 @@ const LineChart = React.forwardRef<HTMLDivElement, LineChartProps>(
           'bg-card text-card-foreground rounded-xl border shadow-sm',
           className
         )}
-        {...props}
       >
         {title && (
           <div className="flex flex-col space-y-1.5 p-6 pb-4">

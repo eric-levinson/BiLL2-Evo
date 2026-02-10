@@ -4,18 +4,9 @@ export { ChartRenderer } from './ChartRenderer'
 
 export type {
   ChartDataPoint,
-  ChartData,
-  ChartDataset,
-  ChartAxis,
-  ChartLegend,
-  ChartTooltip,
-  ChartConfig,
   BarChartProps,
   LineChartProps,
   ChartType,
   ChartJSON,
-  ChartRendererProps,
-  ChartContainerProps,
-  ChartTitleProps,
-  ChartWrapperProps
+  ChartRendererProps
 } from './types'

@@ -6,73 +6,52 @@ import type { ChartJSON, ChartRendererProps } from './types'
 import { BarChart } from './BarChart'
 import { LineChart } from './LineChart'
 
-/**
- * ChartRenderer - Wrapper component that parses chart JSON and renders the appropriate chart type
- *
- * Accepts either a JSON string or ChartJSON object and dynamically renders the correct chart.
- * Provides graceful error handling with fallback to error message display.
- *
- * Usage:
- * ```tsx
- * <ChartRenderer chartData='{"type":"bar","data":[...],"config":{...}}' />
- * <ChartRenderer chartData={chartJsonObject} />
- * ```
- */
+function parseChartData(
+  chartData: string | ChartJSON
+): { data: ChartJSON; error: null } | { data: null; error: string } {
+  try {
+    const parsed: ChartJSON =
+      typeof chartData === 'string'
+        ? (JSON.parse(chartData) as ChartJSON)
+        : chartData
+
+    if (!parsed.type || !parsed.data || !Array.isArray(parsed.data)) {
+      return {
+        data: null,
+        error: 'Invalid chart data: must include "type" and "data" array'
+      }
+    }
+
+    if (parsed.type !== 'bar' && parsed.type !== 'line') {
+      return {
+        data: null,
+        error: `Invalid chart type "${parsed.type}": must be "bar" or "line"`
+      }
+    }
+
+    if (parsed.config && (!parsed.config.xKey || !parsed.config.yKeys)) {
+      return {
+        data: null,
+        error: 'Invalid chart config: must include "xKey" and "yKeys"'
+      }
+    }
+
+    return { data: parsed, error: null }
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : 'Failed to parse chart data'
+    }
+  }
+}
+
 const ChartRenderer: React.FC<ChartRendererProps> = ({
   chartData,
   className
 }) => {
-  const [error, setError] = React.useState<string | null>(null)
-  const [parsedData, setParsedData] = React.useState<ChartJSON | null>(null)
+  const result = React.useMemo(() => parseChartData(chartData), [chartData])
 
-  // Parse chart data on mount or when chartData changes
-  React.useEffect(() => {
-    try {
-      let parsed: ChartJSON
-
-      // Handle string input - parse as JSON
-      if (typeof chartData === 'string') {
-        parsed = JSON.parse(chartData) as ChartJSON
-      } else {
-        // Already an object
-        parsed = chartData
-      }
-
-      // Validate parsed data structure
-      if (!parsed.type || !parsed.data || !Array.isArray(parsed.data)) {
-        throw new Error(
-          'Invalid chart data: must include "type" and "data" array'
-        )
-      }
-
-      // Validate chart type
-      if (parsed.type !== 'bar' && parsed.type !== 'line') {
-        throw new Error(
-          `Invalid chart type "${parsed.type}": must be "bar" or "line"`
-        )
-      }
-
-      // Validate config if provided
-      if (parsed.config) {
-        if (!parsed.config.xKey || !parsed.config.yKeys) {
-          throw new Error(
-            'Invalid chart config: must include "xKey" and "yKeys"'
-          )
-        }
-      }
-
-      setParsedData(parsed)
-      setError(null)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to parse chart data'
-      )
-      setParsedData(null)
-    }
-  }, [chartData])
-
-  // Render error state
-  if (error) {
+  if (!result.data) {
     return (
       <div
         className={cn(
@@ -99,88 +78,47 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({
             <h3 className="text-sm font-medium text-destructive">
               Chart Error
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground mt-1 text-sm">{result.error}</p>
           </div>
         </div>
       </div>
     )
   }
 
-  // Render loading state
-  if (!parsedData) {
-    return (
-      <div
-        className={cn(
-          'flex items-center justify-center rounded-lg border bg-muted/20 p-8',
-          className
-        )}
-      >
-        <div className="text-sm text-muted-foreground">Loading chart...</div>
-      </div>
-    )
+  const parsedData = result.data
+  const config = parsedData.config
+  const xKey = config?.xKey ?? 'x'
+  const yKeys = config?.yKeys ?? ['y']
+
+  const sharedProps = {
+    data: parsedData.data,
+    xKey,
+    yKeys,
+    title: config?.title,
+    xAxisLabel: config?.xAxisLabel,
+    yAxisLabel: config?.yAxisLabel,
+    colors: config?.colors,
+    height: config?.height,
+    width: config?.width,
+    className,
+    showLegend: config?.showLegend,
+    showGrid: config?.showGrid
   }
 
-  // Extract config with defaults
-  const config = parsedData.config || {}
-  const {
-    title,
-    xKey = 'x',
-    yKeys = ['y'],
-    xAxisLabel,
-    yAxisLabel,
-    colors,
-    height,
-    width,
-    showLegend,
-    showGrid,
-    stacked,
-    showDots,
-    curved
-  } = config
-
-  // Render appropriate chart based on type
   switch (parsedData.type) {
     case 'bar':
-      return (
-        <BarChart
-          data={parsedData.data}
-          xKey={xKey}
-          yKeys={yKeys}
-          title={title}
-          xAxisLabel={xAxisLabel}
-          yAxisLabel={yAxisLabel}
-          colors={colors}
-          height={height}
-          width={width}
-          className={className}
-          showLegend={showLegend}
-          showGrid={showGrid}
-          stacked={stacked}
-        />
-      )
+      return <BarChart {...sharedProps} stacked={config?.stacked} />
 
     case 'line':
       return (
         <LineChart
-          data={parsedData.data}
-          xKey={xKey}
-          yKeys={yKeys}
-          title={title}
-          xAxisLabel={xAxisLabel}
-          yAxisLabel={yAxisLabel}
-          colors={colors}
-          height={height}
-          width={width}
-          className={className}
-          showLegend={showLegend}
-          showGrid={showGrid}
-          showDots={showDots}
-          curved={curved}
+          {...sharedProps}
+          showDots={config?.showDots}
+          curved={config?.curved}
         />
       )
 
     default:
-      // This should never happen due to validation above
       return (
         <div
           className={cn(
@@ -189,7 +127,7 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({
           )}
         >
           <p className="text-sm text-destructive">
-            Unknown chart type: {parsedData.type}
+            Unknown chart type: {(parsedData as ChartJSON).type}
           </p>
         </div>
       )
