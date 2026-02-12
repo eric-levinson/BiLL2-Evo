@@ -1,6 +1,16 @@
+"""
+Advanced NFL metrics query functions.
+
+This module provides functions to query advanced receiving, passing, rushing, and defensive
+statistics for NFL players. All query functions have been refactored to use the generic
+build_player_stats_query helper from helpers.query_utils to eliminate code duplication
+and ensure consistent query behavior across all stats types.
+
+The refactoring reduced ~639 lines of duplicated query logic down to a single reusable
+helper function plus thin wrapper functions that specify table-specific parameters.
+"""
 import logging
 from supabase import Client
-from helpers.name_utils import sanitize_name
 from helpers.query_utils import build_player_stats_query
 from docs.metrics_catalog import metrics_catalog
 
