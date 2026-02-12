@@ -1,3 +1,4 @@
+import asyncio
 from supabase import Client
 from tools.fantasy.sleeper_wrapper.user import User
 from tools.fantasy.sleeper_wrapper.league import League
@@ -139,11 +140,29 @@ def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False
         return [{"error": "Please provide a valid league_id as a string."}]
     if week is None:
         return [{"error": "Please provide the target week as an integer."}]
-    try:
+
+    async def _fetch_data_parallel():
+        """Fetch matchups, rosters, and users in parallel using asyncio.gather."""
         league = League(league_id)
-        matchups = league.get_matchups(week)
-        rosters = league.get_rosters()
-        users = league.get_users()
+
+        # Build URLs for the three API calls
+        matchups_url = f"{league._base_url}/matchups/{week}"
+        rosters_url = f"{league._base_url}/rosters"
+        users_url = f"{league._base_url}/users"
+
+        # Execute all three API calls in parallel
+        matchups, rosters, users = await asyncio.gather(
+            league._call_async(matchups_url),
+            league._call_async(rosters_url),
+            league._call_async(users_url)
+        )
+
+        return matchups, rosters, users, league
+
+    try:
+        # Run the async function and get results
+        matchups, rosters, users, league = asyncio.run(_fetch_data_parallel())
+
         roster_to_owner = league.map_rosterid_to_ownerid(rosters)
         user_map = league.map_users_to_team_name(users)
         for matchup in matchups:
