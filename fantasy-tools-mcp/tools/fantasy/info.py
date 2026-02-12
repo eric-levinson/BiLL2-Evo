@@ -78,10 +78,27 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
 
     if not league_id:
         return [{"error": "Please provide a valid league_id as a string."}]
-    try:
+
+    async def _fetch_data_parallel():
+        """Fetch rosters and users in parallel using asyncio.gather."""
         league = League(league_id)
-        rosters = league.get_rosters()
-        users = league.get_users()
+
+        # Build URLs for the two API calls
+        rosters_url = f"{league._base_url}/rosters"
+        users_url = f"{league._base_url}/users"
+
+        # Execute both API calls in parallel
+        rosters, users = await asyncio.gather(
+            league._call_async(rosters_url),
+            league._call_async(users_url)
+        )
+
+        return rosters, users, league
+
+    try:
+        # Run the async function and get results
+        rosters, users, league = asyncio.run(_fetch_data_parallel())
+
         user_map = league.map_users_to_team_name(users)
 
         for roster in rosters:
