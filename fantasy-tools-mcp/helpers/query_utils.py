@@ -20,6 +20,7 @@ def build_player_stats_query(
     order_by_metric: str | None = None,
     limit: int | None = 25,
     positions: list[str] | None = None,
+    player_sort_column: str = "player_name",
 ) -> dict:
     """
     Generic query builder for player stats across different tables.
@@ -42,6 +43,8 @@ def build_player_stats_query(
         order_by_metric: Optional metric/column to order by (DESC). If None, orders by season DESC, player_name ASC
         limit: Optional max rows to return (defaults to 25). Capped at 300.
         positions: Optional list of positions to filter. If None, uses default_positions.
+        player_sort_column: Column name for secondary sort (ASC). Defaults to "player_name".
+            Tables using "player_display_name" (e.g. nflreadr_nfl_player_stats) should pass that instead.
 
     Returns:
         dict: Query results with the specified return_key
@@ -123,7 +126,7 @@ def build_player_stats_query(
         if order_by_metric:
             query = query.not_.is_(order_by_metric, "null")
             query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
+        query = query.order("season", desc=True).order(player_sort_column, desc=False)
 
         if safe_limit:
             query = query.limit(safe_limit)

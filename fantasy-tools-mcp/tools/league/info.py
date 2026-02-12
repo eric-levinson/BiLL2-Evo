@@ -115,6 +115,7 @@ def get_offensive_players_game_stats(
         order_by_metric=order_by_metric,
         limit=limit,
         positions=positions,
+        player_sort_column="player_display_name",
     )
     
 def get_defensive_players_game_stats(
@@ -158,4 +159,5 @@ def get_defensive_players_game_stats(
         order_by_metric=order_by_metric,
         limit=limit,
         positions=positions,
+        player_sort_column="player_display_name",
     )
