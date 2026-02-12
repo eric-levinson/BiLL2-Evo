@@ -93,52 +93,22 @@ def get_advanced_passing_stats(
     Returns:
         dict: Advanced passing stats data
     """
-    # base columns always returned
-    columns = ["season", "player_name", "ff_team", "ff_position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to QB)
-    positions_list = positions if positions is not None else ["QB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_passing_analytics").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if positions_list:
-            query = query.in_("ff_position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advPassingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching passing stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_passing_analytics",
+        base_columns=["season", "player_name", "ff_team", "ff_position"],
+        player_name_column="merge_name",
+        position_column="ff_position",
+        default_positions=["QB"],
+        return_key="advPassingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=None,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
 
 def get_advanced_rushing_stats(
     supabase: Client,
