@@ -480,10 +480,10 @@ class TestHelperFunctions:
         print("TEST 9: Helper Functions with aiohttp Errors")
         print("="*70)
 
-        # Note: is_retryable_http_error currently checks for requests exceptions
-        # This test documents the current behavior and can be extended if needed
+        # Note: is_retryable_http_error now handles both requests and aiohttp exceptions
+        # This test verifies both libraries are properly supported
 
-        # Test with requests exceptions (current implementation)
+        # Test with requests exceptions
         import requests
 
         conn_error = requests.exceptions.ConnectionError()
@@ -514,7 +514,55 @@ class TestHelperFunctions:
             "429 should be retryable"
         print("  ✓ 429 errors are retryable")
 
-        print("\n✅ TEST PASSED: Helper functions verified")
+        # Test with aiohttp exceptions (new implementation)
+        import aiohttp
+
+        # aiohttp.ClientConnectionError should be retryable
+        conn_error_aiohttp = aiohttp.ClientConnectionError()
+        assert is_retryable_http_error(conn_error_aiohttp), \
+            "aiohttp.ClientConnectionError should be retryable"
+        print("  ✓ aiohttp.ClientConnectionError is retryable")
+
+        # aiohttp.ClientError (non-response) should be retryable
+        client_error_aiohttp = aiohttp.ClientError()
+        assert is_retryable_http_error(client_error_aiohttp), \
+            "aiohttp.ClientError should be retryable"
+        print("  ✓ aiohttp.ClientError is retryable")
+
+        # aiohttp.ClientResponseError with 429 should be retryable
+        error_429_aiohttp = aiohttp.ClientResponseError(
+            request_info=Mock(),
+            history=(),
+            status=429,
+            message="Too Many Requests"
+        )
+        assert is_retryable_http_error(error_429_aiohttp), \
+            "aiohttp.ClientResponseError with 429 should be retryable"
+        print("  ✓ aiohttp.ClientResponseError with 429 is retryable")
+
+        # aiohttp.ClientResponseError with 503 should be retryable
+        error_503_aiohttp = aiohttp.ClientResponseError(
+            request_info=Mock(),
+            history=(),
+            status=503,
+            message="Service Unavailable"
+        )
+        assert is_retryable_http_error(error_503_aiohttp), \
+            "aiohttp.ClientResponseError with 503 should be retryable"
+        print("  ✓ aiohttp.ClientResponseError with 503 is retryable")
+
+        # aiohttp.ClientResponseError with 404 should NOT be retryable
+        error_404_aiohttp = aiohttp.ClientResponseError(
+            request_info=Mock(),
+            history=(),
+            status=404,
+            message="Not Found"
+        )
+        assert not is_retryable_http_error(error_404_aiohttp), \
+            "aiohttp.ClientResponseError with 404 should NOT be retryable"
+        print("  ✓ aiohttp.ClientResponseError with 404 is NOT retryable")
+
+        print("\n✅ TEST PASSED: Helper functions verified (requests + aiohttp)")
 
 
 def run_all_tests():

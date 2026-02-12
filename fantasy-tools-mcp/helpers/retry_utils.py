@@ -20,6 +20,7 @@ from tenacity import (
     AsyncRetrying,
 )
 import requests
+import aiohttp
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 def is_retryable_http_error(exception: Exception) -> bool:
     """
     Determine if an HTTP error should trigger a retry.
+
+    Supports both requests and aiohttp exceptions.
 
     Retries on:
     - 5xx server errors (temporary server issues)
@@ -44,17 +47,29 @@ def is_retryable_http_error(exception: Exception) -> bool:
     Returns:
         True if the error should trigger a retry
     """
-    # Connection and timeout errors are always retryable
+    # Connection and timeout errors are always retryable (requests library)
     if isinstance(exception, (requests.exceptions.ConnectionError,
                              requests.exceptions.Timeout)):
         return True
 
-    # Check HTTP errors by status code
+    # Connection and timeout errors are always retryable (aiohttp library)
+    if isinstance(exception, (aiohttp.ClientError, aiohttp.ClientConnectionError)):
+        # Don't retry ClientResponseError here, handle separately by status code
+        if not isinstance(exception, aiohttp.ClientResponseError):
+            return True
+
+    # Check HTTP errors by status code (requests library)
     if isinstance(exception, requests.exceptions.HTTPError):
         if hasattr(exception, 'response') and exception.response is not None:
             status_code = exception.response.status_code
             # Retry on 5xx (server errors) and 429 (rate limit)
             return status_code >= 500 or status_code == 429
+
+    # Check HTTP errors by status code (aiohttp library)
+    if isinstance(exception, aiohttp.ClientResponseError):
+        status_code = exception.status
+        # Retry on 5xx (server errors) and 429 (rate limit)
+        return status_code >= 500 or status_code == 429
 
     return False
 
