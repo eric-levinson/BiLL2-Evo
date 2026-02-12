@@ -359,20 +359,28 @@ export class MCPConnectionPool {
    * @throws {RetryExhaustedError} When connection creation fails after retries
    */
   public async acquire(): Promise<MCPClient> {
+    const acquireStart = performance.now()
+
     // Initialize pool on first acquire (lazy initialization)
     if (this.connections.size === 0 && !this.isInitializing) {
       await this.initializePool()
     }
 
+    // Track whether we're reusing an existing connection
+    const connectionsBefore = this.connections.size
     const connection = await this.getOrCreateConnection()
+    const wasCached = this.connections.size === connectionsBefore
 
     // Mark connection as active
     connection.state = ConnectionState.ACTIVE
     connection.lastUsedAt = Date.now()
     connection.usageCount++
 
+    const acquireEnd = performance.now()
+    const acquisitionTime = (acquireEnd - acquireStart).toFixed(2)
+
     console.log(
-      `[MCP Pool] Connection acquired: ${connection.id} (active: ${this.getActiveCount()}/${this.connections.size})`
+      `[MCP Pool] Connection acquired in ${acquisitionTime}ms (cached: ${wasCached}) - ${connection.id} (active: ${this.getActiveCount()}/${this.connections.size})`
     )
 
     return connection.client

@@ -106,7 +106,13 @@ export async function POST(req: Request) {
 
     // Acquire MCP client from connection pool
     // Pool handles connection reuse, circuit breaker, and retry logic
+    const poolAcquireStart = performance.now()
     mcpClient = await mcpConnectionPool.acquire()
+    const poolAcquireEnd = performance.now()
+    const poolAcquisitionTime = (poolAcquireEnd - poolAcquireStart).toFixed(2)
+    console.log(
+      `[Chat API] MCP client acquisition took ${poolAcquisitionTime}ms`
+    )
 
     // Get all available tools from MCP server with retry logic and circuit breaker
     const tools = await mcpCircuitBreaker.execute('mcp-server', async () => {
