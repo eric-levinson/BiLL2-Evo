@@ -1,10 +1,6 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp'
-import {
-  retryWithBackoff,
-  isRetryableError,
-  RetryExhaustedError
-} from './toolRetry'
-import { CircuitBreaker, CircuitBreakerOpenError } from './circuitBreaker'
+import { retryWithBackoff, isRetryableError } from './toolRetry'
+import { CircuitBreaker } from './circuitBreaker'
 
 /**
  * Connection state enumeration
