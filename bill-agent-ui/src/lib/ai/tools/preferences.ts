@@ -18,13 +18,11 @@ export function createUpdateUserPreferenceTool(userId: string) {
   const parametersSchema = z.object({
     preference_type: z
       .string()
-      .describe('Type of preference: analysis_style, favorite_players, preference_tag, or custom'),
-    value: z
-      .string()
-      .describe('The preference value to set'),
-    action: z
-      .string()
-      .describe('Action: set, add, or remove. Default is set')
+      .describe(
+        'Type of preference: analysis_style, favorite_players, preference_tag, or custom'
+      ),
+    value: z.string().describe('The preference value to set'),
+    action: z.string().describe('Action: set, add, or remove. Default is set')
   })
 
   return tool({
@@ -33,22 +31,34 @@ export function createUpdateUserPreferenceTool(userId: string) {
     parameters: parametersSchema,
     // @ts-expect-error - AI SDK tool() typing issue with execute function inference
     execute: async (args: z.infer<typeof parametersSchema>) => {
-      console.log('[update_user_preference] RAW ARGS:', JSON.stringify(args, null, 2))
+      console.log(
+        '[update_user_preference] RAW ARGS:',
+        JSON.stringify(args, null, 2)
+      )
 
       // Handle different AI providers sending different parameter names
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const argsObj = args as any
-      let preference_type = argsObj.preference_type || argsObj.field || argsObj.type
+      let preference_type =
+        argsObj.preference_type || argsObj.field || argsObj.type
       let value = argsObj.value
       let action = argsObj.action || 'set'
       let key = argsObj.key
 
       // Convert Gemini-style field names to our schema
-      if (argsObj.field === 'preferred_analysis_style' || argsObj.field === 'analysis_style') {
+      if (
+        argsObj.field === 'preferred_analysis_style' ||
+        argsObj.field === 'analysis_style'
+      ) {
         preference_type = 'analysis_style'
       }
 
-      console.log('[update_user_preference] Normalized params:', { preference_type, key, value, action })
+      console.log('[update_user_preference] Normalized params:', {
+        preference_type,
+        key,
+        value,
+        action
+      })
       const supabase = await createServerSupabaseClient()
 
       // Ensure user preferences record exists
@@ -95,12 +105,12 @@ export function createUpdateUserPreferenceTool(userId: string) {
               ...(Array.isArray(value) ? value : [value])
             ]
           } else if (action === 'remove') {
-            update.favorite_players = (
-              existing?.favorite_players || []
-            ).filter((p: string) => {
-              const valuesToRemove = Array.isArray(value) ? value : [value]
-              return !valuesToRemove.includes(p)
-            })
+            update.favorite_players = (existing?.favorite_players || []).filter(
+              (p: string) => {
+                const valuesToRemove = Array.isArray(value) ? value : [value]
+                return !valuesToRemove.includes(p)
+              }
+            )
           } else {
             update.favorite_players = Array.isArray(value) ? value : [value]
           }
@@ -271,11 +281,11 @@ export function createAddConnectedLeagueTool(userId: string) {
 export function createUpdateRosterNotesTool(userId: string) {
   const parametersSchema = z.object({
     league_id: z.string().describe('The Sleeper league ID'),
-    team_name: z.string().optional().describe('The name of the user\'s team'),
+    team_name: z.string().optional().describe("The name of the user's team"),
     key_players: z
       .array(z.string())
       .optional()
-      .describe('Array of key players on the user\'s roster'),
+      .describe("Array of key players on the user's roster"),
     strengths: z
       .array(z.string())
       .optional()
@@ -355,11 +365,11 @@ export function createUpdateSleeperConnectionTool(userId: string) {
     sleeper_username: z
       .string()
       .optional()
-      .describe('The user\'s Sleeper platform username'),
+      .describe("The user's Sleeper platform username"),
     selected_league_id: z
       .string()
       .optional()
-      .describe('ID of the user\'s primary Sleeper league'),
+      .describe("ID of the user's primary Sleeper league"),
     league_name: z
       .string()
       .optional()
@@ -382,15 +392,18 @@ export function createUpdateSleeperConnectionTool(userId: string) {
       if (!sleeper_username && !selected_league_id && !league_name) {
         return {
           success: false,
-          error: 'At least one field (sleeper_username, selected_league_id, or league_name) must be provided'
+          error:
+            'At least one field (sleeper_username, selected_league_id, or league_name) must be provided'
         }
       }
 
       // Build update object with only provided fields
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const update: any = {}
-      if (sleeper_username !== undefined) update.sleeper_username = sleeper_username
-      if (selected_league_id !== undefined) update.selected_league_id = selected_league_id
+      if (sleeper_username !== undefined)
+        update.sleeper_username = sleeper_username
+      if (selected_league_id !== undefined)
+        update.selected_league_id = selected_league_id
       if (league_name !== undefined) update.league_name = league_name
       update.updated_at = new Date().toISOString()
 
@@ -403,13 +416,11 @@ export function createUpdateSleeperConnectionTool(userId: string) {
 
       if (!existing) {
         // Insert new onboarding record
-        const { error } = await supabase
-          .from('user_onboarding')
-          .insert({
-            user_id: userId,
-            ...update,
-            completed: true // Mark as completed since user is providing connection info
-          })
+        const { error } = await supabase.from('user_onboarding').insert({
+          user_id: userId,
+          ...update,
+          completed: true // Mark as completed since user is providing connection info
+        })
 
         if (error) {
           console.error('[update_sleeper_connection] Insert error:', error)

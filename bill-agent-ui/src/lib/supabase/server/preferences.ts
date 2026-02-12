@@ -1,8 +1,5 @@
 import { createServerSupabaseClient } from '../server'
-import type {
-  UserPreferences,
-  UserPreferencesUpdate
-} from '../preferences'
+import type { UserPreferences, UserPreferencesUpdate } from '../preferences'
 
 /**
  * Retrieves the preferences record for a user (server-side)
@@ -99,13 +96,16 @@ export async function updateUserPreferences(
  * @param preferences - User preferences object
  * @returns Formatted markdown string
  */
-export function formatPreferencesForPrompt(preferences: UserPreferences | null): string {
+export function formatPreferencesForPrompt(
+  preferences: UserPreferences | null
+): string {
   // Check if user has ANY preferences set (not just connected leagues)
   const hasPreferences =
     preferences &&
     (preferences.connected_leagues?.length > 0 ||
       preferences.favorite_players?.length > 0 ||
-      (preferences.analysis_style && preferences.analysis_style !== 'balanced') ||
+      (preferences.analysis_style &&
+        preferences.analysis_style !== 'balanced') ||
       preferences.preference_tags?.length > 0)
 
   if (!hasPreferences) {
@@ -140,7 +140,10 @@ export function formatPreferencesForPrompt(preferences: UserPreferences | null):
   }
 
   // Roster Notes (if primary league set)
-  if (preferences.primary_league_id && preferences.roster_notes?.[preferences.primary_league_id]) {
+  if (
+    preferences.primary_league_id &&
+    preferences.roster_notes?.[preferences.primary_league_id]
+  ) {
     const notes = preferences.roster_notes[preferences.primary_league_id]
     context += '**Primary Team Context:**\n'
     if (notes.team_name) context += `- Team: ${notes.team_name}\n`

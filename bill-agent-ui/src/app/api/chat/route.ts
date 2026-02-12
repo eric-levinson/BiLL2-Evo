@@ -23,10 +23,16 @@ import {
   CircuitBreaker,
   CircuitBreakerOpenError
 } from '@/lib/ai/circuitBreaker'
-import { estimateToolTokens, calculateTotalTokens } from '@/lib/ai/tokenEstimation'
-import { getMessageText, filterBM25ToolCalls } from '@/lib/utils/messageFiltering'
+import { calculateTotalTokens } from '@/lib/ai/tokenEstimation'
+import {
+  getMessageText,
+  filterBM25ToolCalls
+} from '@/lib/utils/messageFiltering'
 import { deduplicateToolCalls } from '@/lib/utils/deduplicateMessages'
-import { getUserPreferences, formatPreferencesForPrompt } from '@/lib/supabase/server/preferences'
+import {
+  getUserPreferences,
+  formatPreferencesForPrompt
+} from '@/lib/supabase/server/preferences'
 import {
   createUpdateUserPreferenceTool,
   createAddConnectedLeagueTool,
@@ -67,7 +73,8 @@ export async function POST(req: Request) {
     let { messages, id: sessionId } = body
 
     // Validate that sessionId is a valid UUID (if provided)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (sessionId && !uuidRegex.test(sessionId)) {
       console.log('[Session] Ignoring non-UUID session ID:', sessionId)
       sessionId = undefined
@@ -228,9 +235,16 @@ export async function POST(req: Request) {
           const result = basePrepareStep(context)
 
           // ALWAYS include preference tools in addition to BM25 selection
-          const preferenceToolNames = ['update_user_preference', 'add_connected_league', 'update_roster_notes', 'update_sleeper_connection']
+          const preferenceToolNames = [
+            'update_user_preference',
+            'add_connected_league',
+            'update_roster_notes',
+            'update_sleeper_connection'
+          ]
           const selectedTools = result?.activeTools || []
-          const toolsWithPreferences = [...new Set([...selectedTools, ...preferenceToolNames])]
+          const toolsWithPreferences = [
+            ...new Set([...selectedTools, ...preferenceToolNames])
+          ]
 
           // Log selected tools for this step
           if (result?.activeTools && result.activeTools.length > 0) {
