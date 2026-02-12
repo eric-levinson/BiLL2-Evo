@@ -93,3 +93,63 @@ export async function updateUserPreferences(
 
   return result
 }
+
+/**
+ * Formats user preferences into a markdown string for system prompt injection
+ * @param preferences - User preferences object
+ * @returns Formatted markdown string
+ */
+export function formatPreferencesForPrompt(preferences: UserPreferences | null): string {
+  // Check if user has ANY preferences set (not just connected leagues)
+  const hasPreferences =
+    preferences &&
+    (preferences.connected_leagues?.length > 0 ||
+      preferences.favorite_players?.length > 0 ||
+      (preferences.analysis_style && preferences.analysis_style !== 'balanced') ||
+      preferences.preference_tags?.length > 0)
+
+  if (!hasPreferences) {
+    return 'No user preferences stored yet.'
+  }
+
+  let context = '## User Context\n\n'
+
+  // Connected Leagues
+  if (preferences.connected_leagues?.length > 0) {
+    context += '**Connected Sleeper Leagues:**\n'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    preferences.connected_leagues.forEach((league: any) => {
+      context += `- ${league.name} (${league.season}, ${league.scoring_format})${league.is_primary ? ' [PRIMARY]' : ''}\n`
+    })
+    context += '\n'
+  }
+
+  // Favorite Players
+  if (preferences.favorite_players?.length > 0) {
+    context += `**Favorite Players:** ${preferences.favorite_players.join(', ')}\n\n`
+  }
+
+  // Analysis Style
+  if (preferences.analysis_style) {
+    context += `**Preferred Analysis Style:** ${preferences.analysis_style}\n\n`
+  }
+
+  // Tags
+  if (preferences.preference_tags?.length > 0) {
+    context += `**User Focus Areas:** ${preferences.preference_tags.join(', ')}\n\n`
+  }
+
+  // Roster Notes (if primary league set)
+  if (preferences.primary_league_id && preferences.roster_notes?.[preferences.primary_league_id]) {
+    const notes = preferences.roster_notes[preferences.primary_league_id]
+    context += '**Primary Team Context:**\n'
+    if (notes.team_name) context += `- Team: ${notes.team_name}\n`
+    if (notes.key_players?.length)
+      context += `- Key Players: ${notes.key_players.join(', ')}\n`
+    if (notes.strengths?.length)
+      context += `- Strengths: ${notes.strengths.join(', ')}\n`
+    if (notes.needs?.length) context += `- Needs: ${notes.needs.join(', ')}\n`
+  }
+
+  return context
+}
