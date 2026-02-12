@@ -3,6 +3,7 @@ import importlib.util
 import logging
 from supabase import Client
 from helpers.name_utils import sanitize_name
+from helpers.query_utils import build_player_stats_query
 
 logger = logging.getLogger(__name__)
 
@@ -91,55 +92,22 @@ def get_offensive_players_game_stats(
     Returns:
         dict: Offensive player game stats data
     """
-    # base columns always returned
-    columns = ["season", "week", "player_display_name", "recent_team", "position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"player_display_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to WR/TE/RB)
-    positions_list = positions if positions is not None else ["QB", "WR", "TE", "RB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("nflreadr_nfl_player_stats").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if weekly_list:
-            query = query.in_("week", weekly_list)
-
-        if positions_list:
-            query = query.in_("position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_display_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"offGameStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching offensive player game stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="nflreadr_nfl_player_stats",
+        base_columns=["season", "week", "player_display_name", "recent_team", "position"],
+        player_name_column="player_display_name",
+        position_column="position",
+        default_positions=["QB", "WR", "TE", "RB"],
+        return_key="offGameStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=weekly_list,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
     
 def get_defensive_players_game_stats(
     supabase: Client,
