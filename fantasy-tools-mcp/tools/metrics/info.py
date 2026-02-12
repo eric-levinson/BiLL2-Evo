@@ -1,6 +1,17 @@
+"""
+Advanced NFL metrics query functions.
+
+This module provides functions to query advanced receiving, passing, rushing, and defensive
+statistics for NFL players. All query functions have been refactored to use the generic
+build_player_stats_query helper from helpers.query_utils to eliminate code duplication
+and ensure consistent query behavior across all stats types.
+
+The refactoring reduced ~639 lines of duplicated query logic down to a single reusable
+helper function plus thin wrapper functions that specify table-specific parameters.
+"""
 import logging
 from supabase import Client
-from helpers.name_utils import sanitize_name
+from helpers.query_utils import build_player_stats_query
 from docs.metrics_catalog import metrics_catalog
 
 logger = logging.getLogger(__name__)
@@ -50,53 +61,22 @@ def get_advanced_receiving_stats(
     Returns:
         dict: Advanced receiving stats data
     """
-    # base columns always returned
-    columns = ["season", "player_name", "ff_team", "ff_position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to WR/TE/RB)
-    positions_list = positions if positions is not None else ["WR", "TE", "RB"]
-    # normalize to uppercase strings
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_receiving_analytics").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if positions_list:
-            query = query.in_("ff_position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advReceivingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching receiving stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_receiving_analytics",
+        base_columns=["season", "player_name", "ff_team", "ff_position"],
+        player_name_column="merge_name",
+        position_column="ff_position",
+        default_positions=["WR", "TE", "RB"],
+        return_key="advReceivingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=None,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
 
 
 def get_advanced_passing_stats(
@@ -123,52 +103,22 @@ def get_advanced_passing_stats(
     Returns:
         dict: Advanced passing stats data
     """
-    # base columns always returned
-    columns = ["season", "player_name", "ff_team", "ff_position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to QB)
-    positions_list = positions if positions is not None else ["QB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_passing_analytics").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if positions_list:
-            query = query.in_("ff_position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advPassingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching passing stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_passing_analytics",
+        base_columns=["season", "player_name", "ff_team", "ff_position"],
+        player_name_column="merge_name",
+        position_column="ff_position",
+        default_positions=["QB"],
+        return_key="advPassingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=None,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
 
 def get_advanced_rushing_stats(
     supabase: Client,
@@ -194,52 +144,22 @@ def get_advanced_rushing_stats(
     Returns:
         dict: Advanced rushing stats data
     """
-    # base columns always returned
-    columns = ["season", "player_name", "ff_team", "ff_position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to RB/QB)
-    positions_list = positions if positions is not None else ["RB", "QB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_rushing_analytics").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if positions_list:
-            query = query.in_("ff_position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advRushingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching rushing stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_rushing_analytics",
+        base_columns=["season", "player_name", "ff_team", "ff_position"],
+        player_name_column="merge_name",
+        position_column="ff_position",
+        default_positions=["RB", "QB"],
+        return_key="advRushingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=None,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
 
 
 def get_advanced_defense_stats(
@@ -255,7 +175,7 @@ def get_advanced_defense_stats(
     Fetch advanced seasonal defensive stats for NFL defensive players.
 
     Args:
-        supabase: The Supabase client instance
+        supabase: Supabase client
         player_names: optional list of player names (partial matches supported)
         season_list: optional list of seasons to include in results
         metrics: optional list of metric codes to return
@@ -267,52 +187,22 @@ def get_advanced_defense_stats(
     Returns:
         dict: Advanced defensive stats data
     """
-    # base columns always returned
-    columns = ["season", "player_name", "team", "position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to common defensive positions)
-    positions_list = positions if positions is not None else ["CB", "DB", "DE", "DL", "LB", "S"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_def_analytics").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if positions_list:
-            query = query.in_("position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advDefenseStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching defense stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_def_analytics",
+        base_columns=["season", "player_name", "team", "position"],
+        player_name_column="merge_name",
+        position_column="position",
+        default_positions=["CB", "DB", "DE", "DL", "LB", "S"],
+        return_key="advDefenseStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=None,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
 
 def get_advanced_receiving_stats_weekly(
     supabase: Client,
@@ -340,55 +230,22 @@ def get_advanced_receiving_stats_weekly(
     Returns:
         dict: Advanced receiving stats data
     """
-    # base columns always returned
-    columns = ["season", "week", "player_name", "ff_team", "ff_position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to WR/TE/RB)
-    positions_list = positions if positions is not None else ["WR", "TE", "RB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_receiving_analytics_weekly").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if weekly_list:
-            query = query.in_("week", weekly_list)
-
-        if positions_list:
-            query = query.in_("ff_position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advReceivingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching receiving stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_receiving_analytics_weekly",
+        base_columns=["season", "week", "player_name", "ff_team", "ff_position"],
+        player_name_column="merge_name",
+        position_column="ff_position",
+        default_positions=["WR", "TE", "RB"],
+        return_key="advReceivingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=weekly_list,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
 
 def get_advanced_passing_stats_weekly(
     supabase: Client,
@@ -416,55 +273,22 @@ def get_advanced_passing_stats_weekly(
     Returns:
         dict: Advanced passing stats data
     """
-    # base columns always returned
-    columns = ["season", "week", "player_name", "team", "position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to QB)
-    positions_list = positions if positions is not None else ["QB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_passing_analytics_weekly").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if weekly_list:
-            query = query.in_("week", weekly_list)
-
-        if positions_list:
-            query = query.in_("position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advPassingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching passing stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_passing_analytics_weekly",
+        base_columns=["season", "week", "player_name", "team", "position"],
+        player_name_column="merge_name",
+        position_column="position",
+        default_positions=["QB"],
+        return_key="advPassingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=weekly_list,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
     
 def get_advanced_rushing_stats_weekly(
     supabase: Client,
@@ -492,55 +316,22 @@ def get_advanced_rushing_stats_weekly(
     Returns:
         dict: Advanced rushing stats data
     """
-    # base columns always returned
-    columns = ["season", "week", "player_name", "team", "position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to RB/QB)
-    positions_list = positions if positions is not None else ["RB", "QB"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_rushing_analytics_weekly").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if weekly_list:
-            query = query.in_("week", weekly_list)
-
-        if positions_list:
-            query = query.in_("position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advRushingStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching rushing stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_rushing_analytics_weekly",
+        base_columns=["season", "week", "player_name", "team", "position"],
+        player_name_column="merge_name",
+        position_column="position",
+        default_positions=["RB", "QB"],
+        return_key="advRushingStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=weekly_list,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
     
 def get_advanced_defense_stats_weekly(
     supabase: Client,
@@ -569,52 +360,19 @@ def get_advanced_defense_stats_weekly(
     Returns:
         dict: Advanced defensive stats data
     """
-    # base columns always returned
-    columns = ["season", "week", "player_name", "team", "position"]
-    metrics = metrics or []
-    if metrics:
-        columns.extend(metrics)
-
-    # sanitize and build optional name filter
-    sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
-
-    # handle position filter (default to common defensive positions)
-    positions_list = positions if positions is not None else ["CB", "DB", "DE", "DL", "LB", "S"]
-    positions_list = [p.upper() for p in positions_list] if positions_list else None
-
-    # enforce sensible cap
-    max_limit = 300
-    safe_limit = None
-    if limit and int(limit) > 0:
-        safe_limit = min(int(limit), max_limit)
-
-    try:
-        query = supabase.table("vw_advanced_def_analytics_weekly").select(",".join(columns))
-
-        if season_list:
-            query = query.in_("season", season_list)
-
-        if weekly_list:
-            query = query.in_("week", weekly_list)
-
-        if positions_list:
-            query = query.in_("position", positions_list)
-
-        if or_filter:
-            query = query.or_(or_filter)
-
-        # apply ordering: prefer explicit metric, otherwise by season desc, player asc
-        if order_by_metric:
-            query = query.not_.is_(order_by_metric, "null")
-            query = query.order(order_by_metric, desc=True)
-        query = query.order("season", desc=True).order("player_name", desc=False)
-
-        if safe_limit:
-            query = query.limit(safe_limit)
-
-        response = query.execute()
-        return {"advDefenseStats": response.data}
-
-    except Exception as e:
-        raise Exception(f"Error fetching defense stats: {str(e)}")
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="vw_advanced_def_analytics_weekly",
+        base_columns=["season", "week", "player_name", "team", "position"],
+        player_name_column="merge_name",
+        position_column="position",
+        default_positions=["CB", "DB", "DE", "DL", "LB", "S"],
+        return_key="advDefenseStats",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=weekly_list,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )
