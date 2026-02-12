@@ -8,6 +8,7 @@ import os
 import logging
 from typing import Callable, Any, Optional
 from functools import wraps
+import asyncio
 
 from tenacity import (
     retry,
@@ -16,8 +17,10 @@ from tenacity import (
     retry_if_exception,
     before_sleep_log,
     RetryError,
+    AsyncRetrying,
 )
 import requests
+import aiohttp
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -26,6 +29,8 @@ logger = logging.getLogger(__name__)
 def is_retryable_http_error(exception: Exception) -> bool:
     """
     Determine if an HTTP error should trigger a retry.
+
+    Supports both requests and aiohttp exceptions.
 
     Retries on:
     - 5xx server errors (temporary server issues)
@@ -42,17 +47,29 @@ def is_retryable_http_error(exception: Exception) -> bool:
     Returns:
         True if the error should trigger a retry
     """
-    # Connection and timeout errors are always retryable
+    # Connection and timeout errors are always retryable (requests library)
     if isinstance(exception, (requests.exceptions.ConnectionError,
                              requests.exceptions.Timeout)):
         return True
 
-    # Check HTTP errors by status code
+    # Connection and timeout errors are always retryable (aiohttp library)
+    if isinstance(exception, (aiohttp.ClientError, aiohttp.ClientConnectionError)):
+        # Don't retry ClientResponseError here, handle separately by status code
+        if not isinstance(exception, aiohttp.ClientResponseError):
+            return True
+
+    # Check HTTP errors by status code (requests library)
     if isinstance(exception, requests.exceptions.HTTPError):
         if hasattr(exception, 'response') and exception.response is not None:
             status_code = exception.response.status_code
             # Retry on 5xx (server errors) and 429 (rate limit)
             return status_code >= 500 or status_code == 429
+
+    # Check HTTP errors by status code (aiohttp library)
+    if isinstance(exception, aiohttp.ClientResponseError):
+        status_code = exception.status
+        # Retry on 5xx (server errors) and 429 (rate limit)
+        return status_code >= 500 or status_code == 429
 
     return False
 
@@ -154,6 +171,121 @@ def retry_with_backoff(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return retrying_func(*args, **kwargs)
+            except RetryError as e:
+                # Extract the original exception from RetryError
+                original_exception = e.last_attempt.exception()
+                logger.error(
+                    f"All {_max_attempts} retry attempts exhausted for {func.__name__}. "
+                    f"Last error: {original_exception}"
+                )
+                # Re-raise the original exception instead of RetryError
+                raise original_exception from e
+
+        return wrapper
+
+    return decorator
+
+
+def async_retry_with_backoff(
+    max_attempts: Optional[int] = None,
+    initial_delay: Optional[float] = None,
+    max_delay: Optional[float] = None,
+    multiplier: Optional[float] = None,
+) -> Callable:
+    """
+    Decorator that adds retry logic with exponential backoff to an async function.
+
+    Default behavior (configurable via environment variables):
+    - Attempt 1: Executes immediately
+    - Attempt 2: Retries after 1s delay
+    - Attempt 3: Retries after 2s delay
+    - Attempt 4: Retries after 4s delay (if max_attempts=4)
+
+    Retries on:
+    - requests.exceptions.HTTPError (5xx and 429 only)
+    - requests.exceptions.ConnectionError
+    - requests.exceptions.Timeout
+
+    Rate-limit handling:
+    - Detects 429 responses and retries with exponential backoff
+
+    Environment variables (with defaults):
+    - RETRY_MAX_ATTEMPTS: Maximum retry attempts (default: 3)
+    - RETRY_INITIAL_DELAY_MS: Initial delay in milliseconds (default: 1000)
+    - RETRY_MAX_DELAY_MS: Maximum delay in milliseconds (default: 4000)
+    - RETRY_BACKOFF_MULTIPLIER: Exponential backoff multiplier (default: 2)
+
+    Args:
+        max_attempts: Override for maximum retry attempts
+        initial_delay: Override for initial delay in seconds
+        max_delay: Override for maximum delay in seconds
+        multiplier: Override for backoff multiplier
+
+    Returns:
+        Decorated async function with retry logic
+
+    Example:
+        ```python
+        @async_retry_with_backoff(max_attempts=3)
+        async def fetch_sleeper_data_async(url: str):
+            response = await aiohttp.get(url)
+            response.raise_for_status()
+            return await response.json()
+        ```
+    """
+    # Read configuration from environment with fallbacks
+    _max_attempts = max_attempts if max_attempts is not None else int(os.getenv('RETRY_MAX_ATTEMPTS', '3'))
+
+    # Handle delay parameters: direct params are in seconds, env vars are in milliseconds
+    if initial_delay is not None:
+        _initial_delay_s = initial_delay
+    else:
+        _initial_delay_s = int(os.getenv('RETRY_INITIAL_DELAY_MS', '1000')) / 1000.0
+
+    if max_delay is not None:
+        _max_delay_s = max_delay
+    else:
+        _max_delay_s = int(os.getenv('RETRY_MAX_DELAY_MS', '4000')) / 1000.0
+
+    _multiplier = multiplier if multiplier is not None else float(os.getenv('RETRY_BACKOFF_MULTIPLIER', '2'))
+
+    def decorator(func: Callable) -> Callable:
+        # Custom retry condition that checks if exception is retryable
+        def should_retry(exception: Exception) -> bool:
+            """Check if exception should trigger a retry."""
+            return is_retryable_http_error(exception)
+
+        @wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Create AsyncRetrying instance with configuration
+            async_retrying = AsyncRetrying(
+                # Stop after max attempts
+                stop=stop_after_attempt(_max_attempts),
+
+                # Exponential backoff: wait = multiplier^(attempt-1) * initial_delay
+                # Clamped between initial_delay and max_delay
+                wait=wait_exponential(
+                    multiplier=_initial_delay_s,
+                    min=_initial_delay_s,
+                    max=_max_delay_s,
+                    exp_base=_multiplier,
+                ),
+
+                # Only retry on specific retryable exceptions
+                retry=retry_if_exception(should_retry),
+
+                # Log before sleeping (retrying)
+                before_sleep=before_sleep_log(logger, logging.WARNING),
+
+                # Re-raise exceptions immediately if not retryable
+                reraise=True,
+            )
+
+            try:
+                # Execute function with retry logic
+                async for attempt in async_retrying:
+                    with attempt:
+                        return await func(*args, **kwargs)
             except RetryError as e:
                 # Extract the original exception from RetryError
                 original_exception = e.last_attempt.exception()

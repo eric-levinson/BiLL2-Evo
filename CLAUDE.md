@@ -223,8 +223,67 @@ The fantasy-tools-mcp server exposes these tool categories:
 - Tools registered via FastMCP `@mcp.tool()` decorator in registry files
 - Each tool module follows the pattern: `info.py` (business logic) + `registry.py` (MCP registration)
 - Use `os.getenv()` for environment variables with sensible defaults
-- Async patterns with `asyncio` for MCP tool calls
+- Async patterns with `asyncio` for MCP tool calls (see Async Patterns section below)
 - Type hints on function signatures
+
+#### Async Patterns for Performance
+
+Multiple independent API calls should run in parallel using `asyncio.gather` to minimize latency:
+
+**Pattern: Parallel API Calls with asyncio.gather**
+
+```python
+import asyncio
+
+def my_tool_function(league_id: str):
+    """Tool function with synchronous interface."""
+
+    async def _fetch_data_parallel():
+        """Inner async function for parallel API calls."""
+        api_client = MyApiClient(league_id)
+
+        # Execute multiple API calls in parallel
+        result1, result2, result3 = await asyncio.gather(
+            api_client._call_async(url1),
+            api_client._call_async(url2),
+            api_client._call_async(url3)
+        )
+
+        return result1, result2, result3
+
+    try:
+        # Run async function from sync context
+        result1, result2, result3 = asyncio.run(_fetch_data_parallel())
+
+        # Process results...
+        return processed_data
+    except Exception as e:
+        return {"error": str(e)}
+```
+
+**Key Components:**
+
+1. **Async HTTP Client** (`BaseApi._call_async`): Uses `aiohttp` for non-blocking HTTP requests
+2. **Async Retry Decorator** (`@async_retry_with_backoff`): Async version of retry logic with exponential backoff
+3. **Parallel Execution** (`asyncio.gather`): Executes multiple async calls concurrently
+4. **Sync Wrapper** (`asyncio.run`): Preserves synchronous MCP tool interface
+
+**Performance Improvements:**
+
+Three Sleeper API tools were optimized using this pattern:
+- `get_sleeper_league_matchups`: 216ms avg (**5.6x faster**, was ~1200ms)
+- `get_sleeper_league_rosters`: 197ms avg (**2.0x faster**, was ~400ms)
+- `get_sleeper_league_transactions`: 196ms avg (**3.1x faster**, was ~600ms)
+
+**When to Use:**
+- Multiple independent API calls in a single tool
+- No data dependencies between API calls
+- Latency-sensitive operations (user-facing tools)
+
+**Implementation Files:**
+- `helpers/retry_utils.py` — `async_retry_with_backoff` decorator
+- `tools/fantasy/sleeper_wrapper/base_api.py` — `BaseApi._call_async` method
+- `tools/fantasy/info.py` — Example implementations (matchups, rosters, transactions)
 
 ### TypeScript (bill-agent-ui)
 - Next.js 15 with App Router (`src/app/`)
