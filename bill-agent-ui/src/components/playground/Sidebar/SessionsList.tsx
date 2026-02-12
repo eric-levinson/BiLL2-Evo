@@ -4,6 +4,7 @@ import { usePlaygroundStore } from '@/store'
 import { useAssistantSession } from '@/hooks/useAssistantRuntime'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { Trash } from 'lucide-react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
@@ -21,6 +22,15 @@ const SessionsList = () => {
 
   const handleSessionClick = (id: string) => {
     router.push(`/app?session=${id}`)
+  }
+
+  const handleDeleteClick = (
+    e: React.MouseEvent,
+    sessionId: string
+  ) => {
+    e.stopPropagation()
+    // TODO: Open confirmation dialog (will be implemented in next subtask)
+    console.log('Delete session:', sessionId)
   }
 
   if (isSessionsLoading) {
@@ -65,6 +75,15 @@ const SessionsList = () => {
             <span className="text-muted-foreground text-[10px]">
               {dayjs(session.created_at).fromNow()}
             </span>
+
+            {/* Delete button - appears on hover */}
+            <button
+              onClick={(e) => handleDeleteClick(e, session.session_id)}
+              className="absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+              aria-label="Delete conversation"
+            >
+              <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+            </button>
           </motion.button>
         )
       })}
