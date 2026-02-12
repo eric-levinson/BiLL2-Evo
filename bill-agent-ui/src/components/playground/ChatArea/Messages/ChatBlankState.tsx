@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import React from 'react'
+import { useComposerRuntime } from '@assistant-ui/react'
 
 const EXAMPLE_PROMPTS = [
   'Show me the top 10 dynasty WR rankings',
