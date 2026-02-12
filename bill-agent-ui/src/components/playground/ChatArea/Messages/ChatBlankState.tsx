@@ -28,9 +28,11 @@ const ExamplePromptButton = ({ text, onClick }: ExamplePromptButtonProps) => {
 }
 
 const ChatBlankState = () => {
+  const composer = useComposerRuntime()
+
   const handlePromptClick = (prompt: string) => {
-    // TODO: Implement prompt injection when chat input is wired
-    console.log('Selected prompt:', prompt)
+    composer.setText(prompt)
+    composer.send()
   }
 
   return (
