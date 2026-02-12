@@ -1,8 +1,7 @@
-import os
-import importlib.util
 import logging
 from supabase import Client
 from helpers.name_utils import sanitize_name
+from docs.metrics_catalog import metrics_catalog
 
 logger = logging.getLogger(__name__)
 
@@ -18,23 +17,6 @@ def get_metrics_metadata(category: str, subcategory: str | None = None) -> dict:
     Returns:
         dict: Metric definitions for the given category and subcategory.
     """
-    # Get the path to metrics_catalog.py
-    current_dir = os.path.dirname(__file__)
-    metrics_file = os.path.abspath(os.path.join(current_dir, '..', '..', 'docs', 'metrics_catalog.py'))
-    
-    # Check if the file exists
-    if not os.path.exists(metrics_file):
-        raise FileNotFoundError(f"metrics_catalog.py not found at {metrics_file}")
-    
-    try:
-        # Use importlib to dynamically load the module
-        spec = importlib.util.spec_from_file_location("metrics_catalog", metrics_file)
-        metrics_catalog_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(metrics_catalog_module)
-        metrics_catalog = metrics_catalog_module.metrics_catalog
-    except Exception as e:
-        raise ImportError(f"Could not import metrics_catalog: {e}")
-    
     if category not in metrics_catalog:
         raise ValueError(f"Unknown category: {category}")
 
