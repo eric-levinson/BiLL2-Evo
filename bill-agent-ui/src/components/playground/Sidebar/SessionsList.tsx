@@ -16,6 +16,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { deleteSession } from '@/lib/supabase/sessions'
+import { toast } from 'sonner'
 
 dayjs.extend(relativeTime)
 
@@ -44,10 +46,29 @@ const SessionsList = () => {
     setIsDialogOpen(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (sessionToDelete) {
-      // TODO: Implement actual delete logic (will be implemented in next subtask)
-      console.log('Delete session:', sessionToDelete)
+  const handleConfirmDelete = async () => {
+    if (!sessionToDelete) return
+
+    try {
+      const success = await deleteSession(sessionToDelete)
+
+      if (success) {
+        toast.success('Conversation deleted successfully')
+
+        // If deleting the currently active session, redirect to /app without session
+        if (sessionId === sessionToDelete) {
+          router.push('/app')
+        }
+
+        // Refresh the sessions list
+        await refreshSessions()
+      } else {
+        toast.error('Failed to delete conversation. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error)
+      toast.error('An error occurred while deleting the conversation.')
+    } finally {
       setIsDialogOpen(false)
       setSessionToDelete(null)
     }
