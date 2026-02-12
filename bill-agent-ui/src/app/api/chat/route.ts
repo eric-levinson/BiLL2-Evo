@@ -80,6 +80,7 @@ export async function POST(req: Request) {
   }
 
   let mcpClient: MCPClient | undefined
+  let streamCreated = false
 
   try {
     // Parse request body
@@ -276,6 +277,11 @@ export async function POST(req: Request) {
       instructions: getBillSystemPrompt(userContextSection)
     })
 
+    // Mark stream as successfully created (before return)
+    // This prevents the outer finally block from releasing the connection
+    // since onFinish will handle it
+    streamCreated = true
+
     // Use createAgentUIStreamResponse which properly handles the agent stream
     return createAgentUIStreamResponse({
       agent,
@@ -363,10 +369,6 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     console.error('Chat API error:', err)
-    // Release MCP client back to pool on setup errors (stream never started)
-    if (mcpClient) {
-      await mcpConnectionPool.release(mcpClient)
-    }
 
     // Provide user-friendly error messages based on error type
     if (err instanceof CircuitBreakerOpenError) {
@@ -504,5 +506,13 @@ export async function POST(req: Request) {
       },
       { status: 500 }
     )
+  } finally {
+    // CRITICAL: Release connection if stream was never created
+    // If stream was successfully created, onFinish's finally block will handle release
+    // This guarantees connection is always released, even if error handling itself fails
+    if (!streamCreated && mcpClient) {
+      console.log('[MCP Pool] Releasing connection after setup failure')
+      await mcpConnectionPool.release(mcpClient)
+    }
   }
 }
