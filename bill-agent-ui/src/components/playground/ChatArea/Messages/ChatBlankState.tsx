@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import React from 'react'
+import { useComposerRuntime } from '@assistant-ui/react'
 
 const EXAMPLE_PROMPTS = [
   'Show me the top 10 dynasty WR rankings',
@@ -27,9 +28,11 @@ const ExamplePromptButton = ({ text, onClick }: ExamplePromptButtonProps) => {
 }
 
 const ChatBlankState = () => {
+  const composer = useComposerRuntime()
+
   const handlePromptClick = (prompt: string) => {
-    // TODO: Implement prompt injection when chat input is wired
-    console.log('Selected prompt:', prompt)
+    composer.setText(prompt)
+    composer.send()
   }
 
   return (
