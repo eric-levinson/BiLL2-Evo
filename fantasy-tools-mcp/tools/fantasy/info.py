@@ -81,13 +81,7 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
         league = League(league_id)
         rosters = league.get_rosters()
         users = league.get_users()
-        # Use the same logic as League.map_users_to_team_name
-        user_map = {}
-        for user in users:
-            try:
-                user_map[user["user_id"]] = user["metadata"]["team_name"]
-            except:
-                user_map[user["user_id"]] = user.get("display_name")
+        user_map = league.map_users_to_team_name(users)
 
         for roster in rosters:
             owner = roster.get("owner_id")
