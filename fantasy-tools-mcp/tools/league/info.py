@@ -1,14 +1,22 @@
+"""
+NFL game stats query functions for offensive and defensive players.
+
+This module provides functions to query weekly game stats for NFL offensive and defensive
+players. Both query functions have been refactored to use the generic build_player_stats_query
+helper from helpers.query_utils to eliminate code duplication and ensure consistent query
+behavior.
+
+The refactoring reduced ~140 lines of duplicated query logic across the two functions down
+to a single reusable helper function plus thin wrapper functions that specify table-specific
+parameters.
+"""
 import os
 import importlib.util
 import logging
 from supabase import Client
-from helpers.name_utils import sanitize_name
 from helpers.query_utils import build_player_stats_query
 
 logger = logging.getLogger(__name__)
-
-import os
-import importlib.util
 
 def get_stats_metadata(category: str, subcategory: str | None = None) -> dict:
     """
