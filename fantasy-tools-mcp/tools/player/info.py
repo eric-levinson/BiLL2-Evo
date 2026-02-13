@@ -3,6 +3,11 @@ Player information tools for fantasy football analysis.
 """
 from supabase import Client
 from helpers.name_utils import sanitize_name
+from tools.metrics.info import (
+    get_advanced_receiving_stats,
+    get_advanced_passing_stats,
+    get_advanced_rushing_stats,
+)
 
 
 def get_player_info(supabase: Client, player_names: list[str]) -> list[dict]:
@@ -30,7 +35,7 @@ def get_player_info(supabase: Client, player_names: list[str]) -> list[dict]:
 def get_players_by_sleeper_id(supabase: Client, sleeper_ids: list[str]) -> list[dict]:
     """
     Fetch basic information for players by their Sleeper IDs.
-    
+
     Args:
         supabase: The Supabase client instance
         sleeper_ids: List of Sleeper IDs to search for
@@ -47,3 +52,81 @@ def get_players_by_sleeper_id(supabase: Client, sleeper_ids: list[str]) -> list[
         return response.data
     except Exception as e:
         raise Exception(f"Error fetching player info by Sleeper ID: {str(e)}")
+
+
+def get_player_profile(
+    supabase: Client,
+    player_names: list[str],
+    season_list: list[int] | None = None,
+    metrics: list[str] | None = None,
+    limit: int | None = 25,
+) -> dict:
+    """
+    Fetch comprehensive player profile combining basic info and all available stats.
+
+    This is a unified tool that combines basic player information with receiving,
+    passing, and rushing stats in a single call, reducing the need for 3-4 separate
+    tool calls to build a complete player profile.
+
+    Args:
+        supabase: The Supabase client instance
+        player_names: List of player names to search for
+        season_list: Optional list of seasons to include
+        metrics: Optional list of metric codes to return
+        limit: Optional max rows to return per stats category (defaults to 25)
+
+    Returns:
+        dict: Unified player profile with keys:
+            - playerInfo: Basic player information (name, team, position, etc.)
+            - receivingStats: Advanced receiving statistics (may be empty for non-receivers)
+            - passingStats: Advanced passing statistics (may be empty for non-QBs)
+            - rushingStats: Advanced rushing statistics (may be empty for non-rushers)
+    """
+    try:
+        if not player_names:
+            return {
+                "error": "Please submit list of player names to search for as array of strings",
+                "playerInfo": [],
+                "receivingStats": [],
+                "passingStats": [],
+                "rushingStats": [],
+            }
+
+        # Fetch basic player info
+        player_info = get_player_info(supabase, player_names)
+
+        # Fetch all stats categories (let each function handle position defaults)
+        receiving_stats = get_advanced_receiving_stats(
+            supabase=supabase,
+            player_names=player_names,
+            season_list=season_list,
+            metrics=metrics,
+            limit=limit,
+        )
+
+        passing_stats = get_advanced_passing_stats(
+            supabase=supabase,
+            player_names=player_names,
+            season_list=season_list,
+            metrics=metrics,
+            limit=limit,
+        )
+
+        rushing_stats = get_advanced_rushing_stats(
+            supabase=supabase,
+            player_names=player_names,
+            season_list=season_list,
+            metrics=metrics,
+            limit=limit,
+        )
+
+        # Combine all results into unified response
+        return {
+            "playerInfo": player_info,
+            "receivingStats": receiving_stats.get("advReceivingStats", []),
+            "passingStats": passing_stats.get("advPassingStats", []),
+            "rushingStats": rushing_stats.get("advRushingStats", []),
+        }
+
+    except Exception as e:
+        raise Exception(f"Error fetching player profile: {str(e)}")
