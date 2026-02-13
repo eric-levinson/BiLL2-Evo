@@ -1,11 +1,15 @@
 """
 Player information tools for fantasy football analysis.
 """
+
+import asyncio
+
 from supabase import Client
+
 from helpers.name_utils import sanitize_name
 from tools.metrics.info import (
-    get_advanced_receiving_stats,
     get_advanced_passing_stats,
+    get_advanced_receiving_stats,
     get_advanced_rushing_stats,
 )
 
@@ -33,6 +37,7 @@ def get_player_info(supabase: Client, player_names: list[str]) -> list[dict]:
         return response.data
     except Exception as e:
         raise Exception(f"Error fetching player info: {str(e)}")
+
 
 def get_players_by_sleeper_id(supabase: Client, sleeper_ids: list[str]) -> list[dict]:
     """
@@ -96,35 +101,38 @@ def get_player_profile(
                 "rushingStats": [],
             }
 
-        # Fetch basic player info
-        player_info = get_player_info(supabase, player_names)
+        # Fetch player info and all stats categories in parallel
+        async def _fetch_all():
+            return await asyncio.gather(
+                asyncio.to_thread(get_player_info, supabase, player_names),
+                asyncio.to_thread(
+                    get_advanced_receiving_stats,
+                    supabase=supabase,
+                    player_names=player_names,
+                    season_list=season_list,
+                    metrics=metrics,
+                    limit=limit,
+                ),
+                asyncio.to_thread(
+                    get_advanced_passing_stats,
+                    supabase=supabase,
+                    player_names=player_names,
+                    season_list=season_list,
+                    metrics=metrics,
+                    limit=limit,
+                ),
+                asyncio.to_thread(
+                    get_advanced_rushing_stats,
+                    supabase=supabase,
+                    player_names=player_names,
+                    season_list=season_list,
+                    metrics=metrics,
+                    limit=limit,
+                ),
+            )
 
-        # Fetch all stats categories (let each function handle position defaults)
-        receiving_stats = get_advanced_receiving_stats(
-            supabase=supabase,
-            player_names=player_names,
-            season_list=season_list,
-            metrics=metrics,
-            limit=limit,
-        )
+        player_info, receiving_stats, passing_stats, rushing_stats = asyncio.run(_fetch_all())
 
-        passing_stats = get_advanced_passing_stats(
-            supabase=supabase,
-            player_names=player_names,
-            season_list=season_list,
-            metrics=metrics,
-            limit=limit,
-        )
-
-        rushing_stats = get_advanced_rushing_stats(
-            supabase=supabase,
-            player_names=player_names,
-            season_list=season_list,
-            metrics=metrics,
-            limit=limit,
-        )
-
-        # Combine all results into unified response
         return {
             "playerInfo": player_info,
             "receivingStats": receiving_stats.get("advReceivingStats", []),
