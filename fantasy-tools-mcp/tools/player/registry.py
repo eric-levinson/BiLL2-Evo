@@ -7,11 +7,14 @@ def register_tools(mcp: FastMCP, supabase: Client):
     Register player info tools with the FastMCP instance.
     """
     @mcp.tool(
-        description="Fetch basic information for players such as: name, latest team, position, height, weight, birthdate (age) and identifiers"
+        description=(
+            "Fetch basic information for players such as: name, latest team, position, "
+            "height, weight, birthdate (age) and identifiers"
+        )
     )
     def get_player_info_tool(player_names: list[str]) -> list[dict]:
         return get_player_info(supabase, player_names)
-    
+
     @mcp.tool(
         description="Fetch basic information for players by their Sleeper IDs."
     )
