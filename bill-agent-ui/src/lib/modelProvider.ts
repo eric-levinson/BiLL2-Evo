@@ -1,6 +1,5 @@
-import { IconType } from '@/components/ui/icon'
-
-const PROVIDER_ICON_MAP: Record<string, IconType> = {
+/** Provider name → icon type string mapping */
+const PROVIDER_ICON_MAP: Record<string, string> = {
   aws: 'aws',
   openai: 'open-ai',
   anthropic: 'anthropic',
@@ -15,7 +14,7 @@ const PROVIDER_ICON_MAP: Record<string, IconType> = {
   xai: 'xai'
 }
 
-export const getProviderIcon = (provider: string): IconType | null => {
+export const getProviderIcon = (provider: string): string | null => {
   const normalizedProvider = provider.toLowerCase()
   return (
     Object.entries(PROVIDER_ICON_MAP).find(([key]) =>

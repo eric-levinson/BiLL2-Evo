@@ -2,312 +2,63 @@
 
 ## Project Overview
 
-BiLL-2 Evo is an AI-powered fantasy football analytics platform. It uses a single AI agent with ~40 MCP tools to provide advanced NFL stats, Sleeper league management, dynasty rankings, and web research — all accessible through a chat UI.
+BiLL-2 Evo is an AI-powered fantasy football analytics platform. Single AI agent with ~40 MCP tools for NFL stats, Sleeper league management, dynasty rankings, and web research — all through a chat UI.
 
-The monorepo contains two active services:
+## Services
 
-1. **bill-agent-ui** — Next.js 15 chat frontend + AI backend (TypeScript, Vercel AI SDK 6)
-2. **fantasy-tools-mcp** — MCP tool server with ~40 fantasy football tools (Python / FastMCP)
+| Service | Stack | Port | Description |
+|---------|-------|------|-------------|
+| `bill-agent-ui/` | Next.js 15, TypeScript, Vercel AI SDK 6 | 3000 | Chat frontend + AI backend |
+| `fantasy-tools-mcp/` | Python 3.10+, FastMCP | 8000 | MCP tool server (~40 tools) |
+| `_archived-services/bill-agno/` | Python, Agno | — | Legacy agent backend (archived) |
 
-Legacy service (archived to `_archived-services/bill-agno/`):
-3. **bill-agno** — Old Python/Agno agent backend (replaced by Vercel AI SDK in bill-agent-ui)
+## Quick Start
 
-## Architecture
-
-```
-┌──────────────────────────────┐
-│       bill-agent-ui          │
-│       (Next.js 15)           │
-│                              │
-│  /api/chat ←── useChat()     │
-│      │         (streaming)   │
-│      ▼                       │
-│  Vercel AI SDK 6             │
-│  ┌────────────────┐          │
-│  │ Claude / GPT / │          │
-│  │ Gemini (single │          │
-│  │ agent + tools) │          │
-│  └───────┬────────┘          │
-│          │                   │
-└──────────┼───────────────────┘
-           │ MCP (Streamable HTTP)
-           ▼
-┌─────────────────────┐
-│  fantasy-tools-mcp  │
-│  (FastMCP, Python)  │
-│  Port 8000          │
-│  ~40 tools          │
-└─────────┬───────────┘
-          │
-          ▼
-┌─────────────────┐
-│    Supabase     │
-│  (PostgreSQL)   │
-│  ~90 NFL tables │
-└─────────────────┘
-```
-
-**Data flow:** UI sends chat messages to `/api/chat`. The Vercel AI SDK creates a single Claude agent (or GPT/Gemini — provider-agnostic) that calls fantasy-tools-mcp via MCP protocol to query Supabase for NFL data. Responses stream back to the UI via the `useChat()` hook.
-
-**Key design decisions:**
-- **Single agent, not a team** — One inference call per query instead of 3-4. Tool Search dynamically loads only needed tools (85% token reduction).
-- **Provider-agnostic** — Swap Claude/GPT/Gemini with one line change via Vercel AI SDK.
-- **No separate Python backend** — The AI agent runs in a Next.js API route, eliminating a whole service.
-
-## Running the Services
-
-Start in this order:
-
-### 1. fantasy-tools-mcp (MCP server)
 ```bash
-cd fantasy-tools-mcp
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS/Linux
-pip install -r requirements.txt
-python main.py                # Starts on port 8000
+# 1. MCP server
+cd fantasy-tools-mcp && python main.py
+
+# 2. Frontend + AI backend
+cd bill-agent-ui && pnpm install && pnpm dev
 ```
 
-### 2. bill-agent-ui (Frontend + AI Backend)
-```bash
-cd bill-agent-ui
-pnpm install
-pnpm dev                      # Starts on port 3000
-```
+See `docs/getting-started.md` for full setup (venv, env vars, etc.)
 
-## Environment Variables
+## Documentation Map
 
-Each service needs a `.env` file. See `.env.example` in each directory. Never commit `.env` files.
+| Doc | When to read |
+|-----|-------------|
+| `docs/architecture.md` | Understanding system design, data flow, or design decisions |
+| `docs/getting-started.md` | Setting up the project, env vars, running services |
+| `docs/bill-agent-ui/conventions.md` | Working on the Next.js frontend or AI backend |
+| `docs/bill-agent-ui/layers.md` | Understanding or modifying import boundaries |
+| `docs/fantasy-tools-mcp/conventions.md` | Working on Python MCP tools |
+| `docs/fantasy-tools-mcp/tools-catalog.md` | Understanding available MCP tools |
+| `docs/fantasy-tools-mcp/adding-tools.md` | Adding a new MCP tool (template included) |
+| `docs/database/schema.md` | Understanding Supabase tables and views |
+| `docs/technical-debt.md` | Known issues and improvement opportunities |
 
-### bill-agent-ui/.env
-| Variable | Description |
-|---|---|
-| `ANTHROPIC_API_KEY` | Anthropic API key (for Claude models) |
-| `OPENAI_API_KEY` | OpenAI API key (optional, for GPT models) |
-| `AI_MODEL_ID` | Model to use (default: `claude-sonnet-4-20250514`). Supports any Vercel AI SDK provider model. |
-| `MCP_SERVER_URL` | fantasy-tools-mcp URL (default: `http://localhost:8000/mcp/`) |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+## Critical Invariants
 
-### fantasy-tools-mcp/.env
-| Variable | Description |
-|---|---|
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
+These rules must never be violated:
 
-## Key Source Files
+1. **pnpm only** — Use `pnpm`, never npm or yarn, in `bill-agent-ui/`
+2. **No secrets in code** — All credentials via env vars, never committed
+3. **Python 3.10+** — Required for `fantasy-tools-mcp/`
+4. **Tool module pattern** — Every MCP tool uses `info.py` (logic) + `registry.py` (MCP registration)
+5. **Validate before committing** — Run `pnpm run validate` in `bill-agent-ui/`, `ruff check .` in `fantasy-tools-mcp/`
+6. **Layer boundaries** — `@/lib/` cannot import from `@/hooks/`, `@/components/`, or `@/app/`. See `docs/bill-agent-ui/layers.md`
 
-### bill-agent-ui (Next.js 15 / TypeScript / Vercel AI SDK 6)
-- `src/app/api/chat/route.ts` — **Core AI backend**. Single API route with ToolLoopAgent + MCP client. Handles streaming, tool calling, and chat persistence.
-- `src/app/` — Next.js App Router pages and API routes
-- `src/components/playground/` — Chat UI components (ChatArea, Sidebar, Sessions)
-- `src/store.ts` — Zustand state store
-- `src/lib/supabase/client.ts` — Browser Supabase client
-- `src/lib/supabase/server.ts` — Server Supabase client (SSR)
-- `middleware.ts` — Next.js middleware (Supabase auth session refresh)
+## Key Files
 
-### fantasy-tools-mcp (Python / FastMCP)
-- `main.py` — FastMCP server entry point (port 8000)
-- `tools/registry.py` — Central tool registration (calls all sub-module registries)
-- `tools/player/info.py` — Player lookup tools (by name, by Sleeper ID)
-- `tools/metrics/info.py` — Advanced stats tools (receiving, passing, rushing, defense — season + weekly)
-- `tools/metrics/registry.py` — Metrics tool + resource registration
-- `tools/fantasy/info.py` — Sleeper API tools (leagues, rosters, matchups, transactions, drafts, trending)
-- `tools/fantasy/registry.py` — Fantasy tool registration
-- `tools/league/info.py` — Game-level stats tools (offensive/defensive player game stats)
-- `tools/league/registry.py` — League tool registration
-- `tools/ranks/info.py` — Fantasy ranking tools
-- `tools/dictionary/info.py` — Data dictionary tools
-- `tools/fantasy/sleeper_wrapper/` — Sleeper API client library
-- `docs/metrics_catalog.py` — Full metrics definitions
-- `docs/game_stats_catalog.py` — Game stats field definitions
+### bill-agent-ui
+- `src/app/api/chat/route.ts` — Core AI backend (ToolLoopAgent + MCP connection pool)
+- `src/lib/ai/` — AI orchestration (model factory, tool filtering, circuit breaker, connection pool)
+- `src/lib/supabase/` — Database clients and session/preference persistence
+- `src/components/playground/` — Chat UI components
 
-### bill-agno (Python / Agno) — ARCHIVED (in `_archived-services/bill-agno/`)
-- `team_playground.py` — Old Agno Playground entry point (4-agent team). Replaced by AI SDK route.
-- `gridiron_toolkit/info.py` — Old GridironTools MCP wrapper. No longer needed.
-- `_archive/` — Archived entry point variants (bill_api.py, bill_agui.py, discord_team.py)
-
-## AI Agent Architecture
-
-The system uses a **single AI agent** powered by the Vercel AI SDK 6 `ToolLoopAgent`:
-
-- **Model**: Claude Sonnet 4 (default, configurable via `AI_MODEL_ID` env var)
-- **Provider**: Anthropic (swappable to OpenAI, Google, etc. — one line change)
-- **Tools**: ~40 MCP tools from fantasy-tools-mcp, loaded via `@ai-sdk/mcp`
-- **Tool Search**: Anthropic's Tool Search feature loads only relevant tools per query (85% token reduction)
-- **Streaming**: Built-in via `useChat()` hook + `createAgentUIStreamResponse`
-- **Memory**: Chat persistence via Supabase (JSONB messages in `chat_sessions` table)
-
-### Why Single Agent (Not Multi-Agent Team)
-
-The previous architecture used a 4-agent team (Web, Analytics, Fantasy, League + Supervisor). This caused:
-- 3-4 LLM inference calls per query (3-6s latency)
-- 50-70% of context wasted on duplicated instructions and history injection
-- 5 separate MCP connections to the same server
-- Shared memory with cross-contamination between agents
-
-The single agent approach with Tool Search solves all of these.
-
-## Supabase Database
-
-**Project**: "Advanced Fantasy Insights" (region: us-east-1, project ID in `.env` files)
-
-### Table Groups (~90 tables in `public` schema)
-
-| Prefix | Count | Description |
-|---|---|---|
-| `nflreadr_nfl_*` | ~20 | Core NFL data: players, rosters, stats, schedules, injuries, snap counts, combine, contracts, depth charts, trades |
-| `nflreadr_nfl_advstats_*` | 8 | Advanced stats by position (rec/pass/rush/def) x (season/week) |
-| `nflreadr_dictionary_*` | ~15 | Data dictionaries for all nflreadr tables |
-| `nflreadr_nfl_nextgen_stats_*` | 3 | NextGen Stats (passing, receiving, rushing) |
-| `nfldata_*` | ~15 | Games, predictions, standings, teams, logos, draft picks/values, rosters |
-| `dynastyprocess_*` | 4 | Fantasy valuations, FPECR rankings, player IDs |
-| `vw_advanced_*` | 8 | Pre-computed analytics views (receiving/passing/rushing/defense x season/weekly) |
-| `vw_dictionary_combined` | 1 | Combined data dictionary view |
-| `vw_nfl_players_with_dynasty_ids` | 1 | Player IDs joined with dynasty process IDs |
-| `vw_seasonal_offensive_player_data` | 1 | Seasonal offensive stats view |
-
-### App-Specific Tables
-- `chat_sessions` — Chat persistence (AI SDK messages as JSONB)
-- `platform_users` — App user accounts
-- `player_insights`, `player_metrics_weekly`, `player_projection` — Derived analytics
-
-## MCP Tools Reference
-
-The fantasy-tools-mcp server exposes these tool categories:
-
-### Player Tools
-- `get_player_info_tool` — Lookup player by name (returns name, team, position, height, weight, age, IDs)
-- `get_players_by_sleeper_id_tool` — Lookup players by Sleeper IDs
-
-### Advanced Stats Tools (query `vw_advanced_*` views)
-- `get_advanced_receiving_stats` / `_weekly` — Receiving analytics
-- `get_advanced_passing_stats` / `_weekly` — Passing analytics
-- `get_advanced_rushing_stats` / `_weekly` — Rushing analytics
-- `get_advanced_defense_stats` / `_weekly` — Defensive analytics
-- `get_metrics_metadata` — Returns metric definitions by category
-
-### Game Stats Tools
-- `get_offensive_players_game_stats` — Per-game offensive stats
-- `get_defensive_players_game_stats` — Per-game defensive stats
-- `get_stats_metadata` — Game stats field definitions
-
-### Sleeper API Tools
-- `get_sleeper_leagues_by_username` — List user's leagues
-- `get_sleeper_league_rosters` — Rosters with owner annotations
-- `get_sleeper_league_users` — League members
-- `get_sleeper_league_matchups` — Weekly matchups
-- `get_sleeper_league_transactions` — Trades, waivers, free agent moves
-- `get_sleeper_trending_players` — Trending adds/drops
-- `get_sleeper_user_drafts` — User's drafts
-- `get_sleeper_league_by_id` — Full league metadata
-- `get_sleeper_draft_by_id` — Draft metadata
-- `get_sleeper_all_draft_picks_by_id` — All picks in a draft
-
-### Ranking Tools
-- `get_fantasy_rank_page_types` — Available ranking categories
-- `get_fantasy_ranks` — Dynasty/redraft rankings with filters
-
-### Dictionary Tools
-- `get_dictionary_info` — Data field definitions
-
-### MCP Resources (served as `metrics://` URIs)
-- `metrics://catalog` — Complete metrics catalog
-- `metrics://receiving`, `metrics://passing`, `metrics://rushing`, `metrics://defense`
-
-## Coding Conventions
-
-### Python (fantasy-tools-mcp)
-- Python 3.10+
-- Use `python-dotenv` for env loading at module top: `load_dotenv()`
-- Tools registered via FastMCP `@mcp.tool()` decorator in registry files
-- Each tool module follows the pattern: `info.py` (business logic) + `registry.py` (MCP registration)
-- Use `os.getenv()` for environment variables with sensible defaults
-- Async patterns with `asyncio` for MCP tool calls (see Async Patterns section below)
-- Type hints on function signatures
-
-#### Async Patterns for Performance
-
-Multiple independent API calls should run in parallel using `asyncio.gather` to minimize latency:
-
-**Pattern: Parallel API Calls with asyncio.gather**
-
-```python
-import asyncio
-
-def my_tool_function(league_id: str):
-    """Tool function with synchronous interface."""
-
-    async def _fetch_data_parallel():
-        """Inner async function for parallel API calls."""
-        api_client = MyApiClient(league_id)
-
-        # Execute multiple API calls in parallel
-        result1, result2, result3 = await asyncio.gather(
-            api_client._call_async(url1),
-            api_client._call_async(url2),
-            api_client._call_async(url3)
-        )
-
-        return result1, result2, result3
-
-    try:
-        # Run async function from sync context
-        result1, result2, result3 = asyncio.run(_fetch_data_parallel())
-
-        # Process results...
-        return processed_data
-    except Exception as e:
-        return {"error": str(e)}
-```
-
-**Key Components:**
-
-1. **Async HTTP Client** (`BaseApi._call_async`): Uses `aiohttp` for non-blocking HTTP requests
-2. **Async Retry Decorator** (`@async_retry_with_backoff`): Async version of retry logic with exponential backoff
-3. **Parallel Execution** (`asyncio.gather`): Executes multiple async calls concurrently
-4. **Sync Wrapper** (`asyncio.run`): Preserves synchronous MCP tool interface
-
-**Performance Improvements:**
-
-Three Sleeper API tools were optimized using this pattern:
-- `get_sleeper_league_matchups`: 216ms avg (**5.6x faster**, was ~1200ms)
-- `get_sleeper_league_rosters`: 197ms avg (**2.0x faster**, was ~400ms)
-- `get_sleeper_league_transactions`: 196ms avg (**3.1x faster**, was ~600ms)
-
-**When to Use:**
-- Multiple independent API calls in a single tool
-- No data dependencies between API calls
-- Latency-sensitive operations (user-facing tools)
-
-**Implementation Files:**
-- `helpers/retry_utils.py` — `async_retry_with_backoff` decorator
-- `tools/fantasy/sleeper_wrapper/base_api.py` — `BaseApi._call_async` method
-- `tools/fantasy/info.py` — Example implementations (matchups, rosters, transactions)
-
-### TypeScript (bill-agent-ui)
-- Next.js 15 with App Router (`src/app/`)
-- React 18, TypeScript 5, strict mode
-- **pnpm** package manager (not npm or yarn)
-- Vercel AI SDK 6 for agent orchestration (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/mcp`)
-- `useChat()` hook for streaming chat UI
-- `ToolLoopAgent` + `createAgentUIStreamResponse` for the agent backend
-- Zustand for client state management
-- Tailwind CSS + shadcn/ui + Radix UI for components
-- Supabase SSR pattern (`@supabase/ssr`) for auth
-- Path alias: `@/*` maps to `./src/*`
-- Validation: `pnpm run validate` (lint + format + typecheck)
-
-### General
-- No secrets in code — always use env vars
-- `.env.example` files document required variables
-- Each service runs independently and communicates via HTTP/MCP
-- Model IDs configurable via `AI_MODEL_ID` env var
-
-## Known Technical Debt
-- `_archived-services/bill-agno/` can be fully removed once team confirms it's no longer needed for reference
-- `bill-agent-ui/package-lock.json` coexists with `pnpm-lock.yaml` (should remove package-lock.json)
-- MCP tool responses return too much data (need `columns` parameter, lower default limits)
-- No automated test suite for MCP tools or UI components
-- No CI/CD pipeline at monorepo level (bill-agent-ui has a standalone validate workflow)
-- No Docker containerization
+### fantasy-tools-mcp
+- `main.py` — FastMCP server entry point
+- `tools/registry.py` — Central tool registration
+- `helpers/query_utils.py` — Shared Supabase query helpers
+- `helpers/retry_utils.py` — Retry decorators (sync + async)
