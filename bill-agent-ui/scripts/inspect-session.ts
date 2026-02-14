@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Hardcode credentials for now (from .env file)
-const supabaseUrl = 'https://amkdylmcqwqpjpuwjsxv.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFta2R5bG1jcXdxcGpwdXdqc3h2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MTI4NjksImV4cCI6MjA1MjI4ODg2OX0.Hs5LoQlJ9SWcwovbj3FuwbZfDZaLvHuxQk2DsKMq9LM'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase credentials')
-  process.exit(1)
+  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey)
