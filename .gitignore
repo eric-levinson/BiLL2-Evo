@@ -86,6 +86,7 @@ yarn-error.log*
 # === OS ===
 .DS_Store
 Thumbs.db
+nul
 
 # === Build / Deploy ===
 *.pem
@@ -94,6 +95,7 @@ Thumbs.db
 # === Claude Code (local) ===
 .claude/settings.local.json
 .claude/plans/
+.mcp.json
 
 # === Project-specific ===
 fastmcp.log
