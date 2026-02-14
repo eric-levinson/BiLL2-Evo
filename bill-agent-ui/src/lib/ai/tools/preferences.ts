@@ -324,8 +324,7 @@ export function createUpdateRosterNotesTool(userId: string) {
         strengths: {
           type: 'array',
           items: { type: 'string' },
-          description:
-            'Array of team strengths (e.g., "RB depth", "Elite WR1")'
+          description: 'Array of team strengths (e.g., "RB depth", "Elite WR1")'
         },
         needs: {
           type: 'array',
