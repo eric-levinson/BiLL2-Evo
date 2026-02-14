@@ -26,7 +26,7 @@ export interface UserPreferences {
   roster_notes: RosterNotes
   analysis_style: string
   preference_tags: string[]
-  custom_preferences: Record<string, any>
+  custom_preferences: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -38,7 +38,7 @@ export interface UserPreferencesUpdate {
   roster_notes?: RosterNotes
   analysis_style?: string
   preference_tags?: string[]
-  custom_preferences?: Record<string, any>
+  custom_preferences?: Record<string, unknown>
 }
 
 /**

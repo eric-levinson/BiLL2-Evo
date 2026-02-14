@@ -12,13 +12,13 @@ import os
 import sys
 import time
 import unittest
-from unittest.mock import Mock, patch
+
 import requests
 
 # Add parent directory to path so we can import from fantasy-tools-mcp root
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from helpers.retry_utils import retry_with_backoff, is_retryable_http_error
+from helpers.retry_utils import retry_with_backoff
 
 
 class ConfigVerificationTest(unittest.TestCase):
@@ -27,8 +27,7 @@ class ConfigVerificationTest(unittest.TestCase):
     def setUp(self):
         """Clear environment variables before each test."""
         # Clear all retry-related env vars
-        for var in ['RETRY_MAX_ATTEMPTS', 'RETRY_INITIAL_DELAY_MS',
-                    'RETRY_MAX_DELAY_MS', 'RETRY_BACKOFF_MULTIPLIER']:
+        for var in ["RETRY_MAX_ATTEMPTS", "RETRY_INITIAL_DELAY_MS", "RETRY_MAX_DELAY_MS", "RETRY_BACKOFF_MULTIPLIER"]:
             if var in os.environ:
                 del os.environ[var]
 
@@ -41,14 +40,14 @@ class ConfigVerificationTest(unittest.TestCase):
         print("\n=== Test 1: RETRY_MAX_ATTEMPTS ===")
 
         # Set env var to 2 instead of default 3
-        os.environ['RETRY_MAX_ATTEMPTS'] = '2'
+        os.environ["RETRY_MAX_ATTEMPTS"] = "2"
 
         # Create a function that always fails and counts attempts
-        attempt_count = {'value': 0}
+        attempt_count = {"value": 0}
 
         @retry_with_backoff()
         def always_fail():
-            attempt_count['value'] += 1
+            attempt_count["value"] += 1
             print(f"  Attempt {attempt_count['value']}")
             raise requests.exceptions.ConnectionError("Simulated connection error")
 
@@ -58,8 +57,7 @@ class ConfigVerificationTest(unittest.TestCase):
             self.fail("Expected ConnectionError to be raised")
         except requests.exceptions.ConnectionError:
             print(f"  ConnectionError raised after {attempt_count['value']} attempts")
-            self.assertEqual(attempt_count['value'], 2,
-                           f"Expected 2 attempts, got {attempt_count['value']}")
+            self.assertEqual(attempt_count["value"], 2, f"Expected 2 attempts, got {attempt_count['value']}")
             print("  ✓ PASS: RETRY_MAX_ATTEMPTS=2 correctly limited retries to 2 attempts")
 
     def test_retry_initial_delay_ms(self):
@@ -67,17 +65,17 @@ class ConfigVerificationTest(unittest.TestCase):
         print("\n=== Test 2: RETRY_INITIAL_DELAY_MS ===")
 
         # Set initial delay to 200ms instead of default 1000ms
-        os.environ['RETRY_INITIAL_DELAY_MS'] = '200'
-        os.environ['RETRY_MAX_ATTEMPTS'] = '2'
-        os.environ['RETRY_BACKOFF_MULTIPLIER'] = '1'  # No exponential growth
+        os.environ["RETRY_INITIAL_DELAY_MS"] = "200"
+        os.environ["RETRY_MAX_ATTEMPTS"] = "2"
+        os.environ["RETRY_BACKOFF_MULTIPLIER"] = "1"  # No exponential growth
 
-        attempt_count = {'value': 0}
-        start_time = time.time()
+        attempt_count = {"value": 0}
+        time.time()
         retry_times = []
 
         @retry_with_backoff()
         def always_fail():
-            attempt_count['value'] += 1
+            attempt_count["value"] += 1
             retry_times.append(time.time())
             print(f"  Attempt {attempt_count['value']}")
             raise requests.exceptions.ConnectionError("Simulated connection error")
@@ -98,8 +96,7 @@ class ConfigVerificationTest(unittest.TestCase):
 
                 print(f"  Timing accuracy: {accuracy:.1f}% (diff: {diff:.0f}ms)")
 
-                self.assertLess(diff, tolerance_ms,
-                              f"Delay off by {diff:.0f}ms (tolerance: {tolerance_ms}ms)")
+                self.assertLess(diff, tolerance_ms, f"Delay off by {diff:.0f}ms (tolerance: {tolerance_ms}ms)")
                 print("  ✓ PASS: RETRY_INITIAL_DELAY_MS=200 correctly set initial delay to 200ms")
 
     def test_retry_backoff_multiplier(self):
@@ -107,17 +104,17 @@ class ConfigVerificationTest(unittest.TestCase):
         print("\n=== Test 3: RETRY_BACKOFF_MULTIPLIER ===")
 
         # Set multiplier to 3 instead of default 2
-        os.environ['RETRY_INITIAL_DELAY_MS'] = '100'
-        os.environ['RETRY_BACKOFF_MULTIPLIER'] = '3'
-        os.environ['RETRY_MAX_ATTEMPTS'] = '3'
-        os.environ['RETRY_MAX_DELAY_MS'] = '10000'  # High max to not interfere
+        os.environ["RETRY_INITIAL_DELAY_MS"] = "100"
+        os.environ["RETRY_BACKOFF_MULTIPLIER"] = "3"
+        os.environ["RETRY_MAX_ATTEMPTS"] = "3"
+        os.environ["RETRY_MAX_DELAY_MS"] = "10000"  # High max to not interfere
 
-        attempt_count = {'value': 0}
+        attempt_count = {"value": 0}
         retry_times = []
 
         @retry_with_backoff()
         def always_fail():
-            attempt_count['value'] += 1
+            attempt_count["value"] += 1
             retry_times.append(time.time())
             print(f"  Attempt {attempt_count['value']}")
             raise requests.exceptions.ConnectionError("Simulated connection error")
@@ -157,17 +154,17 @@ class ConfigVerificationTest(unittest.TestCase):
         print("\n=== Test 4: RETRY_MAX_DELAY_MS ===")
 
         # Set max delay to 500ms to cap exponential growth
-        os.environ['RETRY_INITIAL_DELAY_MS'] = '200'
-        os.environ['RETRY_BACKOFF_MULTIPLIER'] = '3'
-        os.environ['RETRY_MAX_DELAY_MS'] = '500'
-        os.environ['RETRY_MAX_ATTEMPTS'] = '4'
+        os.environ["RETRY_INITIAL_DELAY_MS"] = "200"
+        os.environ["RETRY_BACKOFF_MULTIPLIER"] = "3"
+        os.environ["RETRY_MAX_DELAY_MS"] = "500"
+        os.environ["RETRY_MAX_ATTEMPTS"] = "4"
 
-        attempt_count = {'value': 0}
+        attempt_count = {"value": 0}
         retry_times = []
 
         @retry_with_backoff()
         def always_fail():
-            attempt_count['value'] += 1
+            attempt_count["value"] += 1
             retry_times.append(time.time())
             print(f"  Attempt {attempt_count['value']}")
             raise requests.exceptions.ConnectionError("Simulated connection error")
@@ -188,10 +185,12 @@ class ConfigVerificationTest(unittest.TestCase):
 
                 # Verify delay 2 and 3 are capped at max_delay (500ms)
                 tolerance = 100
-                self.assertLess(abs(delay2_ms - 500), tolerance,
-                              f"Delay 2 should be capped at 500ms, got {delay2_ms:.0f}ms")
-                self.assertLess(abs(delay3_ms - 500), tolerance,
-                              f"Delay 3 should be capped at 500ms, got {delay3_ms:.0f}ms")
+                self.assertLess(
+                    abs(delay2_ms - 500), tolerance, f"Delay 2 should be capped at 500ms, got {delay2_ms:.0f}ms"
+                )
+                self.assertLess(
+                    abs(delay3_ms - 500), tolerance, f"Delay 3 should be capped at 500ms, got {delay3_ms:.0f}ms"
+                )
 
                 print("  ✓ PASS: RETRY_MAX_DELAY_MS=500 correctly capped delays at 500ms")
 
@@ -200,17 +199,17 @@ class ConfigVerificationTest(unittest.TestCase):
         print("\n=== Test 5: All Environment Variables Together ===")
 
         # Set all env vars
-        os.environ['RETRY_MAX_ATTEMPTS'] = '2'
-        os.environ['RETRY_INITIAL_DELAY_MS'] = '100'
-        os.environ['RETRY_MAX_DELAY_MS'] = '200'
-        os.environ['RETRY_BACKOFF_MULTIPLIER'] = '2'
+        os.environ["RETRY_MAX_ATTEMPTS"] = "2"
+        os.environ["RETRY_INITIAL_DELAY_MS"] = "100"
+        os.environ["RETRY_MAX_DELAY_MS"] = "200"
+        os.environ["RETRY_BACKOFF_MULTIPLIER"] = "2"
 
-        attempt_count = {'value': 0}
+        attempt_count = {"value": 0}
         retry_times = []
 
         @retry_with_backoff()
         def always_fail():
-            attempt_count['value'] += 1
+            attempt_count["value"] += 1
             retry_times.append(time.time())
             print(f"  Attempt {attempt_count['value']}")
             raise requests.exceptions.ConnectionError("Simulated connection error")
@@ -219,7 +218,7 @@ class ConfigVerificationTest(unittest.TestCase):
             always_fail()
         except requests.exceptions.ConnectionError:
             # Verify all settings applied
-            self.assertEqual(attempt_count['value'], 2, "Should have 2 attempts")
+            self.assertEqual(attempt_count["value"], 2, "Should have 2 attempts")
 
             if len(retry_times) >= 2:
                 delay_ms = (retry_times[1] - retry_times[0]) * 1000
@@ -252,7 +251,7 @@ def run_tests():
     print("=" * 60)
 
     total = result.testsRun
-    passed = total - len(result.failures) - len(result.errors)
+    total - len(result.failures) - len(result.errors)
 
     if result.wasSuccessful():
         print(f"\n✓ All {total} configuration tests passed!")
@@ -267,5 +266,5 @@ def run_tests():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(run_tests())

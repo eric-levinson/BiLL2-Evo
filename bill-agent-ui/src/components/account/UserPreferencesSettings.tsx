@@ -62,7 +62,7 @@ export default function UserPreferencesSettings() {
                             </div>
                           </div>
                           {league.is_primary && (
-                            <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                            <span className="text-secondary-foreground rounded-md bg-secondary px-2 py-1 text-xs font-medium">
                               Primary
                             </span>
                           )}
@@ -113,7 +113,7 @@ export default function UserPreferencesSettings() {
                     {preferencesData.preference_tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground"
+                        className="text-secondary-foreground rounded-md bg-secondary px-2 py-1 text-xs font-medium"
                       >
                         {tag}
                       </span>

@@ -144,15 +144,14 @@ export default function OnboardingModal({
     },
     complete: {
       title: "You're All Set!",
-      description:
-        'Your Sleeper account is connected and ready to go'
+      description: 'Your Sleeper account is connected and ready to go'
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-[500px] max-h-[85vh]"
+        className="max-h-[85vh] sm:max-w-[500px]"
         onInteractOutside={(e) => {
           // Prevent closing by clicking outside if skip is not allowed
           if (!allowSkip) {
@@ -194,10 +193,7 @@ export default function OnboardingModal({
           )}
 
           {step === 'complete' && selectedLeague && (
-            <Button
-              onClick={handleGetStarted}
-              className="w-full text-black"
-            >
+            <Button onClick={handleGetStarted} className="w-full text-black">
               Get Started
             </Button>
           )}

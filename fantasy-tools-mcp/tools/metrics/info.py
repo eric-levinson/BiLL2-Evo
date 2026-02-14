@@ -9,10 +9,13 @@ and ensure consistent query behavior across all stats types.
 The refactoring reduced ~639 lines of duplicated query logic down to a single reusable
 helper function plus thin wrapper functions that specify table-specific parameters.
 """
+
 import logging
+
 from supabase import Client
-from helpers.query_utils import build_player_stats_query
+
 from docs.metrics_catalog import metrics_catalog
+from helpers.query_utils import build_player_stats_query
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +123,7 @@ def get_advanced_passing_stats(
         positions=positions,
     )
 
+
 def get_advanced_rushing_stats(
     supabase: Client,
     player_names: list[str] | None = None,
@@ -204,6 +208,7 @@ def get_advanced_defense_stats(
         positions=positions,
     )
 
+
 def get_advanced_receiving_stats_weekly(
     supabase: Client,
     player_names: list[str] | None = None,
@@ -247,6 +252,7 @@ def get_advanced_receiving_stats_weekly(
         positions=positions,
     )
 
+
 def get_advanced_passing_stats_weekly(
     supabase: Client,
     player_names: list[str] | None = None,
@@ -289,7 +295,8 @@ def get_advanced_passing_stats_weekly(
         limit=limit,
         positions=positions,
     )
-    
+
+
 def get_advanced_rushing_stats_weekly(
     supabase: Client,
     player_names: list[str] | None = None,
@@ -332,7 +339,8 @@ def get_advanced_rushing_stats_weekly(
         limit=limit,
         positions=positions,
     )
-    
+
+
 def get_advanced_defense_stats_weekly(
     supabase: Client,
     player_names: list[str] | None = None,

@@ -1,7 +1,9 @@
+import os
+
+from dotenv import load_dotenv
 from fastmcp import FastMCP
 from supabase import create_client
-import os
-from dotenv import load_dotenv
+
 from tools.registry import register_tools
 
 load_dotenv()  # Loads variables from .env
@@ -21,4 +23,3 @@ if __name__ == "__main__":
     mcp.run(transport="http", host="0.0.0.0", port=8000)
 
 # Add a simple health check (if FastMCP supports it)
-

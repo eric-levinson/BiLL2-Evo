@@ -8,11 +8,13 @@ Tests the unified player profile tool with different player types:
 3. RB (should have rushing + receiving stats)
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 from supabase import create_client
+
 from tools.player.info import get_player_profile
 
 # Load environment variables from the main monorepo's fantasy-tools-mcp directory
@@ -88,8 +90,9 @@ def test_wide_receiver():
         return True
 
     except Exception as e:
-        print(f"❌ FAIL: Exception occurred: {str(e)}")
+        print(f"❌ FAIL: Exception occurred: {e!s}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -146,8 +149,9 @@ def test_quarterback():
         return True
 
     except Exception as e:
-        print(f"❌ FAIL: Exception occurred: {str(e)}")
+        print(f"❌ FAIL: Exception occurred: {e!s}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -204,8 +208,9 @@ def test_running_back():
         return True
 
     except Exception as e:
-        print(f"❌ FAIL: Exception occurred: {str(e)}")
+        print(f"❌ FAIL: Exception occurred: {e!s}")
         import traceback
+
         traceback.print_exc()
         return False
 

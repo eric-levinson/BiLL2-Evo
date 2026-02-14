@@ -4,7 +4,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  throw new Error(
+    'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  )
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -122,11 +124,15 @@ async function fixAllSessions() {
       console.error(`  ❌ Error updating session ${session.id}:`, updateError)
     } else {
       fixedCount++
-      console.log(`  ✅ Fixed! Reduced size: ${originalLength} → ${newLength} bytes\n`)
+      console.log(
+        `  ✅ Fixed! Reduced size: ${originalLength} → ${newLength} bytes\n`
+      )
     }
   }
 
-  console.log(`\n✅ Done! Fixed ${fixedCount} sessions with duplicate tool calls`)
+  console.log(
+    `\n✅ Done! Fixed ${fixedCount} sessions with duplicate tool calls`
+  )
 }
 
 fixAllSessions()

@@ -4,7 +4,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  throw new Error(
+    'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  )
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -30,7 +32,9 @@ async function runMigration() {
   })
 
   // Run the migration (remove Sleeper username entries)
-  const { data: updated, error: updateError } = await supabase.rpc('cleanup_sleeper_username_tags')
+  const { data: updated, error: updateError } = await supabase.rpc(
+    'cleanup_sleeper_username_tags'
+  )
 
   if (updateError) {
     console.error('\nMigration RPC not available, running inline update...')
@@ -38,8 +42,8 @@ async function runMigration() {
     // Do it manually
     for (const row of before || []) {
       const tags = row.preference_tags || []
-      const cleanedTags = tags.filter((tag: string) =>
-        !tag.toLowerCase().includes('sleeper username:')
+      const cleanedTags = tags.filter(
+        (tag: string) => !tag.toLowerCase().includes('sleeper username:')
       )
 
       if (tags.length !== cleanedTags.length) {
@@ -51,7 +55,9 @@ async function runMigration() {
         if (error) {
           console.error(`Error updating row ${row.id}:`, error)
         } else {
-          console.log(`✓ Cleaned ${row.id}: removed ${tags.length - cleanedTags.length} tags`)
+          console.log(
+            `✓ Cleaned ${row.id}: removed ${tags.length - cleanedTags.length} tags`
+          )
         }
       }
     }

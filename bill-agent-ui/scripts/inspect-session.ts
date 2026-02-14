@@ -4,7 +4,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  throw new Error(
+    'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  )
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -67,7 +69,9 @@ async function inspectSession(sessionId: string) {
 
         if (part.type === 'text') {
           const preview = part.text.substring(0, 100)
-          console.log(`    Text: ${preview}${part.text.length > 100 ? '...' : ''}`)
+          console.log(
+            `    Text: ${preview}${part.text.length > 100 ? '...' : ''}`
+          )
         }
       })
     } else if (msg.content) {
@@ -78,7 +82,7 @@ async function inspectSession(sessionId: string) {
 
   if (duplicates.size > 0) {
     console.log('\n\n⚠️  DUPLICATE TOOL CALL IDS FOUND:')
-    duplicates.forEach(id => console.log(`  - ${id}`))
+    duplicates.forEach((id) => console.log(`  - ${id}`))
   } else {
     console.log('\n\n✅ No duplicate tool call IDs found')
   }

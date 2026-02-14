@@ -5,6 +5,7 @@ Tests all valid categories, subcategories, and error handling.
 """
 
 import sys
+
 from tools.metrics.info import get_metrics_metadata
 
 
@@ -30,7 +31,7 @@ def test_category_subcategory(category: str, subcategory: str, test_name: str) -
             return False
 
         # Verify 'fields' key exists (or description for empty subcategories)
-        if 'fields' not in subcategory_data and 'description' not in subcategory_data:
+        if "fields" not in subcategory_data and "description" not in subcategory_data:
             print(f"❌ {test_name}: Subcategory missing 'fields' and 'description' keys")
             return False
 
@@ -129,21 +130,18 @@ def main():
         ("receiving", "efficiency_metrics", "Receiving: efficiency_metrics"),
         ("receiving", "situational_metrics", "Receiving: situational_metrics"),
         ("receiving", "weekly", "Receiving: weekly"),
-
         # Passing tests
         ("passing", "basic_info", "Passing: basic_info"),
         ("passing", "volume_metrics", "Passing: volume_metrics"),
         ("passing", "efficiency_metrics", "Passing: efficiency_metrics"),
         ("passing", "situational_metrics", "Passing: situational_metrics"),
         ("passing", "weekly", "Passing: weekly"),
-
         # Rushing tests
         ("rushing", "basic_info", "Rushing: basic_info"),
         ("rushing", "volume_metrics", "Rushing: volume_metrics"),
         ("rushing", "efficiency_metrics", "Rushing: efficiency_metrics"),
         ("rushing", "situational_metrics", "Rushing: situational_metrics"),
         ("rushing", "weekly", "Rushing: weekly"),
-
         # Defense tests
         ("defense", "basic_info", "Defense: basic_info"),
         ("defense", "volume_metrics", "Defense: volume_metrics"),
