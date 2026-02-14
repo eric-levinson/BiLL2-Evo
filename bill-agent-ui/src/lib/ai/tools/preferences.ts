@@ -2,10 +2,12 @@
  * Custom AI SDK tools for user preference management
  * Provides tools for updating user preferences, managing connected Sleeper leagues,
  * and maintaining roster notes via the BiLL AI agent
+ *
+ * Uses jsonSchema() wrapper (matching MCP tool format) instead of Zod schemas
+ * to ensure compatibility with Anthropic's Tool Search deferLoading feature
  */
 
-import { tool } from 'ai'
-import { z } from 'zod'
+import { jsonSchema } from 'ai'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 /**
@@ -15,22 +17,28 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
  * @returns Tool definition for updating user preferences
  */
 export function createUpdateUserPreferenceTool(userId: string) {
-  const parametersSchema = z.object({
-    preference_type: z
-      .string()
-      .describe(
-        'Type of preference: analysis_style, favorite_players, preference_tag, or custom'
-      ),
-    value: z.string().describe('The preference value to set'),
-    action: z.string().describe('Action: set, add, or remove. Default is set')
-  })
-
-  return tool({
+  return {
     description:
       "Update a user's preference. Use this when the user asks you to remember something about their analysis style, favorite players, or general preferences. REQUIRED: You must provide preference_type (one of: analysis_style, favorite_players, preference_tag, custom), value (string), and action (one of: set, add, remove).",
-    parameters: parametersSchema,
-    // @ts-expect-error - AI SDK tool() typing issue with execute function inference
-    execute: async (args: z.infer<typeof parametersSchema>) => {
+    inputSchema: jsonSchema({
+      type: 'object',
+      properties: {
+        preference_type: {
+          type: 'string',
+          description:
+            'Type of preference: analysis_style, favorite_players, preference_tag, or custom'
+        },
+        value: { type: 'string', description: 'The preference value to set' },
+        action: {
+          type: 'string',
+          description: 'Action: set, add, or remove. Default is set'
+        }
+      },
+      required: ['preference_type', 'value', 'action'],
+      additionalProperties: false
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async (args: any) => {
       console.log(
         '[update_user_preference] RAW ARGS:',
         JSON.stringify(args, null, 2)
@@ -162,7 +170,7 @@ export function createUpdateUserPreferenceTool(userId: string) {
       console.log('[update_user_preference] Success! Updated:', update)
       return { success: true, updated: update }
     }
-  })
+  }
 }
 
 /**
@@ -172,31 +180,49 @@ export function createUpdateUserPreferenceTool(userId: string) {
  * @returns Tool definition for adding a connected league
  */
 export function createAddConnectedLeagueTool(userId: string) {
-  const parametersSchema = z.object({
-    league_id: z.string().describe('The Sleeper league ID'),
-    league_name: z.string().describe('The name of the league'),
-    scoring_format: z
-      .string()
-      .describe("e.g., 'PPR', 'Half-PPR', 'Standard', 'Superflex'"),
-    season: z.number().describe('The season year (e.g., 2025)'),
-    set_as_primary: z
-      .boolean()
-      .default(false)
-      .describe("Whether this should be the user's primary league")
-  })
-
-  return tool({
+  return {
     description:
       "Add a Sleeper league to the user's connected leagues. Use this when the user shares their league ID or you fetch their leagues via Sleeper tools.",
-    parameters: parametersSchema,
-    // @ts-expect-error - AI SDK tool() typing issue with execute function inference
-    execute: async ({
-      league_id,
-      league_name,
-      scoring_format,
-      season,
-      set_as_primary
-    }: z.infer<typeof parametersSchema>) => {
+    inputSchema: jsonSchema({
+      type: 'object',
+      properties: {
+        league_id: { type: 'string', description: 'The Sleeper league ID' },
+        league_name: {
+          type: 'string',
+          description: 'The name of the league'
+        },
+        scoring_format: {
+          type: 'string',
+          description: "e.g., 'PPR', 'Half-PPR', 'Standard', 'Superflex'"
+        },
+        season: {
+          type: 'number',
+          description: 'The season year (e.g., 2025)'
+        },
+        set_as_primary: {
+          type: 'boolean',
+          default: false,
+          description: "Whether this should be the user's primary league"
+        }
+      },
+      required: [
+        'league_id',
+        'league_name',
+        'scoring_format',
+        'season',
+        'set_as_primary'
+      ],
+      additionalProperties: false
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async (args: any) => {
+      const {
+        league_id,
+        league_name,
+        scoring_format,
+        season,
+        set_as_primary = false
+      } = args
       const supabase = await createServerSupabaseClient()
 
       // Get existing preferences
@@ -269,7 +295,7 @@ export function createAddConnectedLeagueTool(userId: string) {
 
       return { success: true, league_added: newLeague }
     }
-  })
+  }
 }
 
 /**
@@ -279,35 +305,39 @@ export function createAddConnectedLeagueTool(userId: string) {
  * @returns Tool definition for updating roster notes
  */
 export function createUpdateRosterNotesTool(userId: string) {
-  const parametersSchema = z.object({
-    league_id: z.string().describe('The Sleeper league ID'),
-    team_name: z.string().optional().describe("The name of the user's team"),
-    key_players: z
-      .array(z.string())
-      .optional()
-      .describe("Array of key players on the user's roster"),
-    strengths: z
-      .array(z.string())
-      .optional()
-      .describe('Array of team strengths (e.g., "RB depth", "Elite WR1")'),
-    needs: z
-      .array(z.string())
-      .optional()
-      .describe('Array of team needs (e.g., "WR2", "TE upgrade")')
-  })
-
-  return tool({
+  return {
     description:
       "Update roster notes for a specific league. Use this to remember the user's team composition, strengths, and needs.",
-    parameters: parametersSchema,
-    // @ts-expect-error - AI SDK tool() typing issue with execute function inference
-    execute: async ({
-      league_id,
-      team_name,
-      key_players,
-      strengths,
-      needs
-    }: z.infer<typeof parametersSchema>) => {
+    inputSchema: jsonSchema({
+      type: 'object',
+      properties: {
+        league_id: { type: 'string', description: 'The Sleeper league ID' },
+        team_name: {
+          type: 'string',
+          description: "The name of the user's team"
+        },
+        key_players: {
+          type: 'array',
+          items: { type: 'string' },
+          description: "Array of key players on the user's roster"
+        },
+        strengths: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of team strengths (e.g., "RB depth", "Elite WR1")'
+        },
+        needs: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of team needs (e.g., "WR2", "TE upgrade")'
+        }
+      },
+      required: ['league_id'],
+      additionalProperties: false
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async (args: any) => {
+      const { league_id, team_name, key_players, strengths, needs } = args
       const supabase = await createServerSupabaseClient()
 
       // Get existing preferences
@@ -351,7 +381,7 @@ export function createUpdateRosterNotesTool(userId: string) {
 
       return { success: true, updated_notes: rosterNotes[league_id] }
     }
-  })
+  }
 }
 
 /**
@@ -361,31 +391,30 @@ export function createUpdateRosterNotesTool(userId: string) {
  * @returns Tool definition for updating Sleeper connection
  */
 export function createUpdateSleeperConnectionTool(userId: string) {
-  const parametersSchema = z.object({
-    sleeper_username: z
-      .string()
-      .optional()
-      .describe("The user's Sleeper platform username"),
-    selected_league_id: z
-      .string()
-      .optional()
-      .describe("ID of the user's primary Sleeper league"),
-    league_name: z
-      .string()
-      .optional()
-      .describe('Name of the primary Sleeper league')
-  })
-
-  return tool({
+  return {
     description:
       "Update the user's Sleeper account connection (username and primary league). Use this when the user tells you their Sleeper username or wants to set their primary league.",
-    parameters: parametersSchema,
-    // @ts-expect-error - AI SDK tool() typing issue with execute function inference
-    execute: async ({
-      sleeper_username,
-      selected_league_id,
-      league_name
-    }: z.infer<typeof parametersSchema>) => {
+    inputSchema: jsonSchema({
+      type: 'object',
+      properties: {
+        sleeper_username: {
+          type: 'string',
+          description: "The user's Sleeper platform username"
+        },
+        selected_league_id: {
+          type: 'string',
+          description: "ID of the user's primary Sleeper league"
+        },
+        league_name: {
+          type: 'string',
+          description: 'Name of the primary Sleeper league'
+        }
+      },
+      additionalProperties: false
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    execute: async (args: any) => {
+      const { sleeper_username, selected_league_id, league_name } = args
       const supabase = await createServerSupabaseClient()
 
       // Check if at least one field is provided
@@ -442,5 +471,5 @@ export function createUpdateSleeperConnectionTool(userId: string) {
       console.log('[update_sleeper_connection] Success! Updated:', update)
       return { success: true, updated: update }
     }
-  })
+  }
 }
