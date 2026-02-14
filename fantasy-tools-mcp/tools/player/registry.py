@@ -1,11 +1,18 @@
 from fastmcp import FastMCP
 from supabase import Client
-from .info import get_player_info, get_players_by_sleeper_id, get_player_profile as _get_player_profile
+
+from .comparison_registry import register_comparison_tools
+from .info import get_player_info, get_players_by_sleeper_id
+from .info import get_player_profile as _get_player_profile
+
 
 def register_tools(mcp: FastMCP, supabase: Client):
     """
     Register player info tools with the FastMCP instance.
     """
+    # Register comparison tools
+    register_comparison_tools(mcp, supabase)
+
     @mcp.tool(
         description=(
             "Fetch basic information for players such as: name, latest team, position, "
@@ -15,9 +22,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
     def get_player_info_tool(player_names: list[str]) -> list[dict]:
         return get_player_info(supabase, player_names)
 
-    @mcp.tool(
-        description="Fetch basic information for players by their Sleeper IDs."
-    )
+    @mcp.tool(description="Fetch basic information for players by their Sleeper IDs.")
     def get_players_by_sleeper_id_tool(sleeper_ids: list[str]) -> list[dict]:
         return get_players_by_sleeper_id(supabase, sleeper_ids)
 
