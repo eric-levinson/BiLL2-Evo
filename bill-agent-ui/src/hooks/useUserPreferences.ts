@@ -37,9 +37,7 @@ export function useUserPreferences(): UseUserPreferencesReturn {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        console.warn(
-          'No authenticated user found, skipping preferences fetch'
-        )
+        console.warn('No authenticated user found, skipping preferences fetch')
         setPreferencesData(null)
         return
       }

@@ -107,7 +107,9 @@ export async function POST() {
       continue
     }
 
-    console.log(`[Fix Sessions] Fixing session: ${session.title} (${session.id})`)
+    console.log(
+      `[Fix Sessions] Fixing session: ${session.title} (${session.id})`
+    )
     const deduplicated = deduplicateToolCalls(messages)
 
     const { error: updateError } = await supabase
@@ -116,15 +118,25 @@ export async function POST() {
       .eq('id', session.id)
 
     if (updateError) {
-      console.error(`[Fix Sessions] Error updating session ${session.id}:`, updateError)
-      results.push({ id: session.id, title: session.title, status: 'error', error: updateError.message })
+      console.error(
+        `[Fix Sessions] Error updating session ${session.id}:`,
+        updateError
+      )
+      results.push({
+        id: session.id,
+        title: session.title,
+        status: 'error',
+        error: updateError.message
+      })
     } else {
       fixedCount++
       results.push({ id: session.id, title: session.title, status: 'fixed' })
     }
   }
 
-  console.log(`[Fix Sessions] Done! Fixed ${fixedCount}/${sessions?.length || 0} sessions`)
+  console.log(
+    `[Fix Sessions] Done! Fixed ${fixedCount}/${sessions?.length || 0} sessions`
+  )
 
   return NextResponse.json({
     success: true,

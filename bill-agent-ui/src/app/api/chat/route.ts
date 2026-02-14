@@ -51,9 +51,7 @@ const ChatRequestSchema = z.object({
   messages: z.array(z.any()).min(1, 'At least one message is required'),
   id: z
     .string()
-    .regex(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    )
+    .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
     .optional()
     .catch(undefined)
 })

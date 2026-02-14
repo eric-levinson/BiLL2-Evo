@@ -141,7 +141,10 @@ export class MCPConnectionPool {
   private readonly idleTimeoutMs: number
   private readonly circuitBreaker?: CircuitBreaker
   private readonly onConnectionCreated?: (connectionId: string) => void
-  private readonly onConnectionClosed?: (connectionId: string, reason: string) => void
+  private readonly onConnectionClosed?: (
+    connectionId: string,
+    reason: string
+  ) => void
 
   /**
    * Map of connection ID to pooled connection
@@ -168,8 +171,7 @@ export class MCPConnectionPool {
 
     // Read configuration from environment variables with fallback to options or defaults
     this.minConnections =
-      options.minConnections ??
-      parseInt(process.env.MCP_POOL_SIZE || '2', 10)
+      options.minConnections ?? parseInt(process.env.MCP_POOL_SIZE || '2', 10)
     this.maxConnections =
       options.maxConnections ??
       parseInt(process.env.MCP_POOL_MAX_CONNECTIONS || '5', 10)
@@ -331,13 +333,14 @@ export class MCPConnectionPool {
     try {
       // Create connections in parallel up to minConnections
       const connectionsToCreate = this.minConnections - this.connections.size
-      const creationPromises = Array.from(
-        { length: connectionsToCreate },
-        () => this.createConnection()
+      const creationPromises = Array.from({ length: connectionsToCreate }, () =>
+        this.createConnection()
       )
 
       await Promise.all(creationPromises)
-      console.log(`[MCP Pool] Pool initialized with ${this.minConnections} connections`)
+      console.log(
+        `[MCP Pool] Pool initialized with ${this.minConnections} connections`
+      )
     } catch (error) {
       console.error('[MCP Pool] Error initializing pool:', error)
       // Don't throw - pool can still work with fewer connections

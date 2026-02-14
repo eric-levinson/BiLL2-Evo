@@ -37,10 +37,7 @@ const SessionsList = () => {
     router.push(`/app?session=${id}`)
   }
 
-  const handleDeleteClick = (
-    e: React.MouseEvent,
-    sessionId: string
-  ) => {
+  const handleDeleteClick = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation()
     setSessionToDelete(sessionId)
     setIsDialogOpen(true)
@@ -129,7 +126,7 @@ const SessionsList = () => {
                 className="absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
                 aria-label="Delete conversation"
               >
-                <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                <Trash className="text-muted-foreground h-3.5 w-3.5 hover:text-destructive" />
               </button>
             </motion.button>
           )
