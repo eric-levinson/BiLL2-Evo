@@ -9,11 +9,11 @@ game_stats_catalog = {
                 "week": "NFL week number.",
                 "season_type": "Season type (regular, postseason, etc.).",
                 "player_id": "Internal or provider player identifier.",
-                "player_name": "Player’s full name.",
+                "player_name": "Player's full name.",
                 "player_display_name": "Official player display name.",
                 "position": "Player position (QB/RB/WR/TE, etc.).",
                 "position_group": "High-level position group (e.g., QB, RB, WR, TE).",
-                "recent_team": "Player’s most recent/current team abbreviation.",
+                "recent_team": "Player's most recent/current team abbreviation.",
                 "opponent_team": "Opponent team abbreviation for the game.",
                 "headshot_url": "URL to player headshot.",
                 "fantasy_points": "Fantasy points (standard scoring for the game).",
@@ -81,12 +81,10 @@ game_stats_catalog = {
         },
         "special_teams": {
             "description": "Special-teams related scoring when attributed to the player.",
-            "fields": {
-                "special_teams_tds": "Touchdowns scored via special teams (returns/blocks)."
-            },
+            "fields": {"special_teams_tds": "Touchdowns scored via special teams (returns/blocks)."},
         },
         "seasonal": {
-            "description": "Season-level (aggregated) offensive stats and shares. Unless noted, shares are player share of team total across the season (0–1).",
+            "description": "Season-level (aggregated) offensive stats and shares. Unless noted, shares are player share of team total across the season (0-1).",
             "fields": {
                 # keys / joins / context
                 "player_id": "Internal/provider player identifier used to join IDs.",
@@ -168,7 +166,7 @@ game_stats_catalog = {
                 "week": "NFL week number.",
                 "season_type": "Season type (regular, postseason, etc.).",
                 "player_id": "Internal or provider player identifier.",
-                "player_name": "Player’s full name.",
+                "player_name": "Player's full name.",
                 "player_display_name": "Official player display name.",
                 "position": "Defensive position (e.g., LB, DB, DL).",
                 "position_group": "High-level defensive group.",

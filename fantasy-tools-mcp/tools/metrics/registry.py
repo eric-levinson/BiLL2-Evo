@@ -1,31 +1,21 @@
 from fastmcp import FastMCP
 from supabase import Client
-from .info import get_advanced_receiving_stats as _get_advanced_receiving_stats
-from .info import get_advanced_passing_stats as _get_advanced_passing_stats
-from .info import get_advanced_rushing_stats as _get_advanced_rushing_stats
-from .info import get_advanced_defense_stats as _get_advanced_defense_stats
-from .info import get_advanced_receiving_stats_weekly as _get_advanced_receiving_stats_weekly
-from .info import get_advanced_passing_stats_weekly as _get_advanced_passing_stats_weekly
-from .info import get_advanced_rushing_stats_weekly as _get_advanced_rushing_stats_weekly
-from .info import get_advanced_defense_stats_weekly as _get_advanced_defense_stats_weekly
+
 from docs.metrics_catalog import metrics_catalog
-from .info import get_advanced_receiving_stats as _get_advanced_receiving_stats
-from .info import get_advanced_passing_stats as _get_advanced_passing_stats
-from .info import get_advanced_rushing_stats as _get_advanced_rushing_stats
+
 from .info import get_advanced_defense_stats as _get_advanced_defense_stats
-from .info import get_advanced_receiving_stats_weekly as _get_advanced_receiving_stats_weekly
-from .info import get_advanced_passing_stats_weekly as _get_advanced_passing_stats_weekly
-from .info import get_advanced_rushing_stats_weekly as _get_advanced_rushing_stats_weekly
 from .info import get_advanced_defense_stats_weekly as _get_advanced_defense_stats_weekly
-
-from fastmcp import FastMCP
-from supabase import Client
-
+from .info import get_advanced_passing_stats as _get_advanced_passing_stats
+from .info import get_advanced_passing_stats_weekly as _get_advanced_passing_stats_weekly
+from .info import get_advanced_receiving_stats as _get_advanced_receiving_stats
+from .info import get_advanced_receiving_stats_weekly as _get_advanced_receiving_stats_weekly
+from .info import get_advanced_rushing_stats as _get_advanced_rushing_stats
+from .info import get_advanced_rushing_stats_weekly as _get_advanced_rushing_stats_weekly
 
 
 def register_tools(mcp: FastMCP, supabase: Client):
     """Register fantasy-related tools with the FastMCP instance."""
-    
+
     @mcp.tool(
         description="Returns metric definitions by category for receiving, passing, rushing, and defense advanced NFL statistics. Use subcategory to pick one of: basic_info, volume_metrics, efficiency_metrics, situational_metrics, weekly."
     )
@@ -46,7 +36,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         if sub is None:
             return {"error": f"unknown subcategory: {subcategory} for category: {category}"}
         return sub
-    
+
     @mcp.tool(
         description="""
         Fetch advanced seasonal receiving stats for NFL players.
@@ -59,13 +49,13 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         Volume Metrics: (workhorse, production, usage)
         games, targets, receptions, receiving_yards, receiving_tds, fantasy_points, fantasy_points_ppr, air_yards_share, receiving_air_yards, receiving_first_downs, receiving_2pt_conversions, receiving_yards_after_catch, gs, td, ybc, yds, team_abbr, player_position, height, weight
-        
+
         Efficiency Metrics: (how well a player converted their opportunities)
         dom, racr, ay_sh, ry_sh, w8dom, ppr_sh, rfd_sh, rtd_sh, tgt_sh, wopr_x, wopr_y, yac_sh, yptmpa, rtdfd_sh, target_share, receiving_epa, receiving_tds, int, rat, x1d, adot, yac_r, ybc_r, rec_br, brk_tkl, drop_percent, avg_yac, avg_expected_yac, catch_percentage, avg_intended_air_yards, avg_yac_above_expectation, percent_share_of_intended_air_yards
-        
+
         Situational/Advanced Metrics: (what situations/roles, context stats)
         receiving_2pt_conversions, receiving_first_downs, avg_cushion, avg_separation, player_display_name, receiving_yards_after_catch, age, drop
-        
+
         Basic player info (season, player_name, ff_team, merge_name) is always included.
         """
     )
@@ -76,15 +66,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
         order_by_metric: str | None = None,
         limit: int | None = 100,
         positions: list[str] | None = None,
-    ) -> dict:        
+    ) -> dict:
         return _get_advanced_receiving_stats(
-            supabase,
-            player_names,
-            season_list,
-            metrics,
-            order_by_metric,
-            limit,
-            positions
+            supabase, player_names, season_list, metrics, order_by_metric, limit, positions
         )
 
     @mcp.tool(
@@ -126,7 +110,6 @@ def register_tools(mcp: FastMCP, supabase: Client):
             positions,
         )
 
-    
     @mcp.tool(
         description="""
         Fetch advanced seasonal rushing stats for NFL running backs, hybrid backs, and runners.
@@ -210,7 +193,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             limit,
             positions,
         )
-    
+
     @mcp.tool(
         description="""
         Fetch advanced weekly receiving stats for NFL players.
@@ -252,7 +235,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             limit,
             positions,
         )
-    
+
     @mcp.tool(
         description="""
         Fetch advanced weekly passing stats for NFL quarterbacks and passers.
@@ -294,7 +277,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             limit,
             positions,
         )
-    
+
     @mcp.tool(
         description="""
         Fetch advanced weekly rushing stats for NFL running backs, hybrid backs, and runners.
@@ -335,7 +318,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             limit,
             positions,
         )
-    
+
     @mcp.tool(
         description="""
         Fetch advanced weekly defensive stats for NFL defenders and defensive playmakers.
@@ -366,5 +349,6 @@ def register_tools(mcp: FastMCP, supabase: Client):
         limit: int | None = 100,
         positions: list[str] | None = None,
     ) -> dict:
-        return _get_advanced_defense_stats_weekly(supabase, player_names, season_list, weekly_list, metrics, order_by_metric, limit, positions)
-    
+        return _get_advanced_defense_stats_weekly(
+            supabase, player_names, season_list, weekly_list, metrics, order_by_metric, limit, positions
+        )

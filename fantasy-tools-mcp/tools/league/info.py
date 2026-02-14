@@ -10,13 +10,17 @@ The refactoring reduced ~140 lines of duplicated query logic across the two func
 to a single reusable helper function plus thin wrapper functions that specify table-specific
 parameters.
 """
-import os
+
 import importlib.util
 import logging
+import os
+
 from supabase import Client
+
 from helpers.query_utils import build_player_stats_query
 
 logger = logging.getLogger(__name__)
+
 
 def get_stats_metadata(category: str, subcategory: str | None = None) -> dict:
     """
@@ -34,7 +38,7 @@ def get_stats_metadata(category: str, subcategory: str | None = None) -> dict:
     """
     # Get the path to game_stats_catalog.py
     current_dir = os.path.dirname(__file__)
-    metrics_file = os.path.abspath(os.path.join(current_dir, '..', '..', 'docs', 'game_stats_catalog.py'))
+    metrics_file = os.path.abspath(os.path.join(current_dir, "..", "..", "docs", "game_stats_catalog.py"))
 
     # Check if the file exists
     if not os.path.exists(metrics_file):
@@ -47,7 +51,7 @@ def get_stats_metadata(category: str, subcategory: str | None = None) -> dict:
         spec.loader.exec_module(game_stats_catalog_module)  # type: ignore[attr-defined]
         game_stats_catalog = game_stats_catalog_module.game_stats_catalog
     except Exception as e:
-        raise ImportError(f"Could not import game_stats_catalog: {e}")
+        raise ImportError(f"Could not import game_stats_catalog: {e}") from None
 
     # Normalize category (allow short aliases)
     cat = (category or "").strip().lower()
@@ -66,7 +70,7 @@ def get_stats_metadata(category: str, subcategory: str | None = None) -> dict:
     # Case-insensitive subcategory lookup; preserve original key casing in output
     sub = (subcategory or "").strip()
     sub_map = game_stats_catalog[cat]
-    for key in sub_map.keys():
+    for key in sub_map:
         if key.lower() == sub.lower():
             return {key: sub_map[key]}
 
@@ -117,7 +121,8 @@ def get_offensive_players_game_stats(
         positions=positions,
         player_sort_column="player_display_name",
     )
-    
+
+
 def get_defensive_players_game_stats(
     supabase: Client,
     player_names: list[str] | None = None,

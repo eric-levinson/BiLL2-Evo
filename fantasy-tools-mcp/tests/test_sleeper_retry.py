@@ -9,29 +9,28 @@ Tests:
 5. Non-retryable errors (4xx client errors)
 """
 
-import os
-import time
-import sys
 import logging
+import os
+import sys
+import time
 from unittest.mock import Mock, patch
+
 import requests
 
 # Add parent directory to path so we can import from fantasy-tools-mcp root
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from helpers.retry_utils import retry_with_backoff, is_retryable_http_error
+from helpers.retry_utils import is_retryable_http_error, retry_with_backoff
 
 # Configure logging to see retry messages
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.WARNING, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
 
 def test_retry_behavior():
     """Test retry behavior with exponential backoff."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Retry Behavior with Exponential Backoff")
-    print("="*70)
+    print("=" * 70)
 
     call_count = 0
     call_times = []
@@ -50,10 +49,10 @@ def test_retry_behavior():
 
     try:
         failing_function()
-    except requests.exceptions.ConnectionError as e:
+    except requests.exceptions.ConnectionError:
         elapsed = time.time() - start_time
         print(f"\n✓ All {call_count} attempts completed in {elapsed:.2f}s")
-        print(f"  Expected: ~3 attempts in ~3s (1s + 2s delays)")
+        print("  Expected: ~3 attempts in ~3s (1s + 2s delays)")
 
         # Verify attempt count
         assert call_count == 3, f"Expected 3 attempts, got {call_count}"
@@ -80,9 +79,9 @@ def test_retry_behavior():
 
 def test_rate_limit_handling():
     """Test rate-limit handling with 429 responses."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Rate-Limit Handling (429 Responses)")
-    print("="*70)
+    print("=" * 70)
 
     call_count = 0
 
@@ -95,7 +94,7 @@ def test_rate_limit_handling():
         # Create a mock 429 response
         response = Mock()
         response.status_code = 429
-        response.headers = {'Retry-After': '2'}
+        response.headers = {"Retry-After": "2"}
 
         error = requests.exceptions.HTTPError()
         error.response = response
@@ -118,9 +117,9 @@ def test_rate_limit_handling():
 
 def test_non_retryable_errors():
     """Test that 4xx errors (except 429) are not retried."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Non-Retryable Errors (4xx Client Errors)")
-    print("="*70)
+    print("=" * 70)
 
     call_count = 0
 
@@ -157,9 +156,9 @@ def test_non_retryable_errors():
 
 def test_helper_functions():
     """Test helper functions for error classification."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Helper Functions (is_retryable_http_error)")
-    print("="*70)
+    print("=" * 70)
 
     # Test is_retryable_http_error
     print("\n  Testing is_retryable_http_error()...")
@@ -204,9 +203,9 @@ def test_helper_functions():
 
 def test_integration_with_base_api():
     """Test integration with BaseApi class."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Integration with BaseApi Class")
-    print("="*70)
+    print("=" * 70)
 
     from tools.fantasy.sleeper_wrapper.base_api import BaseApi
 
@@ -223,14 +222,14 @@ def test_integration_with_base_api():
         # Simulate connection error
         raise requests.exceptions.ConnectionError("Simulated connection error")
 
-    with patch('requests.get', side_effect=mock_get):
+    with patch("requests.get", side_effect=mock_get):
         try:
             api._call("https://api.sleeper.app/v1/user/test")
         except requests.exceptions.ConnectionError:
             print(f"\n✓ API call failed after {call_count} attempts")
             assert call_count == 3, f"Expected 3 attempts, got {call_count}"
-            print(f"✓ Retry decorator applied to BaseApi._call()")
-            print(f"✓ All Sleeper API calls will have retry logic")
+            print("✓ Retry decorator applied to BaseApi._call()")
+            print("✓ All Sleeper API calls will have retry logic")
 
             print("\n✅ TEST 5 PASSED: Integration with BaseApi working correctly")
             return True
@@ -241,9 +240,9 @@ def test_integration_with_base_api():
 
 def run_all_tests():
     """Run all tests and report results."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("SLEEPER API RETRY LOGIC TEST SUITE")
-    print("="*70)
+    print("=" * 70)
     print("\nThis test suite verifies:")
     print("  1. Retry behavior with exponential backoff (1s, 2s delays)")
     print("  2. Rate-limit handling (429 responses)")
@@ -262,9 +261,9 @@ def run_all_tests():
     results.append(("BaseApi Integration", test_integration_with_base_api()))
 
     # Print summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
 
     passed = sum(1 for _, result in results if result)
     total = len(results)
@@ -273,9 +272,9 @@ def run_all_tests():
         status = "✅ PASS" if result else "❌ FAIL"
         print(f"{status}: {name}")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"RESULTS: {passed}/{total} tests passed")
-    print("="*70)
+    print("=" * 70)
 
     if passed == total:
         print("\n🎉 ALL TESTS PASSED! Sleeper API retry logic is working correctly.")

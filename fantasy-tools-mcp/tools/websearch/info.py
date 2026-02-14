@@ -1,8 +1,11 @@
 """
 Web search tools for fantasy football research and analysis.
 """
+
 import os
+
 from tavily import TavilyClient
+
 from helpers.retry_utils import retry_with_backoff
 
 
@@ -35,11 +38,7 @@ def search_web(query: str, max_results: int = 5) -> dict:
     try:
         # Validate input
         if not query or not query.strip():
-            return {
-                "error": "Please provide a search query",
-                "results": [],
-                "query": query
-            }
+            return {"error": "Please provide a search query", "results": [], "query": query}
 
         # Get API key
         api_key = os.getenv("TAVILY_API_KEY")
@@ -47,7 +46,7 @@ def search_web(query: str, max_results: int = 5) -> dict:
             return {
                 "error": "TAVILY_API_KEY environment variable not set. Please configure your API key.",
                 "results": [],
-                "query": query
+                "query": query,
             }
 
         # Initialize client
@@ -64,7 +63,7 @@ def search_web(query: str, max_results: int = 5) -> dict:
             max_results=max_results,
             search_depth="advanced",
             include_answer=True,
-            include_raw_content=False
+            include_raw_content=False,
         )
 
         # Format results for consistency
@@ -86,10 +85,10 @@ def search_web(query: str, max_results: int = 5) -> dict:
             "results": formatted_results,
             "answer": response.get("answer", ""),  # AI-generated summary
             "query": query,
-            "response_time": response.get("response_time", 0)
+            "response_time": response.get("response_time", 0),
         }
 
     except Exception as e:
         # Let retry_with_backoff handle retryable errors
         # For non-retryable errors or exhausted retries, raise with context
-        raise Exception(f"Error performing web search for query '{query}': {str(e)}")
+        raise Exception(f"Error performing web search for query '{query}': {e!s}") from None

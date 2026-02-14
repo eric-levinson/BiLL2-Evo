@@ -1,9 +1,11 @@
 """
 Dictionary info tools
 """
+
 from supabase import Client
 
-def get_dictionary_info(supabase: Client, search_criteria: list[str] = None) -> list[dict]:
+
+def get_dictionary_info(supabase: Client, search_criteria: list[str] | None = None) -> list[dict]:
     """
     Fetches rows from the vw_dictionary_combined view, optionally filtering by search criteria in the description field.
 
@@ -24,5 +26,4 @@ def get_dictionary_info(supabase: Client, search_criteria: list[str] = None) -> 
         response = query.execute()
         return response.data
     except Exception as e:
-        raise Exception(f"Error fetching dictionary info: {str(e)}")
-
+        raise Exception(f"Error fetching dictionary info: {e!s}") from None

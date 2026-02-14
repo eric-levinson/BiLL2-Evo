@@ -41,9 +41,9 @@ export function createUpdateUserPreferenceTool(userId: string) {
       const argsObj = args as any
       let preference_type =
         argsObj.preference_type || argsObj.field || argsObj.type
-      let value = argsObj.value
-      let action = argsObj.action || 'set'
-      let key = argsObj.key
+      const value = argsObj.value
+      const action = argsObj.action || 'set'
+      const key = argsObj.key
 
       // Convert Gemini-style field names to our schema
       if (
@@ -91,7 +91,7 @@ export function createUpdateUserPreferenceTool(userId: string) {
 
       // Build update object based on preference_type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let update: any = {}
+      const update: any = {}
 
       switch (preference_type) {
         case 'analysis_style':

@@ -1,7 +1,10 @@
 from fastmcp import FastMCP
 from supabase import Client
+
 from .info import (
     get_fantasy_rank_page_types as _get_fantasy_rank_page_types,
+)
+from .info import (
     get_fantasy_ranks as _get_fantasy_ranks,
 )
 
@@ -18,5 +21,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="Fetch dynasty ranks from vw_dynasty_ranks, filtered by position and/or page_type (optional). Accepts an optional `limit` (default 30) to control rows returned. Returns the most pertinent columns for fantasy analysis."
     )
-    def get_fantasy_ranks(position: str | None = None, page_type: str | None = None, limit: int | None = 30) -> list[dict]:
+    def get_fantasy_ranks(
+        position: str | None = None, page_type: str | None = None, limit: int | None = 30
+    ) -> list[dict]:
         return _get_fantasy_ranks(supabase, position, page_type, limit)

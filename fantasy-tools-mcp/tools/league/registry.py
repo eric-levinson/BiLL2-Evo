@@ -2,9 +2,13 @@ from fastmcp import FastMCP
 from supabase import Client
 
 from .info import (
-    get_stats_metadata as _get_stats_metadata,
-    get_offensive_players_game_stats as _get_offensive_players_game_stats,
     get_defensive_players_game_stats as _get_defensive_players_game_stats,
+)
+from .info import (
+    get_offensive_players_game_stats as _get_offensive_players_game_stats,
+)
+from .info import (
+    get_stats_metadata as _get_stats_metadata,
 )
 
 
@@ -25,8 +29,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         return _get_stats_metadata(category, subcategory)
 
     @mcp.tool(
-        description=
-        """
+        description="""
         Fetch offensive weekly game stats for NFL players.
 
         Optional filters:
@@ -71,8 +74,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
-        description=
-        """
+        description="""
         Fetch defensive weekly game stats for NFL players.
 
         Optional filters:

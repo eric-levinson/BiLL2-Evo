@@ -4,23 +4,22 @@ Retry utilities with exponential backoff for Sleeper API calls.
 Uses tenacity library for robust retry logic.
 """
 
-import os
 import logging
-from typing import Callable, Any, Optional
+import os
 from functools import wraps
-import asyncio
+from typing import Any, Callable
 
+import aiohttp
+import requests
 from tenacity import (
+    AsyncRetrying,
+    RetryError,
+    before_sleep_log,
     retry,
+    retry_if_exception,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception,
-    before_sleep_log,
-    RetryError,
-    AsyncRetrying,
 )
-import requests
-import aiohttp
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -48,22 +47,25 @@ def is_retryable_http_error(exception: Exception) -> bool:
         True if the error should trigger a retry
     """
     # Connection and timeout errors are always retryable (requests library)
-    if isinstance(exception, (requests.exceptions.ConnectionError,
-                             requests.exceptions.Timeout)):
+    if isinstance(exception, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
         return True
 
     # Connection and timeout errors are always retryable (aiohttp library)
-    if isinstance(exception, (aiohttp.ClientError, aiohttp.ClientConnectionError)):
-        # Don't retry ClientResponseError here, handle separately by status code
-        if not isinstance(exception, aiohttp.ClientResponseError):
-            return True
+    # Don't retry ClientResponseError here, handle separately by status code
+    if isinstance(exception, (aiohttp.ClientError, aiohttp.ClientConnectionError)) and not isinstance(
+        exception, aiohttp.ClientResponseError
+    ):
+        return True
 
     # Check HTTP errors by status code (requests library)
-    if isinstance(exception, requests.exceptions.HTTPError):
-        if hasattr(exception, 'response') and exception.response is not None:
-            status_code = exception.response.status_code
-            # Retry on 5xx (server errors) and 429 (rate limit)
-            return status_code >= 500 or status_code == 429
+    if (
+        isinstance(exception, requests.exceptions.HTTPError)
+        and hasattr(exception, "response")
+        and exception.response is not None
+    ):
+        status_code = exception.response.status_code
+        # Retry on 5xx (server errors) and 429 (rate limit)
+        return status_code >= 500 or status_code == 429
 
     # Check HTTP errors by status code (aiohttp library)
     if isinstance(exception, aiohttp.ClientResponseError):
@@ -75,10 +77,10 @@ def is_retryable_http_error(exception: Exception) -> bool:
 
 
 def retry_with_backoff(
-    max_attempts: Optional[int] = None,
-    initial_delay: Optional[float] = None,
-    max_delay: Optional[float] = None,
-    multiplier: Optional[float] = None,
+    max_attempts: int | None = None,
+    initial_delay: float | None = None,
+    max_delay: float | None = None,
+    multiplier: float | None = None,
 ) -> Callable:
     """
     Decorator that adds retry logic with exponential backoff to a function.
@@ -122,20 +124,17 @@ def retry_with_backoff(
         ```
     """
     # Read configuration from environment with fallbacks
-    _max_attempts = max_attempts if max_attempts is not None else int(os.getenv('RETRY_MAX_ATTEMPTS', '3'))
+    _max_attempts = max_attempts if max_attempts is not None else int(os.getenv("RETRY_MAX_ATTEMPTS", "3"))
 
     # Handle delay parameters: direct params are in seconds, env vars are in milliseconds
     if initial_delay is not None:
         _initial_delay_s = initial_delay
     else:
-        _initial_delay_s = int(os.getenv('RETRY_INITIAL_DELAY_MS', '1000')) / 1000.0
+        _initial_delay_s = int(os.getenv("RETRY_INITIAL_DELAY_MS", "1000")) / 1000.0
 
-    if max_delay is not None:
-        _max_delay_s = max_delay
-    else:
-        _max_delay_s = int(os.getenv('RETRY_MAX_DELAY_MS', '4000')) / 1000.0
+    _max_delay_s = max_delay if max_delay is not None else int(os.getenv("RETRY_MAX_DELAY_MS", "4000")) / 1000.0
 
-    _multiplier = multiplier if multiplier is not None else float(os.getenv('RETRY_BACKOFF_MULTIPLIER', '2'))
+    _multiplier = multiplier if multiplier is not None else float(os.getenv("RETRY_BACKOFF_MULTIPLIER", "2"))
 
     def decorator(func: Callable) -> Callable:
         # Custom retry condition that checks if exception is retryable
@@ -147,7 +146,6 @@ def retry_with_backoff(
         retrying_func = retry(
             # Stop after max attempts
             stop=stop_after_attempt(_max_attempts),
-
             # Exponential backoff: wait = multiplier^(attempt-1) * initial_delay
             # Clamped between initial_delay and max_delay
             wait=wait_exponential(
@@ -156,13 +154,10 @@ def retry_with_backoff(
                 max=_max_delay_s,
                 exp_base=_multiplier,
             ),
-
             # Only retry on specific retryable exceptions
             retry=retry_if_exception(should_retry),
-
             # Log before sleeping (retrying)
             before_sleep=before_sleep_log(logger, logging.WARNING),
-
             # Re-raise exceptions immediately if not retryable
             reraise=True,
         )(func)
@@ -187,10 +182,10 @@ def retry_with_backoff(
 
 
 def async_retry_with_backoff(
-    max_attempts: Optional[int] = None,
-    initial_delay: Optional[float] = None,
-    max_delay: Optional[float] = None,
-    multiplier: Optional[float] = None,
+    max_attempts: int | None = None,
+    initial_delay: float | None = None,
+    max_delay: float | None = None,
+    multiplier: float | None = None,
 ) -> Callable:
     """
     Decorator that adds retry logic with exponential backoff to an async function.
@@ -234,20 +229,17 @@ def async_retry_with_backoff(
         ```
     """
     # Read configuration from environment with fallbacks
-    _max_attempts = max_attempts if max_attempts is not None else int(os.getenv('RETRY_MAX_ATTEMPTS', '3'))
+    _max_attempts = max_attempts if max_attempts is not None else int(os.getenv("RETRY_MAX_ATTEMPTS", "3"))
 
     # Handle delay parameters: direct params are in seconds, env vars are in milliseconds
     if initial_delay is not None:
         _initial_delay_s = initial_delay
     else:
-        _initial_delay_s = int(os.getenv('RETRY_INITIAL_DELAY_MS', '1000')) / 1000.0
+        _initial_delay_s = int(os.getenv("RETRY_INITIAL_DELAY_MS", "1000")) / 1000.0
 
-    if max_delay is not None:
-        _max_delay_s = max_delay
-    else:
-        _max_delay_s = int(os.getenv('RETRY_MAX_DELAY_MS', '4000')) / 1000.0
+    _max_delay_s = max_delay if max_delay is not None else int(os.getenv("RETRY_MAX_DELAY_MS", "4000")) / 1000.0
 
-    _multiplier = multiplier if multiplier is not None else float(os.getenv('RETRY_BACKOFF_MULTIPLIER', '2'))
+    _multiplier = multiplier if multiplier is not None else float(os.getenv("RETRY_BACKOFF_MULTIPLIER", "2"))
 
     def decorator(func: Callable) -> Callable:
         # Custom retry condition that checks if exception is retryable
@@ -261,7 +253,6 @@ def async_retry_with_backoff(
             async_retrying = AsyncRetrying(
                 # Stop after max attempts
                 stop=stop_after_attempt(_max_attempts),
-
                 # Exponential backoff: wait = multiplier^(attempt-1) * initial_delay
                 # Clamped between initial_delay and max_delay
                 wait=wait_exponential(
@@ -270,13 +261,10 @@ def async_retry_with_backoff(
                     max=_max_delay_s,
                     exp_base=_multiplier,
                 ),
-
                 # Only retry on specific retryable exceptions
                 retry=retry_if_exception(should_retry),
-
                 # Log before sleeping (retrying)
                 before_sleep=before_sleep_log(logger, logging.WARNING),
-
                 # Re-raise exceptions immediately if not retryable
                 reraise=True,
             )

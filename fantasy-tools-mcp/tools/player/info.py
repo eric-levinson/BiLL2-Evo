@@ -36,7 +36,7 @@ def get_player_info(supabase: Client, player_names: list[str]) -> list[dict]:
         response = query.limit(35).execute()
         return response.data
     except Exception as e:
-        raise Exception(f"Error fetching player info: {str(e)}")
+        raise Exception(f"Error fetching player info: {e!s}") from None
 
 
 def get_players_by_sleeper_id(supabase: Client, sleeper_ids: list[str]) -> list[dict]:
@@ -60,7 +60,7 @@ def get_players_by_sleeper_id(supabase: Client, sleeper_ids: list[str]) -> list[
         response = query.limit(35).execute()
         return response.data
     except Exception as e:
-        raise Exception(f"Error fetching player info by Sleeper ID: {str(e)}")
+        raise Exception(f"Error fetching player info by Sleeper ID: {e!s}") from None
 
 
 def get_player_profile(
@@ -141,4 +141,4 @@ def get_player_profile(
         }
 
     except Exception as e:
-        raise Exception(f"Error fetching player profile: {str(e)}")
+        raise Exception(f"Error fetching player profile: {e!s}") from None

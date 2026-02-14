@@ -81,7 +81,7 @@ export async function POST() {
       for (const part of msg.parts) {
         // Check any part with a toolCallId
         if ('toolCallId' in part && part.toolCallId) {
-          const id = (part as any).toolCallId
+          const id = (part as { toolCallId: string }).toolCallId
           const isToolResult = part.type === 'tool-result'
 
           if (isToolResult) {

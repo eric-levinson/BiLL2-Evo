@@ -1,12 +1,14 @@
 import asyncio
+
 from supabase import Client
-from tools.fantasy.sleeper_wrapper.user import User
+
+from tools.fantasy.sleeper_wrapper.drafts import Drafts
 from tools.fantasy.sleeper_wrapper.league import League
 from tools.fantasy.sleeper_wrapper.players import Players
-from tools.fantasy.sleeper_wrapper.drafts import Drafts
+from tools.fantasy.sleeper_wrapper.user import User
 
-#Test league ID:
-#1225572389929099264
+# Test league ID:
+# 1225572389929099264
 
 
 def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
@@ -19,7 +21,7 @@ def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
     if not player_ids:
         return []
 
-    # sleeper_id is numeric in the DB — filter out non-numeric IDs (team defenses like "HOU")
+    # sleeper_id is numeric in the DB - filter out non-numeric IDs (team defenses like "HOU")
     numeric_ids = [pid for pid in player_ids if pid.isdigit()]
 
     lookup = {}
@@ -39,9 +41,16 @@ def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
             }
 
     # Return in same order as input; non-numeric IDs (team defenses) get a readable fallback
-    return [lookup.get(str(pid), {"name": pid, "position": "DEF" if not pid.isdigit() else "", "team": pid if not pid.isdigit() else ""}) for pid in player_ids]
+    return [
+        lookup.get(
+            str(pid),
+            {"name": pid, "position": "DEF" if not pid.isdigit() else "", "team": pid if not pid.isdigit() else ""},
+        )
+        for pid in player_ids
+    ]
 
-#tool definition to get sleeper leagues from an EXACT username with verbose option
+
+# tool definition to get sleeper leagues from an EXACT username with verbose option
 def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> list[dict]:
     """
     Fetch sleeper leagues for a specific user by their username.
@@ -51,9 +60,7 @@ def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> lis
     try:
         user = User(username)
         leagues = user.get_all_leagues("nfl", 2025)
-        default_keys = [
-            "status", "name", "draft_id", "season_type", "season", "total_rosters", "league_id"
-        ]
+        default_keys = ["status", "name", "draft_id", "season_type", "season", "total_rosters", "league_id"]
         verbose_keys = ["scoring_settings", "settings", "roster_positions"]
         filtered_leagues = []
         for league in leagues:
@@ -64,7 +71,8 @@ def get_sleeper_leagues_by_username(username: str, verbose: bool = False) -> lis
             filtered_leagues.append(filtered)
         return filtered_leagues
     except Exception as e:
-        return Exception(f"Error fetching sleeper leagues: {str(e)}")
+        return Exception(f"Error fetching sleeper leagues: {e!s}")
+
 
 def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: Client | None = None) -> list[dict]:
     """Retrieve rosters for a given Sleeper league ID, annotated with usernames.
@@ -88,10 +96,7 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
         users_url = f"{league._base_url}/users"
 
         # Execute both API calls in parallel
-        rosters, users = await asyncio.gather(
-            league._call_async(rosters_url),
-            league._call_async(users_url)
-        )
+        rosters, users = await asyncio.gather(league._call_async(rosters_url), league._call_async(users_url))
 
         return rosters, users, league
 
@@ -126,7 +131,7 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
 
         return summary_rosters
     except Exception as e:
-        raise Exception(f"Error fetching sleeper leagues: {str(e)}")
+        raise Exception(f"Error fetching sleeper leagues: {e!s}") from None
 
 
 def get_sleeper_league_users(league_id: str) -> list[dict]:
@@ -137,10 +142,12 @@ def get_sleeper_league_users(league_id: str) -> list[dict]:
         league = League(league_id)
         return league.get_users()
     except Exception as e:
-        raise Exception(f"Error fetching sleeper leagues: {str(e)}")
+        raise Exception(f"Error fetching sleeper leagues: {e!s}") from None
 
 
-def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False, supabase: Client | None = None) -> list[dict]:
+def get_sleeper_league_matchups(
+    league_id: str, week: int, summary: bool = False, supabase: Client | None = None
+) -> list[dict]:
     """Retrieve matchups for a given Sleeper league and week.
 
     Args:
@@ -169,9 +176,7 @@ def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False
 
         # Execute all three API calls in parallel
         matchups, rosters, users = await asyncio.gather(
-            league._call_async(matchups_url),
-            league._call_async(rosters_url),
-            league._call_async(users_url)
+            league._call_async(matchups_url), league._call_async(rosters_url), league._call_async(users_url)
         )
 
         return matchups, rosters, users, league
@@ -210,12 +215,10 @@ def get_sleeper_league_matchups(league_id: str, week: int, summary: bool = False
 
         return summary_matchups
     except Exception as e:
-        raise Exception(f"Error fetching sleeper matchups: {str(e)}")
+        raise Exception(f"Error fetching sleeper matchups: {e!s}") from None
 
 
-def get_sleeper_league_transactions(
-    league_id: str, week: int, txn_type: str | None = None
-) -> list[dict]:
+def get_sleeper_league_transactions(league_id: str, week: int, txn_type: str | None = None) -> list[dict]:
     """Retrieve transactions for a given Sleeper league and week.
 
     Optionally filter the results by transaction type (e.g., "trade",
@@ -232,13 +235,7 @@ def get_sleeper_league_transactions(
             return [{"error": "txn_type must be a string if provided."}]
         allowed_types = {"trade", "waiver", "free_agent"}
         if txn_type not in allowed_types:
-            return [
-                {
-                    "error": (
-                        "txn_type must be one of 'trade', 'waiver', or 'free_agent'."
-                    )
-                }
-            ]
+            return [{"error": ("txn_type must be one of 'trade', 'waiver', or 'free_agent'.")}]
 
     async def _fetch_data_parallel():
         """Fetch transactions, rosters, and users in parallel using asyncio.gather."""
@@ -251,9 +248,7 @@ def get_sleeper_league_transactions(
 
         # Execute all three API calls in parallel
         transactions, rosters, users = await asyncio.gather(
-            league._call_async(transactions_url),
-            league._call_async(rosters_url),
-            league._call_async(users_url)
+            league._call_async(transactions_url), league._call_async(rosters_url), league._call_async(users_url)
         )
 
         return transactions, rosters, users, league
@@ -272,12 +267,10 @@ def get_sleeper_league_transactions(
             creator_id = txn.get("creator")
             txn["creator_owner_name"] = user_map.get(creator_id)
             roster_ids = txn.get("roster_ids", []) or []
-            txn["roster_owner_names"] = [
-                user_map.get(roster_to_owner.get(rid)) for rid in roster_ids
-            ]
+            txn["roster_owner_names"] = [user_map.get(roster_to_owner.get(rid)) for rid in roster_ids]
         return transactions
     except Exception as e:
-        raise Exception(f"Error fetching sleeper transactions: {str(e)}")
+        raise Exception(f"Error fetching sleeper transactions: {e!s}") from None
 
 
 def get_sleeper_trending_players(
@@ -313,12 +306,10 @@ def get_sleeper_trending_players(
         players = Players()
         return players.get_trending_players(sport, add_drop, hours, limit)
     except Exception as e:
-        raise Exception(f"Error fetching trending players: {str(e)}")
+        raise Exception(f"Error fetching trending players: {e!s}") from None
 
 
-def get_sleeper_user_drafts(
-    username: str, sport: str = "nfl", season: int = 2025
-) -> list[dict]:
+def get_sleeper_user_drafts(username: str, sport: str = "nfl", season: int = 2025) -> list[dict]:
     """Retrieve all drafts for a given Sleeper user.
 
     Args:
@@ -336,7 +327,8 @@ def get_sleeper_user_drafts(
         user = User(username)
         return user.get_all_drafts(sport, season)
     except Exception as e:
-        raise Exception(f"Error fetching sleeper drafts: {str(e)}")
+        raise Exception(f"Error fetching sleeper drafts: {e!s}") from None
+
 
 def get_sleeper_league_by_id(league_id: str, summary: bool = False) -> dict:
     """Retrieve a Sleeper league by its ID.
@@ -356,13 +348,12 @@ def get_sleeper_league_by_id(league_id: str, summary: bool = False) -> dict:
             return league_data
 
         # Summary mode: return only essential league info, exclude heavy nested objects
-        default_keys = [
-            "status", "name", "draft_id", "season_type", "season", "total_rosters", "league_id"
-        ]
+        default_keys = ["status", "name", "draft_id", "season_type", "season", "total_rosters", "league_id"]
         summary_data = {k: league_data.get(k) for k in default_keys}
         return summary_data
     except Exception as e:
-        raise Exception(f"Error fetching sleeper league: {str(e)}")
+        raise Exception(f"Error fetching sleeper league: {e!s}") from None
+
 
 def get_sleeper_draft_by_id(draft_id: str) -> dict:
     """Retrieve a Sleeper draft by its ID."""
@@ -372,7 +363,8 @@ def get_sleeper_draft_by_id(draft_id: str) -> dict:
         draft = Drafts(draft_id)
         return draft.get_specific_draft()
     except Exception as e:
-        raise Exception(f"Error fetching sleeper draft: {str(e)}")
+        raise Exception(f"Error fetching sleeper draft: {e!s}") from None
+
 
 def get_sleeper_all_draft_picks_by_id(draft_id: str) -> dict:
     """Return all draft picks for a draft ID wrapped in a dict (serializable)."""
@@ -392,9 +384,10 @@ def get_sleeper_all_draft_picks_by_id(draft_id: str) -> dict:
         # Fallback for other types
         return {"result": picks}
     except Exception as e:
-        return {"error": f"Error fetching sleeper draft picks: {str(e)}"}
+        return {"error": f"Error fetching sleeper draft picks: {e!s}"}
 
-#[{
+
+# [{
 #      "co_owners": null,
 #      "keepers": null,
 #      "league_id": "1225572389929099264",
@@ -432,4 +425,4 @@ def get_sleeper_all_draft_picks_by_id(draft_id: str) -> dict:
 #      ],
 #      "taxi": null,
 #      "owner_name": "filthy606"
-#}]
+# }]
