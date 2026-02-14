@@ -9,29 +9,27 @@ Tests:
 5. Performance improvements from parallel execution
 """
 
+import asyncio
+import logging
 import os
 import sys
 import time
-import asyncio
-import logging
-from unittest.mock import Mock, patch, AsyncMock
-import pytest
+from unittest.mock import Mock, patch
+
 import aiohttp
+import pytest
 
 # Configure pytest-asyncio to use 'auto' mode
-pytest_plugins = ('pytest_asyncio',)
+pytest_plugins = ("pytest_asyncio",)
 
 # Add parent directory to path so we can import from fantasy-tools-mcp root
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from helpers.retry_utils import async_retry_with_backoff, is_retryable_http_error
-from tools.fantasy.sleeper_wrapper.base_api import BaseApi
+from helpers.retry_utils import async_retry_with_backoff, is_retryable_http_error  # noqa: E402
+from tools.fantasy.sleeper_wrapper.base_api import BaseApi  # noqa: E402
 
 # Configure logging to see retry messages
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.WARNING, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
 class TestAsyncRetryDecorator:
@@ -40,9 +38,9 @@ class TestAsyncRetryDecorator:
     @pytest.mark.asyncio
     async def test_retry_behavior_with_exponential_backoff(self):
         """Test async retry behavior with exponential backoff using requests-compatible exceptions."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 1: Async Retry Behavior with Exponential Backoff")
-        print("="*70)
+        print("=" * 70)
 
         # Import requests to use its exception types (current retry logic expects these)
         import requests
@@ -65,11 +63,11 @@ class TestAsyncRetryDecorator:
         # Execute the async function and expect it to fail after retries
         try:
             await failing_async_function()
-            assert False, "Should have raised ConnectionError"
+            raise AssertionError("Should have raised ConnectionError")
         except requests.exceptions.ConnectionError:
             elapsed = time.time() - start_time
             print(f"\n✓ All {call_count} attempts completed in {elapsed:.2f}s")
-            print(f"  Expected: ~3 attempts in ~0.3s (0.1s + 0.2s delays)")
+            print("  Expected: ~3 attempts in ~0.3s (0.1s + 0.2s delays)")
 
             # Verify attempt count
             assert call_count == 3, f"Expected 3 attempts, got {call_count}"
@@ -92,9 +90,9 @@ class TestAsyncRetryDecorator:
     @pytest.mark.asyncio
     async def test_rate_limit_handling(self):
         """Test rate-limit handling with 429 responses in async context."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 2: Async Rate-Limit Handling (429 Responses)")
-        print("="*70)
+        print("=" * 70)
 
         import requests
 
@@ -109,7 +107,7 @@ class TestAsyncRetryDecorator:
             # Use requests.HTTPError with 429 status (recognized by retry logic)
             response = Mock()
             response.status_code = 429
-            response.headers = {'Retry-After': '1'}
+            response.headers = {"Retry-After": "1"}
 
             error = requests.exceptions.HTTPError()
             error.response = response
@@ -117,7 +115,7 @@ class TestAsyncRetryDecorator:
 
         try:
             await rate_limited_async_function()
-            assert False, "Should have raised HTTPError"
+            raise AssertionError("Should have raised HTTPError")
         except requests.exceptions.HTTPError:
             print(f"\n✓ All {call_count} attempts completed")
             assert call_count == 3, f"Expected 3 attempts, got {call_count}"
@@ -129,9 +127,9 @@ class TestAsyncRetryDecorator:
     @pytest.mark.asyncio
     async def test_successful_retry_after_failures(self):
         """Test that function succeeds on retry after initial failures."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 3: Successful Retry After Failures")
-        print("="*70)
+        print("=" * 70)
 
         import requests
 
@@ -165,9 +163,9 @@ class TestAsyncCallMethod:
     @pytest.mark.asyncio
     async def test_call_async_basic_functionality(self):
         """Test basic _call_async functionality with mocked aiohttp."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 4: BaseApi._call_async Basic Functionality")
-        print("="*70)
+        print("=" * 70)
 
         api = BaseApi()
 
@@ -206,7 +204,7 @@ class TestAsyncCallMethod:
 
         mock_session = MockSession()
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await api._call_async("https://api.sleeper.app/v1/user/test")
 
             print(f"  API call result: {result}")
@@ -222,9 +220,9 @@ class TestAsyncCallMethod:
     @pytest.mark.asyncio
     async def test_call_async_retry_on_error(self):
         """Test that _call_async retries on network errors."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 5: _call_async Retry on Network Errors")
-        print("="*70)
+        print("=" * 70)
 
         import requests
 
@@ -269,7 +267,7 @@ class TestAsyncCallMethod:
 
         mock_session = MockSession()
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             result = await api._call_async("https://api.sleeper.app/v1/user/test")
 
             print(f"\n✓ API call succeeded after {mock_session.call_count} attempts")
@@ -286,9 +284,9 @@ class TestParallelExecution:
     @pytest.mark.asyncio
     async def test_parallel_execution_faster_than_sequential(self):
         """Test that parallel execution is faster than sequential."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 6: Parallel Execution Performance")
-        print("="*70)
+        print("=" * 70)
 
         # Simulate API calls with 100ms delay each
         async def mock_api_call(endpoint: str, delay: float = 0.1):
@@ -298,17 +296,15 @@ class TestParallelExecution:
 
         # Sequential execution
         start_seq = time.time()
-        result1 = await mock_api_call("endpoint1")
-        result2 = await mock_api_call("endpoint2")
-        result3 = await mock_api_call("endpoint3")
+        await mock_api_call("endpoint1")
+        await mock_api_call("endpoint2")
+        await mock_api_call("endpoint3")
         sequential_time = time.time() - start_seq
 
         # Parallel execution
         start_par = time.time()
         results = await asyncio.gather(
-            mock_api_call("endpoint1"),
-            mock_api_call("endpoint2"),
-            mock_api_call("endpoint3")
+            mock_api_call("endpoint1"), mock_api_call("endpoint2"), mock_api_call("endpoint3")
         )
         parallel_time = time.time() - start_par
 
@@ -317,8 +313,7 @@ class TestParallelExecution:
         print(f"  Speedup:              {sequential_time / parallel_time:.2f}x")
 
         # Verify parallel is significantly faster (at least 2x for 3 calls)
-        assert parallel_time < sequential_time / 2, \
-            f"Parallel execution should be at least 2x faster"
+        assert parallel_time < sequential_time / 2, "Parallel execution should be at least 2x faster"
         print("✓ Parallel execution is significantly faster")
 
         # Verify all results are correct
@@ -331,9 +326,9 @@ class TestParallelExecution:
     @pytest.mark.asyncio
     async def test_parallel_execution_error_handling(self):
         """Test error handling in parallel execution with asyncio.gather."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 7: Parallel Execution Error Handling")
-        print("="*70)
+        print("=" * 70)
 
         async def successful_call():
             await asyncio.sleep(0.05)
@@ -345,23 +340,14 @@ class TestParallelExecution:
 
         # Test that gather propagates exceptions
         try:
-            results = await asyncio.gather(
-                successful_call(),
-                failing_call(),
-                successful_call()
-            )
-            assert False, "Should have raised ValueError"
+            results = await asyncio.gather(successful_call(), failing_call(), successful_call())
+            raise AssertionError("Should have raised ValueError")
         except ValueError as e:
             print(f"  ✓ Exception propagated from gather: {e}")
             print("✓ Error handling working correctly")
 
         # Test gather with return_exceptions=True
-        results = await asyncio.gather(
-            successful_call(),
-            failing_call(),
-            successful_call(),
-            return_exceptions=True
-        )
+        results = await asyncio.gather(successful_call(), failing_call(), successful_call(), return_exceptions=True)
 
         print(f"\n  Results with return_exceptions=True: {len(results)} items")
         assert len(results) == 3
@@ -375,9 +361,9 @@ class TestParallelExecution:
     @pytest.mark.asyncio
     async def test_base_api_parallel_calls(self):
         """Test parallel execution using BaseApi._call_async."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 8: BaseApi Parallel Execution")
-        print("="*70)
+        print("=" * 70)
 
         api = BaseApi()
 
@@ -437,20 +423,20 @@ class TestParallelExecution:
 
         mock_session = MockSession()
 
-        with patch('aiohttp.ClientSession', return_value=mock_session):
+        with patch("aiohttp.ClientSession", return_value=mock_session):
             start_time = time.time()
 
             # Execute three API calls in parallel
             results = await asyncio.gather(
                 api._call_async("https://api.sleeper.app/v1/endpoint1"),
                 api._call_async("https://api.sleeper.app/v1/endpoint2"),
-                api._call_async("https://api.sleeper.app/v1/endpoint3")
+                api._call_async("https://api.sleeper.app/v1/endpoint3"),
             )
 
             total_time = time.time() - start_time
 
             print(f"\n  Total execution time: {total_time:.3f}s")
-            print(f"  Expected time: ~0.05s (parallel) vs ~0.15s (sequential)")
+            print("  Expected time: ~0.05s (parallel) vs ~0.15s (sequential)")
 
             # Verify all calls were made
             assert mock_session.call_count == 3, f"Expected 3 calls, got {mock_session.call_count}"
@@ -458,8 +444,7 @@ class TestParallelExecution:
 
             # Verify parallel execution (should be close to 50ms, not 150ms)
             # Allow some tolerance for async overhead
-            assert total_time < 0.20, \
-                f"Parallel execution too slow: {total_time:.3f}s"
+            assert total_time < 0.20, f"Parallel execution too slow: {total_time:.3f}s"
             print("✓ Execution time indicates parallel processing")
 
             # Verify all results are correct
@@ -476,9 +461,9 @@ class TestHelperFunctions:
 
     def test_is_retryable_http_error_with_aiohttp_errors(self):
         """Test is_retryable_http_error with aiohttp exception types."""
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST 9: Helper Functions with aiohttp Errors")
-        print("="*70)
+        print("=" * 70)
 
         # Note: is_retryable_http_error now handles both requests and aiohttp exceptions
         # This test verifies both libraries are properly supported
@@ -487,13 +472,11 @@ class TestHelperFunctions:
         import requests
 
         conn_error = requests.exceptions.ConnectionError()
-        assert is_retryable_http_error(conn_error), \
-            "ConnectionError should be retryable"
+        assert is_retryable_http_error(conn_error), "ConnectionError should be retryable"
         print("  ✓ requests.ConnectionError is retryable")
 
         timeout_error = requests.exceptions.Timeout()
-        assert is_retryable_http_error(timeout_error), \
-            "Timeout should be retryable"
+        assert is_retryable_http_error(timeout_error), "Timeout should be retryable"
         print("  ✓ requests.Timeout is retryable")
 
         # 5xx should be retryable
@@ -501,8 +484,7 @@ class TestHelperFunctions:
         response_5xx.status_code = 503
         error_5xx = requests.exceptions.HTTPError()
         error_5xx.response = response_5xx
-        assert is_retryable_http_error(error_5xx), \
-            "5xx should be retryable"
+        assert is_retryable_http_error(error_5xx), "5xx should be retryable"
         print("  ✓ 5xx errors are retryable")
 
         # 429 should be retryable
@@ -510,56 +492,42 @@ class TestHelperFunctions:
         response_429.status_code = 429
         error_429 = requests.exceptions.HTTPError()
         error_429.response = response_429
-        assert is_retryable_http_error(error_429), \
-            "429 should be retryable"
+        assert is_retryable_http_error(error_429), "429 should be retryable"
         print("  ✓ 429 errors are retryable")
 
         # Test with aiohttp exceptions (new implementation)
-        import aiohttp
 
         # aiohttp.ClientConnectionError should be retryable
         conn_error_aiohttp = aiohttp.ClientConnectionError()
-        assert is_retryable_http_error(conn_error_aiohttp), \
-            "aiohttp.ClientConnectionError should be retryable"
+        assert is_retryable_http_error(conn_error_aiohttp), "aiohttp.ClientConnectionError should be retryable"
         print("  ✓ aiohttp.ClientConnectionError is retryable")
 
         # aiohttp.ClientError (non-response) should be retryable
         client_error_aiohttp = aiohttp.ClientError()
-        assert is_retryable_http_error(client_error_aiohttp), \
-            "aiohttp.ClientError should be retryable"
+        assert is_retryable_http_error(client_error_aiohttp), "aiohttp.ClientError should be retryable"
         print("  ✓ aiohttp.ClientError is retryable")
 
         # aiohttp.ClientResponseError with 429 should be retryable
         error_429_aiohttp = aiohttp.ClientResponseError(
-            request_info=Mock(),
-            history=(),
-            status=429,
-            message="Too Many Requests"
+            request_info=Mock(), history=(), status=429, message="Too Many Requests"
         )
-        assert is_retryable_http_error(error_429_aiohttp), \
-            "aiohttp.ClientResponseError with 429 should be retryable"
+        assert is_retryable_http_error(error_429_aiohttp), "aiohttp.ClientResponseError with 429 should be retryable"
         print("  ✓ aiohttp.ClientResponseError with 429 is retryable")
 
         # aiohttp.ClientResponseError with 503 should be retryable
         error_503_aiohttp = aiohttp.ClientResponseError(
-            request_info=Mock(),
-            history=(),
-            status=503,
-            message="Service Unavailable"
+            request_info=Mock(), history=(), status=503, message="Service Unavailable"
         )
-        assert is_retryable_http_error(error_503_aiohttp), \
-            "aiohttp.ClientResponseError with 503 should be retryable"
+        assert is_retryable_http_error(error_503_aiohttp), "aiohttp.ClientResponseError with 503 should be retryable"
         print("  ✓ aiohttp.ClientResponseError with 503 is retryable")
 
         # aiohttp.ClientResponseError with 404 should NOT be retryable
         error_404_aiohttp = aiohttp.ClientResponseError(
-            request_info=Mock(),
-            history=(),
-            status=404,
-            message="Not Found"
+            request_info=Mock(), history=(), status=404, message="Not Found"
         )
-        assert not is_retryable_http_error(error_404_aiohttp), \
+        assert not is_retryable_http_error(error_404_aiohttp), (
             "aiohttp.ClientResponseError with 404 should NOT be retryable"
+        )
         print("  ✓ aiohttp.ClientResponseError with 404 is NOT retryable")
 
         print("\n✅ TEST PASSED: Helper functions verified (requests + aiohttp)")
@@ -567,9 +535,9 @@ class TestHelperFunctions:
 
 def run_all_tests():
     """Run all tests using pytest."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("ASYNC API CALL TEST SUITE")
-    print("="*70)
+    print("=" * 70)
     print("\nThis test suite verifies:")
     print("  1. Async retry decorator with exponential backoff")
     print("  2. Async _call_async method functionality")
@@ -580,6 +548,7 @@ def run_all_tests():
 
     # Run pytest programmatically
     import pytest
+
     return pytest.main([__file__, "-v", "-s"])
 
 

@@ -11,9 +11,10 @@ All should properly populate owner_name annotations using League.map_users_to_te
 """
 
 import sys
+
 from tools.fantasy.info import (
-    get_sleeper_league_rosters,
     get_sleeper_league_matchups,
+    get_sleeper_league_rosters,
     get_sleeper_league_transactions,
 )
 
@@ -49,7 +50,7 @@ def test_rosters():
         return True
 
     except Exception as e:
-        print(f"❌ FAIL: Exception occurred: {str(e)}")
+        print(f"❌ FAIL: Exception occurred: {e!s}")
         return False
 
 
@@ -81,7 +82,7 @@ def test_matchups():
         return True
 
     except Exception as e:
-        print(f"❌ FAIL: Exception occurred: {str(e)}")
+        print(f"❌ FAIL: Exception occurred: {e!s}")
         return False
 
 
@@ -122,7 +123,7 @@ def test_transactions():
         return True
 
     except Exception as e:
-        print(f"❌ FAIL: Exception occurred: {str(e)}")
+        print(f"❌ FAIL: Exception occurred: {e!s}")
         return False
 
 

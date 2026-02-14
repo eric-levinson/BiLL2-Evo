@@ -2,8 +2,10 @@
 Integration test for web search tool.
 This script verifies the search_web function works correctly with Tavily API.
 """
+
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -12,7 +14,7 @@ load_dotenv()
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from tools.websearch.info import search_web
+from tools.websearch.info import search_web  # noqa: E402
 
 
 def test_web_search_basic():
@@ -32,20 +34,20 @@ def test_web_search_basic():
 
     print(f"\n✅ SUCCESS: Found {len(result.get('results', []))} results")
 
-    for i, item in enumerate(result.get('results', []), 1):
+    for i, item in enumerate(result.get("results", []), 1):
         print(f"\n  Result {i}:")
         print(f"    Title: {item.get('title', 'N/A')}")
         print(f"    URL: {item.get('url', 'N/A')}")
         print(f"    Content: {item.get('content', 'N/A')[:100]}...")
 
     # Verify structure
-    assert 'results' in result, "Missing 'results' key"
-    assert len(result['results']) > 0, "No results returned"
+    assert "results" in result, "Missing 'results' key"
+    assert len(result["results"]) > 0, "No results returned"
 
-    for item in result['results']:
-        assert 'title' in item, "Missing 'title' in result"
-        assert 'url' in item, "Missing 'url' in result"
-        assert 'content' in item, "Missing 'content' in result"
+    for item in result["results"]:
+        assert "title" in item, "Missing 'title' in result"
+        assert "url" in item, "Missing 'url' in result"
+        assert "content" in item, "Missing 'content' in result"
 
     return True
 
@@ -67,11 +69,11 @@ def test_web_search_injury():
 
     print(f"\n✅ SUCCESS: Found {len(result.get('results', []))} results")
 
-    for i, item in enumerate(result.get('results', []), 1):
+    for i, item in enumerate(result.get("results", []), 1):
         print(f"\n  Result {i}:")
         print(f"    Title: {item.get('title', 'N/A')}")
         print(f"    URL: {item.get('url', 'N/A')}")
-        content = item.get('content', 'N/A')
+        content = item.get("content", "N/A")
         print(f"    Content: {content[:150]}...")
 
     return True
@@ -90,10 +92,10 @@ def test_api_key_validation():
         return False
 
     if api_key.startswith("tvly-"):
-        print(f"\n✅ SUCCESS: API key is configured (starts with 'tvly-')")
+        print("\n✅ SUCCESS: API key is configured (starts with 'tvly-')")
         return True
     else:
-        print(f"\n⚠️  WARNING: API key format unexpected (doesn't start with 'tvly-')")
+        print("\n⚠️  WARNING: API key format unexpected (doesn't start with 'tvly-')")
         return True
 
 
@@ -118,7 +120,7 @@ if __name__ == "__main__":
             else:
                 failed += 1
         except Exception as e:
-            print(f"\n❌ EXCEPTION in {test_name}: {str(e)}")
+            print(f"\n❌ EXCEPTION in {test_name}: {e!s}")
             failed += 1
 
     print("\n" + "=" * 60)

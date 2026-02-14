@@ -1,15 +1,16 @@
 from fastmcp import FastMCP
 from supabase import Client
-from .info import get_sleeper_leagues_by_username as _get_sleeper_leagues_by_username
-from .info import get_sleeper_league_rosters as _get_sleeper_league_rosters
-from .info import get_sleeper_league_users as _get_sleeper_league_users
+
+from .info import get_sleeper_all_draft_picks_by_id as _get_sleeper_all_draft_picks_by_id
+from .info import get_sleeper_draft_by_id as _get_sleeper_draft_by_id
+from .info import get_sleeper_league_by_id as _get_sleeper_league_by_id
 from .info import get_sleeper_league_matchups as _get_sleeper_league_matchups
+from .info import get_sleeper_league_rosters as _get_sleeper_league_rosters
 from .info import get_sleeper_league_transactions as _get_sleeper_league_transactions
+from .info import get_sleeper_league_users as _get_sleeper_league_users
+from .info import get_sleeper_leagues_by_username as _get_sleeper_leagues_by_username
 from .info import get_sleeper_trending_players as _get_sleeper_trending_players
 from .info import get_sleeper_user_drafts as _get_sleeper_user_drafts
-from .info import get_sleeper_league_by_id as _get_sleeper_league_by_id
-from .info import get_sleeper_draft_by_id as _get_sleeper_draft_by_id
-from .info import get_sleeper_all_draft_picks_by_id as _get_sleeper_all_draft_picks_by_id
 
 
 def register_tools(mcp: FastMCP, supabase: Client):
@@ -61,9 +62,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             "or 'free_agent'."
         )
     )
-    def get_sleeper_league_transactions(
-        league_id: str, week: int, txn_type: str | None = None
-    ) -> list[dict]:
+    def get_sleeper_league_transactions(league_id: str, week: int, txn_type: str | None = None) -> list[dict]:
         return _get_sleeper_league_transactions(league_id, week, txn_type)
 
     @mcp.tool(
@@ -85,9 +84,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             "Returns a list of draft objects as returned by the Sleeper API."
         )
     )
-    def get_sleeper_user_drafts(
-        username: str, sport: str = "nfl", season: int = 2025
-    ) -> list[dict]:
+    def get_sleeper_user_drafts(username: str, sport: str = "nfl", season: int = 2025) -> list[dict]:
         return _get_sleeper_user_drafts(username, sport, season)
 
     @mcp.tool(
@@ -99,19 +96,11 @@ def register_tools(mcp: FastMCP, supabase: Client):
     )
     def get_sleeper_league_by_id(league_id: str, summary: bool = False) -> dict:
         return _get_sleeper_league_by_id(league_id, summary)
-    
-    @mcp.tool(
-        description=(
-            "Get a Sleeper draft by its ID. Includes basic info, participants, and draft settings."
-        )
-    )
-    def get_sleeper_draft_by_id(draft_id: str ) -> dict:
+
+    @mcp.tool(description=("Get a Sleeper draft by its ID. Includes basic info, participants, and draft settings."))
+    def get_sleeper_draft_by_id(draft_id: str) -> dict:
         return _get_sleeper_draft_by_id(draft_id)
 
-    @mcp.tool(
-        description=(
-            "Get all draft picks for a given Sleeper draft ID."
-        )
-    )
+    @mcp.tool(description=("Get all draft picks for a given Sleeper draft ID."))
     def get_sleeper_all_draft_picks_by_id(draft_id: str) -> dict:
         return _get_sleeper_all_draft_picks_by_id(draft_id)

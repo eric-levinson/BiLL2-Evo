@@ -83,7 +83,7 @@ export function useAssistantRuntime() {
 
   const chatHelpers = useChat({ chat })
 
-  const { messages: rawMessages, error, setMessages, isLoading } = chatHelpers
+  const { messages: rawMessages, error, setMessages } = chatHelpers
 
   // Deduplicate tool calls in streaming messages to prevent
   // "Duplicate key toolCallId-xxx in tapResources" crash in assistant-ui
@@ -193,7 +193,7 @@ export function useAssistantRuntime() {
     }
 
     loadSession()
-  }, [sessionId, setMessages, setIsSessionsLoading])
+  }, [sessionId, setMessages, setIsSessionsLoading, setSessionId])
 
   // Wrap the AI SDK chat with assistant-ui runtime adapter
   // Pass deduplicated messages to prevent duplicate key crashes in tapResources

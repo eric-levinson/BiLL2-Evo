@@ -3,8 +3,9 @@ Performance test for get_metrics_metadata() function.
 Tests execution time to verify <1ms per call (down from 5-10ms with dynamic import).
 """
 
-import timeit
 import statistics
+import timeit
+
 
 def run_performance_test():
     """
@@ -27,7 +28,7 @@ def run_performance_test():
     print("=" * 70)
     print("Performance Test: get_metrics_metadata()")
     print("=" * 70)
-    print(f"\nTarget: <1ms per call (down from 5-10ms with dynamic import)\n")
+    print("\nTarget: <1ms per call (down from 5-10ms with dynamic import)\n")
 
     results = []
 
@@ -62,14 +63,15 @@ def run_performance_test():
 
     # Overall pass/fail
     if avg_ms < 1.0:
-        print(f"✓ PERFORMANCE TEST PASSED")
+        print("✓ PERFORMANCE TEST PASSED")
         print(f"  Average execution time ({avg_ms:.4f} ms) is well below 1ms target")
-        print(f"  Estimated improvement: ~{5/avg_ms:.1f}x-{10/avg_ms:.1f}x faster than dynamic import (5-10ms)")
+        print(f"  Estimated improvement: ~{5 / avg_ms:.1f}x-{10 / avg_ms:.1f}x faster than dynamic import (5-10ms)")
         return True
     else:
-        print(f"✗ PERFORMANCE TEST FAILED")
+        print("✗ PERFORMANCE TEST FAILED")
         print(f"  Average execution time ({avg_ms:.4f} ms) exceeds 1ms target")
         return False
+
 
 if __name__ == "__main__":
     success = run_performance_test()

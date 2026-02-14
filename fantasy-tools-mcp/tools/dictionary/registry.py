@@ -1,5 +1,6 @@
 from fastmcp import FastMCP
 from supabase import Client
+
 from .info import get_dictionary_info as _get_dictionary_info
 
 

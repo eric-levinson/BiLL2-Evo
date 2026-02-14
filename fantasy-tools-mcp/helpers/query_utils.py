@@ -1,5 +1,7 @@
 import logging
+
 from supabase import Client
+
 from helpers.name_utils import sanitize_name
 
 logger = logging.getLogger(__name__)
@@ -92,7 +94,9 @@ def build_player_stats_query(
 
     # Sanitize and build optional name filter
     sanitized_names = [sanitize_name(name) for name in player_names] if player_names else []
-    or_filter = ",".join([f"{player_name_column}.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
+    or_filter = (
+        ",".join([f"{player_name_column}.ilike.%{name}%" for name in sanitized_names]) if sanitized_names else None
+    )
 
     # Handle position filter (use defaults if not provided)
     positions_list = positions if positions is not None else default_positions
@@ -136,4 +140,4 @@ def build_player_stats_query(
         return {return_key: response.data}
 
     except Exception as e:
-        raise Exception(f"Error fetching {return_key}: {str(e)}")
+        raise Exception(f"Error fetching {return_key}: {e!s}") from None

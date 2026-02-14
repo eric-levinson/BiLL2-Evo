@@ -4,9 +4,9 @@ Performance test for parallelized Sleeper API functions.
 Tests execution time to verify ~3x improvement (600ms -> ~200ms) from parallel API calls.
 """
 
-import timeit
 import statistics
 import sys
+import timeit
 
 # Test league ID from spec
 TEST_LEAGUE_ID = "1225572389929099264"
@@ -34,19 +34,19 @@ TEST_WEEK = 1
     # Test cases for the three parallelized functions
     test_cases = [
         (
-            f"get_sleeper_league_matchups(TEST_LEAGUE_ID, TEST_WEEK, summary=False)",
+            "get_sleeper_league_matchups(TEST_LEAGUE_ID, TEST_WEEK, summary=False)",
             "get_sleeper_league_matchups",
             "3 parallel API calls (matchups, rosters, users)",
             500,  # Target: ~400-500ms (down from ~1200ms sequential)
         ),
         (
-            f"get_sleeper_league_rosters(TEST_LEAGUE_ID, summary=False)",
+            "get_sleeper_league_rosters(TEST_LEAGUE_ID, summary=False)",
             "get_sleeper_league_rosters",
             "2 parallel API calls (rosters, users)",
             300,  # Target: ~200-300ms (down from ~400ms sequential)
         ),
         (
-            f"get_sleeper_league_transactions(TEST_LEAGUE_ID, TEST_WEEK)",
+            "get_sleeper_league_transactions(TEST_LEAGUE_ID, TEST_WEEK)",
             "get_sleeper_league_transactions",
             "3 parallel API calls (transactions, rosters, users)",
             500,  # Target: ~200-500ms (down from ~600ms sequential)
@@ -83,7 +83,7 @@ TEST_WEEK = 1
             time_seconds = timeit.timeit(test_code, setup=setup_code, number=1)
             time_ms = time_seconds * 1000
             times.append(time_ms)
-            print(f"  Iteration {i+1}: {time_ms:.2f} ms")
+            print(f"  Iteration {i + 1}: {time_ms:.2f} ms")
 
         # Calculate statistics
         avg_ms = statistics.mean(times)
@@ -102,7 +102,7 @@ TEST_WEEK = 1
             "passed": avg_ms <= target_ms,
         }
 
-        print(f"\nStatistics:")
+        print("\nStatistics:")
         print(f"  Average:        {avg_ms:.2f} ms")
         print(f"  Median:         {median_ms:.2f} ms")
         print(f"  Min:            {min_ms:.2f} ms")
@@ -161,8 +161,9 @@ def main():
         success = run_performance_test()
         sys.exit(0 if success else 1)
     except Exception as e:
-        print(f"\n❌ ERROR: Performance test failed with exception: {str(e)}")
+        print(f"\n❌ ERROR: Performance test failed with exception: {e!s}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
