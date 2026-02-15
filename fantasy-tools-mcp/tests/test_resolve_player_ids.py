@@ -119,12 +119,12 @@ def test_mixed_ids():
 
 
 def test_batching():
-    """Large ID lists are split into batches of 50."""
-    print("\nTEST 5: Batching into chunks of 50")
+    """Large ID lists are split into batches of 100."""
+    print("\nTEST 5: Batching into chunks of 100")
     _clear_cache()
 
-    # 120 IDs should produce 3 batches: 50, 50, 20
-    all_ids = [str(i) for i in range(1, 121)]
+    # 250 IDs should produce 3 batches: 100, 100, 50
+    all_ids = [str(i) for i in range(1, 251)]
 
     # Track in_() calls to verify batching
     call_batches = []
@@ -144,16 +144,16 @@ def test_batching():
 
     result = _resolve_player_ids(mock_sb, all_ids)
 
-    assert len(result) == 120, f"Expected 120 results, got {len(result)}"
+    assert len(result) == 250, f"Expected 250 results, got {len(result)}"
 
-    # Verify batches are <= 50
+    # Verify batches are <= 100
     for i, batch in enumerate(call_batches):
-        assert len(batch) <= 50, f"Batch {i} has {len(batch)} items, expected <= 50"
+        assert len(batch) <= 100, f"Batch {i} has {len(batch)} items, expected <= 100"
     assert len(call_batches) == 3, f"Expected 3 batches, got {len(call_batches)}"
 
-    # Verify sizes: 50, 50, 20
+    # Verify sizes: 100, 100, 50
     sizes = sorted([len(b) for b in call_batches], reverse=True)
-    assert sizes == [50, 50, 20], f"Expected batch sizes [50, 50, 20], got {sizes}"
+    assert sizes == [100, 100, 50], f"Expected batch sizes [100, 100, 50], got {sizes}"
 
     print(f"  PASSED: {len(call_batches)} batches with sizes {sizes}")
     return True

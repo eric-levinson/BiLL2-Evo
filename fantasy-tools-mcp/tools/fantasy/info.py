@@ -48,14 +48,15 @@ def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
     Non-numeric IDs (e.g. team defense "HOU") are kept as-is since they won't
     exist in the player table.
 
-    Batches queries into chunks of 50 IDs to avoid Supabase statement timeouts.
-    Uses a module-level TTL cache so repeated IDs across rosters/matchups
-    are resolved from memory instead of hitting the database again.
+    Queries mv_player_id_lookup (indexed materialized view) instead of the
+    expensive vw_nfl_players_with_dynasty_ids view. Batches into chunks of
+    100 IDs as a safety net. Uses a module-level TTL cache so repeated IDs
+    across rosters/matchups are resolved from memory.
     """
     if not player_ids:
         return []
 
-    _BATCH_SIZE = 50
+    _BATCH_SIZE = 100
 
     # Identify numeric IDs not already cached (deduplicated)
     uncached_ids: list[str] = []
@@ -65,13 +66,13 @@ def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
             uncached_ids.append(pid)
             seen.add(pid)
 
-    # Fetch uncached IDs in batches
+    # Fetch uncached IDs in batches from the materialized view
     if uncached_ids:
         batches = [uncached_ids[i : i + _BATCH_SIZE] for i in range(0, len(uncached_ids), _BATCH_SIZE)]
 
         def _fetch_batch(batch: list[str]) -> dict[str, dict]:
             response = (
-                supabase.table("vw_nfl_players_with_dynasty_ids")
+                supabase.table("mv_player_id_lookup")
                 .select("sleeper_id, display_name, latest_team, position")
                 .in_("sleeper_id", [int(pid) for pid in batch])
                 .execute()
