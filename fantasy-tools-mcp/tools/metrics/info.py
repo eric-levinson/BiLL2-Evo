@@ -422,6 +422,7 @@ def get_player_consistency(
         base_columns=[
             "season",
             "player_name",
+            "merge_name",
             "ff_position",
             "ff_team",
             "games_played",
@@ -434,7 +435,7 @@ def get_player_consistency(
             "bust_games_under_5",
             "consistency_coefficient",
         ],
-        player_name_column="player_name",
+        player_name_column="merge_name",
         position_column="ff_position",
         default_positions=["QB", "RB", "WR", "TE"],
         return_key="playerConsistency",

@@ -83,6 +83,7 @@ def compare_players(
                     table_name="mv_player_consistency",
                     base_columns=[
                         "player_name",
+                        "merge_name",
                         "games_played",
                         "avg_fp_ppr",
                         "fp_stddev_ppr",
@@ -92,7 +93,7 @@ def compare_players(
                         "bust_games_under_5",
                         "consistency_coefficient",
                     ],
-                    player_name_column="player_name",
+                    player_name_column="merge_name",
                     position_column="ff_position",
                     default_positions=["QB", "RB", "WR", "TE"],
                     return_key="consistency",
