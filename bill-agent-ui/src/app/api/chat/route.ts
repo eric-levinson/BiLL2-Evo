@@ -41,6 +41,7 @@ import {
   createUpdateSleeperConnectionTool
 } from '@/lib/ai/tools/preferences'
 import { getBillSystemPrompt } from '@/lib/ai/prompts/billSystemPrompt'
+import { resolveLeagueSettings } from '@/lib/ai/leagueContext'
 import { z } from 'zod'
 
 /**
@@ -265,7 +266,26 @@ export async function POST(req: Request) {
 
     // Fetch user preferences for cross-session memory
     const userPreferences = await getUserPreferences(user.id)
-    const userContextSection = formatPreferencesForPrompt(userPreferences)
+
+    // Pre-resolve league scoring settings if primary league is set.
+    // Eliminates the most frequent wasted tool call — the agent currently
+    // calls get_sleeper_league_by_id on nearly every start/sit and trade query.
+    const leagueContext = userPreferences?.primary_league_id
+      ? await resolveLeagueSettings(userPreferences.primary_league_id)
+      : null
+
+    let userContextSection = formatPreferencesForPrompt(userPreferences)
+
+    // Append resolved league settings as XML block for the agent
+    if (leagueContext) {
+      userContextSection += `\n\n<league_settings>
+Primary League: ${leagueContext.leagueName}
+Scoring: ${leagueContext.scoringFormat}
+Format: ${leagueContext.isSuperFlex ? 'Superflex' : 'Standard roster'}
+Teams: ${leagueContext.teamCount}
+Roster: ${leagueContext.rosterSummary}
+</league_settings>`
+    }
 
     // Create preference management tools
     const preferenceTools = {
