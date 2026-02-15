@@ -15,6 +15,7 @@ from tools.league.registry import register_tools as _register_league_tools
 from tools.metrics.registry import register_tools as register_metrics_tools
 from tools.player.registry import register_tools as register_player_tools
 from tools.ranks.registry import register_tools as register_ranks_tools
+from tools.trade.registry import register_tools as register_trade_tools
 from tools.websearch.registry import register_tools as register_websearch_tools
 
 
@@ -47,6 +48,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     # Register league tools
     _register_league_tools(mcp, supabase)
+
+    # Register trade tools
+    register_trade_tools(mcp, supabase)
 
     # Register websearch tools
     register_websearch_tools(mcp, supabase)
