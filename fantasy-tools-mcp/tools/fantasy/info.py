@@ -274,19 +274,22 @@ def get_sleeper_league_transactions(league_id: str, week: int, txn_type: str | N
 
 
 def get_sleeper_trending_players(
-    sport: str = "nfl", add_drop: str = "add", hours: int = 24, limit: int = 25
+    sport: str = "nfl", add_drop: str = "add", hours: int = 24, limit: int = 25,
+    supabase: Client | None = None,
 ) -> list[dict]:
-    """Retrieve trending players from Sleeper.
+    """Retrieve trending players from Sleeper with optional name/position/team resolution.
 
     Args:
         sport: The sport to query (e.g., "nfl", "nba", "lcs").
         add_drop: Whether to return trending adds ("add") or drops ("drop").
         hours: Number of hours to look back.
         limit: Maximum number of players to return.
+        supabase: Supabase client for resolving player names/positions/teams.
 
     Returns:
         A list of dictionaries containing the player ID and the corresponding
-        count of adds or drops.
+        count of adds or drops. If supabase is provided, each entry is enriched
+        with player_name, position, and team.
     """
 
     if not isinstance(sport, str):
@@ -303,8 +306,25 @@ def get_sleeper_trending_players(
         return [{"error": "limit must be a positive integer."}]
 
     try:
-        players = Players()
-        return players.get_trending_players(sport, add_drop, hours, limit)
+        players_api = Players()
+        results = players_api.get_trending_players(sport, add_drop, hours, limit)
+
+        # Enrich with player names/positions/teams if supabase is available
+        if supabase and results:
+            player_ids = [str(p.get("player_id", "")) for p in results]
+            resolved = _resolve_player_ids(supabase, player_ids)
+            for i, player in enumerate(results):
+                if i < len(resolved):
+                    info = resolved[i]
+                    player["player_name"] = info.get("name")
+                    player["position"] = info.get("position")
+                    player["team"] = info.get("team")
+                else:
+                    player["player_name"] = None
+                    player["position"] = None
+                    player["team"] = None
+
+        return results
     except Exception as e:
         raise Exception(f"Error fetching trending players: {e!s}") from None
 
