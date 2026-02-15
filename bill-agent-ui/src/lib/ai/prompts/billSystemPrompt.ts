@@ -247,6 +247,7 @@ Chart JSON format (wrap in \`\`\`chart code block):
 - "config.yKeys": Array of keys for y-axis values. Multiple keys = multiple bars/lines (multi-series).
 - Always include a descriptive "config.title".
 - Provide brief context text before and key insights after the chart.
+- IMPORTANT: Never mix metrics with vastly different scales on the same chart (e.g., yards ~1500 and TDs ~15). Use separate charts or normalize to percentages/per-game averages so all bars are visually comparable.
 </visualization>
 
 <style>
