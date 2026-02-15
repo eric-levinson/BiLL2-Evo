@@ -75,7 +75,7 @@ const FANTASY_SYNONYMS: Record<string, string[]> = {
   waivers: ['waiver', 'trending', 'add'],
   fa: ['waiver', 'free', 'add'],
   ppr: ['scoring', 'reception', 'league'],
-  superflex: ['scoring', 'quarterback', 'league'],
+  superflex: ['scoring', 'quarterback', 'league']
 }
 
 /**

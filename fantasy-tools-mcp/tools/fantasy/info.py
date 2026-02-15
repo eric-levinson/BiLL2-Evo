@@ -274,7 +274,10 @@ def get_sleeper_league_transactions(league_id: str, week: int, txn_type: str | N
 
 
 def get_sleeper_trending_players(
-    sport: str = "nfl", add_drop: str = "add", hours: int = 24, limit: int = 25,
+    sport: str = "nfl",
+    add_drop: str = "add",
+    hours: int = 24,
+    limit: int = 25,
     supabase: Client | None = None,
 ) -> list[dict]:
     """Retrieve trending players from Sleeper with optional name/position/team resolution.
