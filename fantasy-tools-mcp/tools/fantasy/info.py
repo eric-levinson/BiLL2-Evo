@@ -1,3 +1,5 @@
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from supabase import Client
@@ -10,6 +12,34 @@ from tools.fantasy.sleeper_wrapper.user import User
 # Test league ID:
 # 1225572389929099264
 
+# ---------------------------------------------------------------------------
+# Module-level TTL cache for resolved player IDs.
+# Player names/positions/teams rarely change, so caching avoids redundant
+# Supabase queries when the same IDs appear across rosters or matchups.
+# ---------------------------------------------------------------------------
+_player_cache: dict[str, tuple[dict, float]] = {}
+_player_cache_lock = threading.Lock()
+_CACHE_TTL = 300  # 5 minutes
+
+
+def _cache_get(player_id: str) -> dict | None:
+    """Return cached player info if still valid, else None."""
+    with _player_cache_lock:
+        entry = _player_cache.get(player_id)
+        if entry and (time.monotonic() - entry[1]) <= _CACHE_TTL:
+            return entry[0]
+        if entry:
+            del _player_cache[player_id]
+        return None
+
+
+def _cache_put(resolved: dict[str, dict]) -> None:
+    """Store resolved player info in the cache."""
+    now = time.monotonic()
+    with _player_cache_lock:
+        for pid, info in resolved.items():
+            _player_cache[pid] = (info, now)
+
 
 def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
     """Convert Sleeper player IDs to compact player info via Supabase (not Sleeper API).
@@ -17,37 +47,71 @@ def _resolve_player_ids(supabase: Client, player_ids: list[str]) -> list[dict]:
     Returns list of {name, position, team} dicts in the same order as input IDs.
     Non-numeric IDs (e.g. team defense "HOU") are kept as-is since they won't
     exist in the player table.
+
+    Queries mv_player_id_lookup (indexed materialized view) instead of the
+    expensive vw_nfl_players_with_dynasty_ids view. Batches into chunks of
+    100 IDs as a safety net. Uses a module-level TTL cache so repeated IDs
+    across rosters/matchups are resolved from memory.
     """
     if not player_ids:
         return []
 
-    # sleeper_id is numeric in the DB - filter out non-numeric IDs (team defenses like "HOU")
-    numeric_ids = [pid for pid in player_ids if pid.isdigit()]
+    _BATCH_SIZE = 100
 
-    lookup = {}
-    if numeric_ids:
-        # Use in_ filter for a single clean query
-        response = (
-            supabase.table("vw_nfl_players_with_dynasty_ids")
-            .select("sleeper_id, display_name, latest_team, position")
-            .in_("sleeper_id", [int(pid) for pid in numeric_ids])
-            .execute()
-        )
-        for row in response.data:
-            lookup[str(int(row["sleeper_id"]))] = {
-                "name": row.get("display_name", "Unknown"),
-                "position": row.get("position", ""),
-                "team": row.get("latest_team", ""),
-            }
+    # Identify numeric IDs not already cached (deduplicated)
+    uncached_ids: list[str] = []
+    seen: set[str] = set()
+    for pid in player_ids:
+        if pid.isdigit() and pid not in seen and _cache_get(pid) is None:
+            uncached_ids.append(pid)
+            seen.add(pid)
 
-    # Return in same order as input; non-numeric IDs (team defenses) get a readable fallback
-    return [
-        lookup.get(
-            str(pid),
-            {"name": pid, "position": "DEF" if not pid.isdigit() else "", "team": pid if not pid.isdigit() else ""},
-        )
-        for pid in player_ids
-    ]
+    # Fetch uncached IDs in batches from the materialized view
+    if uncached_ids:
+        batches = [uncached_ids[i : i + _BATCH_SIZE] for i in range(0, len(uncached_ids), _BATCH_SIZE)]
+
+        def _fetch_batch(batch: list[str]) -> dict[str, dict]:
+            response = (
+                supabase.table("mv_player_id_lookup")
+                .select("sleeper_id, display_name, latest_team, position")
+                .in_("sleeper_id", [int(pid) for pid in batch])
+                .execute()
+            )
+            found: dict[str, dict] = {}
+            for row in response.data:
+                sid = str(int(row["sleeper_id"]))
+                found[sid] = {
+                    "name": row.get("display_name", "Unknown"),
+                    "position": row.get("position", ""),
+                    "team": row.get("latest_team", ""),
+                }
+            # Cache "not found" entries too so we don't re-query them
+            for pid in batch:
+                if pid not in found:
+                    found[pid] = {"name": pid, "position": "", "team": ""}
+            return found
+
+        with ThreadPoolExecutor(max_workers=min(len(batches), 4)) as executor:
+            batch_results = list(executor.map(_fetch_batch, batches))
+
+        all_resolved: dict[str, dict] = {}
+        for batch_result in batch_results:
+            all_resolved.update(batch_result)
+        _cache_put(all_resolved)
+
+    # Build result in input order from cache + fallbacks for non-numeric IDs
+    result: list[dict] = []
+    for pid in player_ids:
+        cached = _cache_get(str(pid))
+        if cached:
+            result.append(cached)
+        elif not pid.isdigit():
+            # Non-numeric IDs are team defenses (e.g. "HOU")
+            result.append({"name": pid, "position": "DEF", "team": pid})
+        else:
+            # Numeric but not found — shouldn't happen after batch fetch
+            result.append({"name": pid, "position": "", "team": ""})
+    return result
 
 
 # tool definition to get sleeper leagues from an EXACT username with verbose option
