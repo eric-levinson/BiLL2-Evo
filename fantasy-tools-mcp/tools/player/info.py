@@ -27,11 +27,11 @@ def get_player_info(supabase: Client, player_names: list[str]) -> list[dict]:
         if not player_names:
             return [{"error": "Please submit list of player names to search for as array of strings"}]
         sanitized_names = [sanitize_name(name) for name in player_names]
-        query = supabase.table("vw_nfl_players_with_dynasty_ids").select(
+        query = supabase.table("mv_player_id_lookup").select(
             "display_name, latest_team, position, height, weight, age, sleeper_id, gsis_id, years_of_experience"
         )
         if sanitized_names:
-            or_filter = ",".join([f"merge_name.ilike.%{name}%" for name in sanitized_names])
+            or_filter = ",".join([f"merge_name.ilike.%{name}%,display_name.ilike.%{name}%" for name in sanitized_names])
             query = query.or_(or_filter)
         response = query.limit(35).execute()
         return response.data
@@ -51,7 +51,7 @@ def get_players_by_sleeper_id(supabase: Client, sleeper_ids: list[str]) -> list[
         if not sleeper_ids:
             return [{"error": "Please submit list of Sleeper IDs to search for as array of strings"}]
         sanitized_ids = [sanitize_name(sleeper_id) for sleeper_id in sleeper_ids]
-        query = supabase.table("vw_nfl_players_with_dynasty_ids").select(
+        query = supabase.table("mv_player_id_lookup").select(
             "display_name, latest_team, position, height, weight, age, sleeper_id, gsis_id, years_of_experience"
         )
         if sanitized_ids:
