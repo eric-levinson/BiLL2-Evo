@@ -2,7 +2,7 @@
 Player comparison logic for side-by-side analysis.
 """
 
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from supabase import Client
 
@@ -52,22 +52,19 @@ def compare_players(
         # Build season filter
         season_list = [season] if season else None
 
-        # Fetch all player profiles in parallel
-        async def _fetch_all_profiles():
-            tasks = [
-                asyncio.to_thread(
-                    get_player_profile,
-                    supabase=supabase,
-                    player_names=[name],
-                    season_list=season_list,
-                    metrics=metrics,
-                    limit=25,
-                )
-                for name in player_names
-            ]
-            return await asyncio.gather(*tasks)
+        # Fetch all player profiles in parallel using threads
+        # (ThreadPoolExecutor avoids asyncio.run() conflicts with FastMCP's event loop)
+        def _fetch_profile(name):
+            return get_player_profile(
+                supabase=supabase,
+                player_names=[name],
+                season_list=season_list,
+                metrics=metrics,
+                limit=25,
+            )
 
-        profiles = asyncio.run(_fetch_all_profiles())
+        with ThreadPoolExecutor(max_workers=len(player_names)) as executor:
+            profiles = list(executor.map(_fetch_profile, player_names))
 
         # Structure the comparison output
         comparison = {

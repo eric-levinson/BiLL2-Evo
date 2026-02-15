@@ -123,6 +123,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
                   fill={colors[index % colors.length]}
                   stackId={stacked ? 'stack' : undefined}
                   radius={[4, 4, 0, 0]}
+                  minPointSize={5}
                 />
               ))}
             </RechartsBarChart>
