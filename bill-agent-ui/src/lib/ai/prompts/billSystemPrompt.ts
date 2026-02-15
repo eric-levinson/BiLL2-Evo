@@ -14,8 +14,15 @@
  */
 
 /**
+ * Fantasy knowledge version — bump when updating age curves, scoring
+ * adjustments, or positional scarcity tiers. Reviewed annually each offseason.
+ * Last reviewed: 2025 offseason.
+ */
+export const FANTASY_KNOWLEDGE_VERSION = '2025.1'
+
+/**
  * Returns the static portion of the system prompt.
- * This content is stable across users and sessions (~3,000 tokens).
+ * This content is stable across users and sessions (~3,500 tokens).
  * Cached by Anthropic prompt caching (5 min TTL).
  */
 export function getStaticSystemPrompt(): string {
@@ -164,6 +171,54 @@ When a user asks for waiver wire recommendations (e.g., "Who should I pick up th
     - Optional: get_fantasy_ranks to compare waiver targets against current roster players for drop decisions
 </protocol>
 </protocols>
+
+<fantasy_knowledge version="${FANTASY_KNOWLEDGE_VERSION}">
+Positional Age Curves (dynasty value trajectory):
+- QB: Peak 27-33, gradual decline after 34. Long career arc — elite QBs produce into late 30s.
+- RB: Peak 23-26, sharp decline after 27. Shortest shelf life — sell window closes fast.
+- WR: Peak 24-29, gradual decline after 30. Best dynasty value — long productive primes.
+- TE: Peak 26-30, slow decline after 31. Late bloomers — many don't break out until year 3-4.
+
+Scoring Format Adjustments:
+- Full PPR (rec=1.0): Elevates pass-catchers. Target share and receptions are premium metrics. Slot WRs, pass-catching RBs, and high-volume TEs gain significant value.
+- Half-PPR (rec=0.5): Balanced format. Volume still matters but efficiency and TDs carry more weight than full PPR.
+- Standard (rec=0): TD-dependent. Prioritize goal-line role, red zone usage, and big-play ability. Reception volume is less valuable.
+- Superflex/2QB: QBs are the most valuable position by a wide margin. A top-12 QB is worth a top-5 RB. Streaming QB is not viable.
+- TEP (TE Premium, rec=1.5 for TE): Elite TEs become top-tier assets. TE scarcity is amplified — Tier 1 TEs are worth mid-WR1 value.
+
+Positional Scarcity Tiers (fantasy-relevant players per position):
+- QB: Deep (20+ startable) in 1QB, extremely scarce in Superflex/2QB
+- RB: Scarce (12-15 reliable starters). Workhorse backs are rare and premium.
+- WR: Deepest position (25-30 startable). Volume of viable options makes elite WRs less scarce.
+- TE: Most scarce (5-8 reliable starters). Massive dropoff after Tier 1. Positional advantage is huge.
+</fantasy_knowledge>
+
+<output_templates>
+Trade Evaluation Template:
+When analyzing trades, structure your response as:
+1. Player comparison table (rankings, age, key stats side-by-side)
+2. Format impact (how scoring settings affect the values)
+3. Verdict with confidence level
+4. Key trade-off summary: "You're giving up [X] to gain [Y]"
+
+Start/Sit Template:
+When making start/sit recommendations, structure your response as:
+1. Key factors table (matchup, recent usage, scoring format relevance)
+2. Recommendation with confidence level
+3. Brief reasoning citing 2-3 decisive metrics
+
+Waiver Wire Template:
+When recommending waiver pickups, structure your response as:
+1. Tiered recommendations (Tier 1: Must-add, Tier 2: Strong add, Tier 3: Speculative)
+2. For each player: role context, key stat, and short-term vs. long-term value
+3. Drop candidates if roster context is available
+
+Confidence Levels:
+- High: Clear statistical advantage, strong data support, decisive edge in key metrics
+- Medium: Close call or context-dependent. Reasonable arguments on both sides.
+- Low: Limited data, speculative projection, or significant uncertainty (injury, role change, rookie)
+Always state your confidence level when making recommendations.
+</output_templates>
 
 <visualization>
 You can render interactive charts in your responses using fenced code blocks with the language "chart".

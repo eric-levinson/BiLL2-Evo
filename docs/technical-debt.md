@@ -10,3 +10,4 @@
 | Low | `bill-agent-ui/package-lock.json` coexists with `pnpm-lock.yaml` | Should remove package-lock.json |
 | Low | No CI/CD pipeline at monorepo level | bill-agent-ui has standalone validate workflow |
 | Low | No Docker containerization | Not a priority for current team size |
+| Low | Fantasy knowledge module annual review | `billSystemPrompt.ts` `<fantasy_knowledge>` section (age curves, scoring adjustments, scarcity tiers) needs review each offseason. Version tracked by `FANTASY_KNOWLEDGE_VERSION` constant. Next review: 2026 offseason. |
