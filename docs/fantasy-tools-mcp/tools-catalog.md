@@ -134,6 +134,75 @@ compare_players(
 
 ---
 
+## Trade Tools
+
+### `get_trade_context`
+
+Fetch all data needed for a fantasy trade evaluation in a single call. This composite tool replaces 5-6 sequential tool calls by assembling player info, season stats with fantasy points (both PPR and standard), dynasty rankings, consistency metrics, and optional league context in parallel. Returns a data-only bundle with zero analysis or opinions.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `give_player_names` | `list[str]` | Yes | - | Players being traded away (1-5 names) |
+| `receive_player_names` | `list[str]` | Yes | - | Players being received (1-5 names) |
+| `league_id` | `str \| None` | No | `None` | Sleeper league ID for league-specific context (roster positions, scoring settings) |
+| `scoring_format` | `str` | No | `"ppr"` | Scoring format: `"ppr"`, `"half_ppr"`, or `"standard"` |
+| `include_weekly` | `bool` | No | `False` | If True, includes recent weekly fantasy point data for trend analysis |
+| `recent_weeks` | `int` | No | `4` | Number of recent weeks to include when `include_weekly=True` |
+
+**Returns:** Dict with keys:
+
+- `give_side[]`: Player data bundles for players being traded away
+- `receive_side[]`: Player data bundles for players being received
+- `league_context`: League info (roster positions, scoring settings, league size) or null
+- `scoring_format`: Effective scoring format string
+- `data_season`: Most recent season in the data
+- `players_not_found[]`: Names that couldn't be resolved
+- `rankings_not_found[]`: Players without dynasty rankings
+
+**Each player bundle includes:**
+
+- Basic info: `player_name`, `position`, `team`, `age`, `years_of_experience`
+- Season stats by category (`receiving`, `passing`, `rushing`) with `fantasy_points` (standard) and `fantasy_points_ppr`
+- Dynasty ranking: `ecr`, `positional_rank`, `team` (when available)
+- Consistency metrics: `avg_fp_ppr`, `fp_stddev_ppr`, `fp_floor_p10`, `fp_ceiling_p90`, `boom_games_20plus`, `bust_games_under_5`, `consistency_coefficient` (when available)
+- Weekly trend: recent game-by-game `fantasy_points` and `fantasy_points_ppr` (when `include_weekly=True`)
+
+**When to use:**
+
+- Trade evaluation (comparing give vs receive sides)
+- Buy-low / sell-high analysis (consistency + dynasty ranking trends)
+- Dynasty valuation (age, experience, ECR, positional rank)
+- Multi-player package assessment (up to 5 per side)
+- Trade offer construction (data for informed decisions)
+
+**Graceful Degradation:**
+
+All enrichments degrade gracefully. If dynasty rankings, consistency data, or league context are unavailable, those fields will be null/empty but the base player info and stats will still be returned. Players that can't be found are listed in `players_not_found`.
+
+**Example:**
+
+```python
+# Simple 1-for-1 trade evaluation
+get_trade_context(
+    give_player_names=["Justin Jefferson"],
+    receive_player_names=["Ja'Marr Chase"]
+)
+
+# Multi-player package with league context and weekly trends
+get_trade_context(
+    give_player_names=["CeeDee Lamb", "Travis Etienne"],
+    receive_player_names=["Tyreek Hill", "Bijan Robinson"],
+    league_id="1225572389929099264",
+    scoring_format="half_ppr",
+    include_weekly=True,
+    recent_weeks=4
+)
+```
+
+---
+
 ## Advanced Metrics Tools
 
 These tools query `vw_advanced_*` views for receiving, passing, rushing, and defense analytics.
