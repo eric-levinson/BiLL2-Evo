@@ -38,6 +38,8 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
         Use the `season` parameter to compare single-season performance.
 
         For detailed metric definitions, use the get_metrics_metadata tool.
+
+        Keywords: sell-high, buy-low, league winner, breakout candidate, smash spot, target hog, workhorse back
         """
     )
     def compare_players(

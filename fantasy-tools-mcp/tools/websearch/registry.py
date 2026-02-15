@@ -10,7 +10,11 @@ def register_tools(mcp: FastMCP, supabase: Client):
     """
 
     @mcp.tool(
-        description="Search the web for current NFL news, injury reports, fantasy analysis, and breaking stories. Returns up-to-date information with AI-generated summaries."
+        description=(
+            "Search the web for current NFL news, injury reports, fantasy analysis, and breaking stories. "
+            "Use for breaking player news, trade rumors, snap count reports, depth chart changes, practice participation, "
+            "and fantasy-relevant updates. Returns up-to-date information with AI-generated summaries."
+        )
     )
     def search_web_tool(query: str, max_results: int = 5) -> dict:
         return search_web(query, max_results)
