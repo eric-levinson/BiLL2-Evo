@@ -288,7 +288,17 @@ export async function POST(req: Request) {
       stopWhen: stepCountIs(10),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       prepareStep: prepareStep as any,
-      instructions: getBillSystemPrompt(userContextSection)
+      instructions: getBillSystemPrompt(userContextSection),
+      // Enable Anthropic prompt caching: system prompt (~3,000 tokens) and tool
+      // definitions are cached for 5 min, reducing input cost by ~90% on turns 2+.
+      // Non-Anthropic providers ignore unrecognised providerOptions.
+      ...(provider === 'anthropic' && {
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' as const }
+          }
+        }
+      })
     })
 
     // Mark stream as successfully created (before return)

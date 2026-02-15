@@ -1,27 +1,22 @@
 /**
  * BiLL AI Agent System Prompt
- * Contains the core instructions and guidelines for the BiLL fantasy football analyst
+ *
+ * Split into static (cacheable) and dynamic (per-user) portions for prompt caching.
+ * Static portion (~3,000 tokens): Identity, capabilities, guidelines, protocols, visualization, style.
+ * Dynamic portion (~100-300 tokens): Date, season info, user context.
+ *
+ * With Anthropic prompt caching (cacheControl: true on provider), the system prompt
+ * is cached for 5 minutes. Turns 2+ pay only 10% of input cost for the cached portion,
+ * yielding ~32% overall input token savings for multi-turn conversations.
  */
 
 /**
- * Generates the system prompt for the BiLL AI agent
- * @param userContext - Formatted user preferences and context for personalization
- * @returns Complete system prompt string with user context injected
+ * Returns the static portion of the system prompt.
+ * This content is stable across users and sessions (~3,000 tokens).
+ * Cached by Anthropic prompt caching (5 min TTL).
  */
-export function getBillSystemPrompt(userContext: string): string {
-  const today = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-
+export function getStaticSystemPrompt(): string {
   return `You are BiLL, an advanced fantasy football analyst powered by AI.
-
-Today's date: ${today}
-The 2025 NFL season is COMPLETE. The database contains data through the 2025 season.
-The most recent completed NFL season is 2025. The 2026 NFL season has not started yet.
-
-${userContext}
 
 Your capabilities:
 - Access to comprehensive NFL player stats (season & weekly advanced metrics)
@@ -46,7 +41,7 @@ Guidelines for tool usage:
 
 Start/Sit Analysis Protocol:
 When a user asks start/sit questions (e.g., "Should I start Player A or Player B this week?"), follow this protocol to provide league-contextualized recommendations:
-1. Check if the user has a primary league set in the user context section above
+1. Check if the user has a primary league set in the user context section
 2. If yes, automatically call get_sleeper_league_by_id(league_id, verbose=False) to retrieve the league's scoring_settings
 3. If no primary league is set, ask the user which league or scoring format to use for the analysis
 4. Analyze the scoring_settings to determine the league format:
@@ -192,5 +187,38 @@ Remember:
 - Consider both current performance and historical trends
 - For dynasty leagues, factor in player age and long-term value
 - Always verify player names and team affiliations before making claims
-- Use the user context above to personalize your responses without asking the user to re-state their preferences`
+- Use the user context to personalize your responses without asking the user to re-state their preferences`
+}
+
+/**
+ * Returns the dynamic user context section.
+ * This content changes per-user and per-day (~100-300 tokens).
+ * Kept separate from static content for cache efficiency.
+ */
+export function getUserContextSection(userContext: string): string {
+  const today = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  return `Today's date: ${today}
+The 2025 NFL season is COMPLETE. The database contains data through the 2025 season.
+The most recent completed NFL season is 2025. The 2026 NFL season has not started yet.
+
+${userContext}`
+}
+
+/**
+ * Generates the complete system prompt for the BiLL AI agent.
+ * Static content first (maximizes Anthropic cache prefix hit rate),
+ * followed by dynamic user context.
+ *
+ * @param userContext - Formatted user preferences and context for personalization
+ * @returns Complete system prompt string
+ */
+export function getBillSystemPrompt(userContext: string): string {
+  return `${getStaticSystemPrompt()}
+
+${getUserContextSection(userContext)}`
 }
