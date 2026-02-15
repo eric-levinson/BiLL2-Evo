@@ -17,7 +17,8 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     @mcp.tool(
         description=(
-            "Return game-stat field definitions for NFL offense/defense. "
+            "Return game-stat field definitions for NFL offense/defense. Use to understand what game stat "
+            "fields mean for deeper fantasy analysis. "
             "Category: 'offense'|'defense' (aliases: 'off','o','def','d'). "
             "Offense subcategories: overall, passing, rushing, receiving, "
             "pressure_and_sacks, special_teams, seasonal. "
@@ -31,6 +32,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch offensive weekly game stats for NFL players.
+
+        Use for: weekly fantasy performance analysis, game log review, matchup evaluation, boom/bust assessment,
+        start/sit decisions, recent performance validation.
 
         Optional filters:
         - player_names: list of partial/full player name strings to match (case-insensitive partial matching supported).
@@ -76,6 +80,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch defensive weekly game stats for NFL players.
+
+        Use for: streaming defense evaluation, matchup difficulty assessment, defensive playmaker identification,
+        IDP league analysis, weekly performance validation.
 
         Optional filters:
         - player_names: list of partial/full player name strings to match (case-insensitive partial matching supported).

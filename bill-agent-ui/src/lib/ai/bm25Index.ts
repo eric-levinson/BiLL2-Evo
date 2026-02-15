@@ -50,16 +50,59 @@ export function buildBM25Index(tools: AITool[]): BM25Index {
 }
 
 /**
+ * Fantasy football synonym expansion map for BM25 search.
+ * Maps colloquial fantasy terms to tool-discoverable keywords.
+ * Injected during query tokenization to improve tool matching.
+ */
+const FANTASY_SYNONYMS: Record<string, string[]> = {
+  pickup: ['waiver', 'trending', 'add'],
+  grab: ['waiver', 'trending', 'add'],
+  'sell-high': ['trade', 'ranks', 'value'],
+  sell: ['trade', 'ranks', 'value'],
+  'buy-low': ['trade', 'ranks', 'value'],
+  buy: ['trade', 'ranks', 'value'],
+  stack: ['matchup', 'offensive', 'game'],
+  handcuff: ['backup', 'depth', 'roster'],
+  smash: ['matchup', 'favorable', 'defensive'],
+  'league-winner': ['breakout', 'upside', 'waiver'],
+  breakout: ['trending', 'upside', 'stats'],
+  sleeper: ['breakout', 'upside', 'undervalued'],
+  boom: ['ceiling', 'upside', 'weekly'],
+  bust: ['floor', 'risk', 'weekly'],
+  stream: ['matchup', 'weekly', 'waiver'],
+  stash: ['dynasty', 'roster', 'depth'],
+  roster: ['league', 'sleeper', 'players'],
+  waivers: ['waiver', 'trending', 'add'],
+  fa: ['waiver', 'free', 'add'],
+  ppr: ['scoring', 'reception', 'league'],
+  superflex: ['scoring', 'quarterback', 'league']
+}
+
+/**
  * Tokenizes a search query into keywords
  * Splits on whitespace and converts to lowercase
+ * Expands fantasy synonyms to improve tool matching
  * @param query - The search query string
- * @returns Array of lowercase keywords
+ * @returns Array of lowercase keywords with synonym expansions
  */
 function tokenizeQuery(query: string): string[] {
-  return query
+  const baseTokens = query
     .toLowerCase()
     .split(/\s+/)
     .filter((word) => word.length > 0)
+
+  // Expand fantasy synonyms: if a token matches a synonym key,
+  // add the expansion tokens alongside the original token
+  const expanded: string[] = []
+  for (const token of baseTokens) {
+    expanded.push(token)
+    const synonyms = FANTASY_SYNONYMS[token]
+    if (synonyms) {
+      expanded.push(...synonyms)
+    }
+  }
+
+  return expanded
 }
 
 /**

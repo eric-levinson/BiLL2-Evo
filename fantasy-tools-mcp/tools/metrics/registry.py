@@ -17,7 +17,11 @@ def register_tools(mcp: FastMCP, supabase: Client):
     """Register fantasy-related tools with the FastMCP instance."""
 
     @mcp.tool(
-        description="Returns metric definitions by category for receiving, passing, rushing, and defense advanced NFL statistics. Use subcategory to pick one of: basic_info, volume_metrics, efficiency_metrics, situational_metrics, weekly."
+        description=(
+            "Returns metric definitions by category for receiving, passing, rushing, and defense advanced "
+            "NFL statistics. Use to understand what advanced metrics mean for fantasy analysis. "
+            "Use subcategory to pick one of: basic_info, volume_metrics, efficiency_metrics, situational_metrics, weekly."
+        )
     )
     def get_metrics_metadata(category: str | None = None, subcategory: str | None = None) -> dict:
         """Return metadata from the embedded metrics_catalog.
@@ -40,6 +44,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch advanced seasonal receiving stats for NFL players.
+
+        Use for: trade evaluation, start/sit analysis, waiver wire validation, dynasty valuation,
+        breakout identification, sell-high/buy-low analysis, target hog detection, league winner discovery.
 
         - Optional filters: player_names (partial matches), season_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['WR','TE','RB']).
@@ -74,6 +81,10 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch advanced seasonal passing stats for NFL quarterbacks and passers.
+
+        Use for: QB trade evaluation, superflex analysis, start/sit decisions, streaming QB selection,
+        dynasty valuation, breakout identification, waiver wire validation.
+
         - Optional filters: player_names (partial matches), season_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['QB']).
         - Query by player names, season, and choose which metrics to include by category or individually.
@@ -113,6 +124,10 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch advanced seasonal rushing stats for NFL running backs, hybrid backs, and runners.
+
+        Use for: workhorse back identification, goal-line role assessment, handcuff evaluation, trade analysis,
+        start/sit decisions, dynasty valuation, breakout identification, usage trend detection.
+
         - Optional filters: player_names (partial matches), season_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['RB','QB']).
         - Query by player names, season, and choose which metrics to include by category or individually.
@@ -152,6 +167,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch advanced seasonal defensive stats for NFL defenders and defensive playmakers.
+
+        Use for: streaming defense selection, matchup analysis, smash spot identification, points-against evaluation,
+        IDP league analysis, defensive playmaker identification.
 
         - Optional filters: player_names (partial matches), season_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['CB','DB','DE','DL','LB','S']).
@@ -198,6 +216,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
         description="""
         Fetch advanced weekly receiving stats for NFL players.
 
+        Use for: recent performance validation, breakout confirmation, snap count trending, usage uptick detection,
+        weekly start/sit decisions, waiver wire validation.
+
         - Optional filters: player_names (partial matches), season_list, weekly_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['WR','TE','RB']).
         - Query by player names, season, week, and choose which metrics to include by category or individually.
@@ -240,6 +261,9 @@ def register_tools(mcp: FastMCP, supabase: Client):
         description="""
         Fetch advanced weekly passing stats for NFL quarterbacks and passers.
 
+        Use for: recent performance validation, breakout confirmation, snap count trending, usage uptick detection,
+        weekly start/sit decisions, streaming QB validation, superflex analysis.
+
         - Optional filters: player_names (partial matches), season_list, weekly_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['QB']).
         - Query by player names, season, week, and choose which metrics to include by category or individually.
@@ -281,6 +305,10 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch advanced weekly rushing stats for NFL running backs, hybrid backs, and runners.
+
+        Use for: recent performance validation, breakout confirmation, snap count trending, usage uptick detection,
+        weekly start/sit decisions, workhorse role validation, handcuff opportunity detection.
+
         - Optional filters: player_names (partial matches), season_list, weekly_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['RB','QB']).
         - Query by player names, season, week, and choose which metrics to include by category or individually.
@@ -322,6 +350,10 @@ def register_tools(mcp: FastMCP, supabase: Client):
     @mcp.tool(
         description="""
         Fetch advanced weekly defensive stats for NFL defenders and defensive playmakers.
+
+        Use for: recent performance validation, breakout confirmation, snap count trending, usage uptick detection,
+        weekly streaming defense decisions, smash spot validation, matchup-specific analysis.
+
         - Optional filters: player_names (partial matches), season_list, weekly_list, metrics.
         - Optional controls: order_by_metric (sort DESC), limit (default 100, capped by implementation), positions (defaults to ['CB','DB','DE','DL','LB','S']).
         - Query by player names, season, week, and choose which metrics to include by category or individually.

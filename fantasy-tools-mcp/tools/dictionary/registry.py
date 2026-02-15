@@ -9,8 +9,10 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     @mcp.tool(
         description=(
+            "Look up NFL and fantasy football terminology, stat definitions, and abbreviations. "
             "Fetch rows from the combined dictionary view, optionally filtering "
-            "by search criteria in the description. Parameter: search_criteria "
+            "by search criteria in the description. Use to understand unfamiliar fantasy terms, "
+            "metric definitions, and NFL jargon. Parameter: search_criteria "
             "(list[str], optional)."
         )
     )
