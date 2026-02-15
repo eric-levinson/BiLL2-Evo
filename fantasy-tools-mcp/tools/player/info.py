@@ -2,7 +2,7 @@
 Player information tools for fantasy football analysis.
 """
 
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from supabase import Client
 
@@ -102,36 +102,37 @@ def get_player_profile(
             }
 
         # Fetch player info and all stats categories in parallel
-        async def _fetch_all():
-            return await asyncio.gather(
-                asyncio.to_thread(get_player_info, supabase, player_names),
-                asyncio.to_thread(
-                    get_advanced_receiving_stats,
-                    supabase=supabase,
-                    player_names=player_names,
-                    season_list=season_list,
-                    metrics=metrics,
-                    limit=limit,
-                ),
-                asyncio.to_thread(
-                    get_advanced_passing_stats,
-                    supabase=supabase,
-                    player_names=player_names,
-                    season_list=season_list,
-                    metrics=metrics,
-                    limit=limit,
-                ),
-                asyncio.to_thread(
-                    get_advanced_rushing_stats,
-                    supabase=supabase,
-                    player_names=player_names,
-                    season_list=season_list,
-                    metrics=metrics,
-                    limit=limit,
-                ),
+        # (ThreadPoolExecutor avoids asyncio.run() conflicts with FastMCP's event loop)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future_info = executor.submit(get_player_info, supabase, player_names)
+            future_receiving = executor.submit(
+                get_advanced_receiving_stats,
+                supabase=supabase,
+                player_names=player_names,
+                season_list=season_list,
+                metrics=metrics,
+                limit=limit,
             )
-
-        player_info, receiving_stats, passing_stats, rushing_stats = asyncio.run(_fetch_all())
+            future_passing = executor.submit(
+                get_advanced_passing_stats,
+                supabase=supabase,
+                player_names=player_names,
+                season_list=season_list,
+                metrics=metrics,
+                limit=limit,
+            )
+            future_rushing = executor.submit(
+                get_advanced_rushing_stats,
+                supabase=supabase,
+                player_names=player_names,
+                season_list=season_list,
+                metrics=metrics,
+                limit=limit,
+            )
+            player_info = future_info.result()
+            receiving_stats = future_receiving.result()
+            passing_stats = future_passing.result()
+            rushing_stats = future_rushing.result()
 
         return {
             "playerInfo": player_info,

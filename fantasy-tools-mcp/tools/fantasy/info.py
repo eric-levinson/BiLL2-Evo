@@ -1,4 +1,4 @@
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from supabase import Client
 
@@ -87,22 +87,15 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
     if not league_id:
         return [{"error": "Please provide a valid league_id as a string."}]
 
-    async def _fetch_data_parallel():
-        """Fetch rosters and users in parallel using asyncio.gather."""
-        league = League(league_id)
-
-        # Build URLs for the two API calls
-        rosters_url = f"{league._base_url}/rosters"
-        users_url = f"{league._base_url}/users"
-
-        # Execute both API calls in parallel
-        rosters, users = await asyncio.gather(league._call_async(rosters_url), league._call_async(users_url))
-
-        return rosters, users, league
-
     try:
-        # Run the async function and get results
-        rosters, users, league = asyncio.run(_fetch_data_parallel())
+        # Fetch rosters and users in parallel
+        # (ThreadPoolExecutor avoids asyncio.run() conflicts with FastMCP's event loop)
+        league = League(league_id)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_rosters = executor.submit(league.get_rosters)
+            future_users = executor.submit(league.get_users)
+            rosters = future_rosters.result()
+            users = future_users.result()
 
         user_map = league.map_users_to_team_name(users)
 
@@ -165,25 +158,17 @@ def get_sleeper_league_matchups(
     if week is None:
         return [{"error": "Please provide the target week as an integer."}]
 
-    async def _fetch_data_parallel():
-        """Fetch matchups, rosters, and users in parallel using asyncio.gather."""
-        league = League(league_id)
-
-        # Build URLs for the three API calls
-        matchups_url = f"{league._base_url}/matchups/{week}"
-        rosters_url = f"{league._base_url}/rosters"
-        users_url = f"{league._base_url}/users"
-
-        # Execute all three API calls in parallel
-        matchups, rosters, users = await asyncio.gather(
-            league._call_async(matchups_url), league._call_async(rosters_url), league._call_async(users_url)
-        )
-
-        return matchups, rosters, users, league
-
     try:
-        # Run the async function and get results
-        matchups, rosters, users, league = asyncio.run(_fetch_data_parallel())
+        # Fetch matchups, rosters, and users in parallel
+        # (ThreadPoolExecutor avoids asyncio.run() conflicts with FastMCP's event loop)
+        league = League(league_id)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_matchups = executor.submit(league.get_matchups, week)
+            future_rosters = executor.submit(league.get_rosters)
+            future_users = executor.submit(league.get_users)
+            matchups = future_matchups.result()
+            rosters = future_rosters.result()
+            users = future_users.result()
 
         roster_to_owner = league.map_rosterid_to_ownerid(rosters)
         user_map = league.map_users_to_team_name(users)
@@ -237,25 +222,17 @@ def get_sleeper_league_transactions(league_id: str, week: int, txn_type: str | N
         if txn_type not in allowed_types:
             return [{"error": ("txn_type must be one of 'trade', 'waiver', or 'free_agent'.")}]
 
-    async def _fetch_data_parallel():
-        """Fetch transactions, rosters, and users in parallel using asyncio.gather."""
-        league = League(league_id)
-
-        # Build URLs for the three API calls
-        transactions_url = f"{league._base_url}/transactions/{week}"
-        rosters_url = f"{league._base_url}/rosters"
-        users_url = f"{league._base_url}/users"
-
-        # Execute all three API calls in parallel
-        transactions, rosters, users = await asyncio.gather(
-            league._call_async(transactions_url), league._call_async(rosters_url), league._call_async(users_url)
-        )
-
-        return transactions, rosters, users, league
-
     try:
-        # Run the async function and get results
-        transactions, rosters, users, league = asyncio.run(_fetch_data_parallel())
+        # Fetch transactions, rosters, and users in parallel
+        # (ThreadPoolExecutor avoids asyncio.run() conflicts with FastMCP's event loop)
+        league = League(league_id)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_transactions = executor.submit(league.get_transactions, week)
+            future_rosters = executor.submit(league.get_rosters)
+            future_users = executor.submit(league.get_users)
+            transactions = future_transactions.result()
+            rosters = future_rosters.result()
+            users = future_users.result()
 
         if txn_type:
             transactions = [t for t in transactions if t.get("type") == txn_type]
