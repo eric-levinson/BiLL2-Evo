@@ -72,6 +72,68 @@ get_player_profile(
 
 ---
 
+### `compare_players`
+
+Compare 2-5 players side-by-side with their stats and profiles. Fetches comprehensive player data in parallel and structures the output for easy markdown table rendering or programmatic comparison.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `player_names` | `list[str]` | Yes | - | List of 2-5 player names to compare (partial matches supported) |
+| `metrics` | `list[str] \| None` | No | `None` | Specific metrics to include; if None, returns position-relevant defaults |
+| `season` | `int \| None` | No | `None` | Filter stats by specific season (e.g., `2024`) |
+| `summary` | `bool` | No | `False` | If True, returns compact output with key metrics only |
+| `scoring_format` | `str` | No | `"ppr"` | Scoring format for fantasy points calculation: `"ppr"`, `"half_ppr"`, or `"standard"` |
+
+**Returns:** Dict with keys:
+
+- `players`: List of player names being compared
+- `playerInfo`: Side-by-side basic info for each player (name, team, position, age, experience)
+- `receivingStats`: Side-by-side receiving stats (if applicable to player positions)
+- `passingStats`: Side-by-side passing stats (if applicable to player positions)
+- `rushingStats`: Side-by-side rushing stats (if applicable to player positions)
+- `dynastyRankings`: Dynasty rankings for each player (ECR, positional rank) when available
+- `commonMetrics`: Cross-position flex comparison (fantasy points, age, dynasty ECR, positional rank) - enables comparing players across different positions
+- `consistency`: Consistency metrics for each player (games played, avg FP, std dev, consistency score) when available
+- `summary`: Comparison summary with key differences (if `summary=True`)
+
+**When to use:**
+
+- Draft decisions (comparing players in the same tier)
+- Trade evaluations (comparing players being swapped)
+- Start/sit decisions (comparing weekly matchups)
+- Dynasty value assessment (comparing age, experience, production)
+- Cross-position flex decisions (using commonMetrics section)
+
+**Graceful Degradation:**
+
+All enriched data (dynastyRankings, commonMetrics, consistency) degrades gracefully. If rankings or consistency data are unavailable, those sections will be empty but the base comparison will still work.
+
+**Example:**
+
+```python
+compare_players(
+    player_names=["Christian McCaffrey", "Breece Hall"],
+    season=2024,
+    scoring_format="ppr",
+    summary=True
+)
+```
+
+**Cross-Position Comparison Example:**
+
+```python
+# Compare RB vs WR for flex decision
+compare_players(
+    player_names=["Josh Jacobs", "Amon-Ra St. Brown"],
+    scoring_format="half_ppr"
+)
+# Use commonMetrics section for apples-to-apples comparison
+```
+
+---
+
 ## Advanced Metrics Tools
 
 These tools query `vw_advanced_*` views for receiving, passing, rushing, and defense analytics.
@@ -105,6 +167,7 @@ Fetch advanced seasonal receiving stats for WR/TE/RB.
 - **Volume Metrics:** games, targets, receptions, receiving_yards, receiving_tds, fantasy_points, fantasy_points_ppr, air_yards_share, receiving_air_yards, receiving_first_downs, receiving_2pt_conversions, receiving_yards_after_catch, etc.
 - **Efficiency Metrics:** dom, racr, target_share, receiving_epa, catch_percentage, avg_yac, avg_expected_yac, avg_intended_air_yards, avg_yac_above_expectation, drop_percent, etc.
 - **Situational Metrics:** avg_cushion, avg_separation, receiving_first_downs, age
+- **Percentile Ranks:** targets_pctile, target_share_pctile, receiving_yards_pctile, fantasy_points_ppr_pctile, catch_percentage_pctile, avg_yac_pctile (0-100, partitioned by position and season)
 
 **Use `get_metrics_metadata(category="receiving")` for complete metric definitions.**
 
@@ -131,6 +194,7 @@ Fetch advanced seasonal passing stats for QB.
 - **Volume Metrics:** qb_plays, times_hit, times_sacked, times_blitzed, times_hurried, times_pressured, exp_sack, passing_drops
 - **Efficiency Metrics:** passer_rating, completion_percentage, avg_air_distance, avg_intended_air_yards, expected_completion_percentage, completion_percentage_above_expectation, qbr_total, epa_total
 - **Situational Metrics:** aggressiveness, avg_time_to_throw, passing_bad_throws, passing_bad_throw_pct, times_pressured_pct
+- **Percentile Ranks:** passing_yards_pctile, passing_tds_pctile, passer_rating_pctile, completion_percentage_pctile, epa_total_pctile, fantasy_points_ppr_pctile (0-100, partitioned by position and season)
 
 **Use `get_metrics_metadata(category="passing")` for complete metric definitions.**
 
@@ -146,6 +210,7 @@ Fetch advanced seasonal rushing stats for RB/QB.
 - **Volume Metrics:** games, carries, rushing_yards, rushing_tds, rushing_first_downs, rush_attempts
 - **Efficiency Metrics:** rushing_epa, fantasy_points, fantasy_points_ppr, avg_rush_yards, efficiency, expected_rush_yards, rush_pct_over_expected, rush_yards_over_expected, avg_time_to_los
 - **Situational Metrics:** rushing_2pt_conversions, rushing_first_downs, rushing_yards_after_catch, brk_tkl
+- **Percentile Ranks:** carries_pctile, rushing_yards_pctile, rushing_tds_pctile, rushing_epa_pctile, fantasy_points_ppr_pctile, avg_rush_yards_pctile (0-100, partitioned by position and season)
 
 **Use `get_metrics_metadata(category="rushing")` for complete metric definitions.**
 
@@ -161,6 +226,7 @@ Fetch advanced seasonal defensive stats for defensive players.
 - **Volume Metrics:** g, gs, sk (sacks), td, int, tgt, prss, bltz, hrry, qbkd, comb (combined tackles), m_tkl (missed tackles)
 - **Efficiency Metrics:** cmp_percent, m_tkl_percent, yds_cmp, yds_tgt, rat (passer rating allowed)
 - **Situational Metrics:** dadot, age, pos
+- **Percentile Ranks:** sk_pctile, int_pctile, comb_pctile, prss_pctile, cmp_percent_pctile (0-100, partitioned by position and season; lower completion % is better so uses DESC ordering)
 
 **Use `get_metrics_metadata(category="defense")` for complete metric definitions.**
 
@@ -246,6 +312,67 @@ get_metrics_metadata(category="receiving")
 # Get only efficiency metrics for passing
 get_metrics_metadata(category="passing", subcategory="efficiency_metrics")
 ```
+
+---
+
+### `get_player_consistency`
+
+Fetch player consistency metrics showing week-to-week performance variance. Identifies boom/bust players and assesses floor/ceiling profiles.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `player_names` | `list[str] \| None` | No | `None` | Player names (partial matches supported) |
+| `season_list` | `list[int] \| None` | No | `None` | Seasons to filter (e.g., `[2023, 2024]`) |
+| `metrics` | `list[str] \| None` | No | `None` | Specific metrics to return; if None, returns all consistency metrics |
+| `order_by_metric` | `str \| None` | No | `None` | Metric to sort by (descending order) |
+| `limit` | `int \| None` | No | `100` | Maximum rows to return |
+| `positions` | `list[str] \| None` | No | `['QB', 'RB', 'WR', 'TE']` | Positions to include |
+
+**Default Positions:** `['QB', 'RB', 'WR', 'TE']`
+
+**Metrics Available:**
+
+- `games_played` — Games included in calculation (minimum 4 required)
+- `avg_fp_ppr` — Average weekly fantasy points (PPR)
+- `fp_stddev_ppr` — Standard deviation of weekly points
+- `fp_floor_p10` — 10th percentile floor (near-worst weekly score)
+- `fp_ceiling_p90` — 90th percentile ceiling (near-best weekly score)
+- `fp_median_ppr` — Median weekly fantasy points
+- `boom_games_20plus` — Count of weeks scoring 20+ points
+- `bust_games_under_5` — Count of weeks scoring under 5 points
+- `consistency_coefficient` — Stddev / mean (lower = more consistent)
+
+**Interpretation:**
+
+- **Consistency Coefficient (CV):** <0.4 = elite, 0.4-0.6 = good, 0.6-0.8 = average, >0.8 = boom/bust
+- **Boom/Bust Ratio:** Compare `boom_games_20plus` vs `bust_games_under_5` for lineup risk profile
+
+**Use Cases:**
+- Identifying boom/bust players for lineup construction
+- Assessing floor/ceiling profiles for trade risk evaluation
+- Start/sit confidence based on week-to-week reliability
+- Tournament (high boom rate) vs cash game (low CV) player selection
+
+**Example:**
+```python
+# Find most consistent RBs in 2024
+get_player_consistency(
+    season_list=[2024],
+    positions=["RB"],
+    order_by_metric="consistency_coefficient",
+    limit=20
+)
+
+# Assess specific player's consistency
+get_player_consistency(
+    player_names=["Christian McCaffrey"],
+    season_list=[2023, 2024]
+)
+```
+
+**Data Source:** `mv_player_consistency` materialized view (refreshed weekly, Tuesday 7 AM UTC).
 
 ---
 

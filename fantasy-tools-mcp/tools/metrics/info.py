@@ -384,3 +384,66 @@ def get_advanced_defense_stats_weekly(
         limit=limit,
         positions=positions,
     )
+
+
+def get_player_consistency(
+    supabase: Client,
+    player_names: list[str] | None = None,
+    season_list: list[int] | None = None,
+    metrics: list[str] | None = None,
+    order_by_metric: str | None = None,
+    limit: int | None = 25,
+    positions: list[str] | None = None,
+) -> dict:
+    """
+    Fetch player consistency metrics from the mv_player_consistency materialized view.
+
+    Consistency metrics include avg PPR points, standard deviation, floor (P10), ceiling (P90),
+    boom/bust game counts, and consistency coefficient (stddev/mean). Lower coefficient = more
+    consistent (safer floor).
+
+    Args:
+        supabase: Supabase client
+        player_names: optional list of player names (partial matches supported)
+        season_list: optional list of seasons to include
+        metrics: optional list of metric codes to return
+        order_by_metric: optional metric/column to order by (DESC)
+        limit: optional max rows to return (defaults to 25). Enforced cap applied.
+        positions: optional list of positions to filter (ff_position column). Defaults to all offensive positions.
+
+    Returns:
+        dict: Player consistency data with keys: season, player_name, ff_position, ff_team,
+              games_played, avg_fp_ppr, fp_stddev_ppr, fp_floor_p10, fp_ceiling_p90,
+              fp_median_ppr, boom_games_20plus, bust_games_under_5, consistency_coefficient
+    """
+    return build_player_stats_query(
+        supabase=supabase,
+        table_name="mv_player_consistency",
+        base_columns=[
+            "season",
+            "player_name",
+            "merge_name",
+            "ff_position",
+            "ff_team",
+            "games_played",
+            "avg_fp_ppr",
+            "fp_stddev_ppr",
+            "fp_floor_p10",
+            "fp_ceiling_p90",
+            "fp_median_ppr",
+            "boom_games_20plus",
+            "bust_games_under_5",
+            "consistency_coefficient",
+        ],
+        player_name_column="merge_name",
+        position_column="ff_position",
+        default_positions=["QB", "RB", "WR", "TE"],
+        return_key="playerConsistency",
+        player_names=player_names,
+        season_list=season_list,
+        weekly_list=None,
+        metrics=metrics,
+        order_by_metric=order_by_metric,
+        limit=limit,
+        positions=positions,
+    )

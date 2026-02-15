@@ -29,6 +29,9 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
         - Receiving stats (for WR/TE/RB positions)
         - Passing stats (for QB positions)
         - Rushing stats (for RB/QB positions)
+        - Dynasty rankings (ECR, positional rank) when available
+        - Common metrics (fantasy points, age, experience) for cross-position comparison
+        - Consistency metrics (games played, avg FP, std dev, consistency score) when available
 
         The tool automatically fetches position-relevant stats. Stats categories
         may be empty for positions that don't typically record those stats.
@@ -36,6 +39,7 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
         Use the `summary` parameter for a compact view with key differences highlighted.
         Use the `metrics` parameter to focus on specific stats of interest.
         Use the `season` parameter to compare single-season performance.
+        Use the `scoring_format` parameter to compute fantasy points in your league format.
 
         For detailed metric definitions, use the get_metrics_metadata tool.
 
@@ -47,6 +51,7 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
         metrics: list[str] | None = None,
         season: int | None = None,
         summary: bool = False,
+        scoring_format: str = "ppr",
     ) -> dict:
         return _compare_players(
             supabase,
@@ -54,4 +59,5 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
             metrics,
             season,
             summary,
+            scoring_format,
         )

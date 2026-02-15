@@ -11,6 +11,7 @@ from .info import get_advanced_receiving_stats as _get_advanced_receiving_stats
 from .info import get_advanced_receiving_stats_weekly as _get_advanced_receiving_stats_weekly
 from .info import get_advanced_rushing_stats as _get_advanced_rushing_stats
 from .info import get_advanced_rushing_stats_weekly as _get_advanced_rushing_stats_weekly
+from .info import get_player_consistency as _get_player_consistency
 
 
 def register_tools(mcp: FastMCP, supabase: Client):
@@ -384,3 +385,47 @@ def register_tools(mcp: FastMCP, supabase: Client):
         return _get_advanced_defense_stats_weekly(
             supabase, player_names, season_list, weekly_list, metrics, order_by_metric, limit, positions
         )
+
+    @mcp.tool(
+        description="""
+        Evaluate a player's weekly scoring consistency, floor, and ceiling.
+
+        Use for: start/sit decisions (high-floor vs. high-ceiling), trade evaluation
+        (reliable producers vs. boom/bust), DFS lineup construction, risk assessment.
+
+        Returns: avg PPR points, standard deviation, floor (P10), ceiling (P90), median,
+        boom game count (20+ pts), bust game count (<5 pts), consistency coefficient
+        (stddev/mean — lower = more consistent).
+
+        - Optional filters: player_names (partial matches), season_list, positions (defaults to ['QB','RB','WR','TE']).
+        - Optional controls: order_by_metric (sort DESC), limit (default 100).
+
+        Metrics Available:
+        - games_played: Number of games included (min 4 required)
+        - avg_fp_ppr: Average weekly fantasy points (PPR scoring)
+        - fp_stddev_ppr: Standard deviation of weekly points (volatility)
+        - fp_floor_p10: 10th percentile weekly score (floor)
+        - fp_ceiling_p90: 90th percentile weekly score (ceiling)
+        - fp_median_ppr: Median weekly score
+        - boom_games_20plus: Games with 20+ PPR points
+        - bust_games_under_5: Games with fewer than 5 PPR points
+        - consistency_coefficient: Stddev / mean (lower = more consistent, typical range 0.2-1.0)
+
+        Interpretation Guide:
+        - Consistency coefficient: <0.4 = elite, 0.4-0.6 = good, 0.6-0.8 = average, >0.8 = boom/bust
+        - Boom ratio: boom_games_20plus / games_played shows upside frequency
+        - Bust ratio: bust_games_under_5 / games_played shows downside risk
+
+        Basic player info (season, player_name, ff_position, ff_team) is always included.
+        Data sourced from mv_player_consistency materialized view (refreshed weekly Tuesday 7 AM UTC).
+        """
+    )
+    def get_player_consistency(
+        player_names: list[str] | None = None,
+        season_list: list[int] | None = None,
+        metrics: list[str] | None = None,
+        order_by_metric: str | None = None,
+        limit: int | None = 100,
+        positions: list[str] | None = None,
+    ) -> dict:
+        return _get_player_consistency(supabase, player_names, season_list, metrics, order_by_metric, limit, positions)
