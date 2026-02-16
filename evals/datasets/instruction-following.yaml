@@ -1,0 +1,96 @@
+# Instruction Following Tests (4 prompts)
+# Validates that models follow system prompt instructions:
+# - XML section attention (protocols, output templates, fantasy knowledge)
+# - League settings usage when provided
+# - Analysis style compliance
+# - Confidence level inclusion
+#
+# Multi-turn: These tests include mock tool output so models can demonstrate
+# template compliance with real data (not just attempt tool calls).
+
+- vars:
+    prompt: >
+      Should I trade Davante Adams for Drake London in my dynasty league?
+      My league is a 12-team PPR with standard rosters.
+    tool_results: "file://datasets/mock-data/trade-context-dynasty.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Check that the model follows the dynasty_trade protocol from the system prompt.
+        The model received trade context data (similar structure to a real trade eval).
+        It should:
+        1. Use the trade evaluation output template:
+           - Player comparison table
+           - Format impact section
+           - Verdict with confidence level
+           - Trade-off summary ("You're giving up X to gain Y")
+        2. Consider age curves from <fantasy_knowledge> (Adams is aging WR ~32, London is young ~24)
+        3. Reference dynasty ranking context and values from the data
+        4. Acknowledge 12-team PPR format impact
+        5. Include an explicit confidence level (High/Medium/Low)
+        Score 0-5 where 5 means fully protocol-compliant with data-backed analysis.
+      provider: "openai:chat:gpt-5.1"
+    - type: icontains
+      value: "confidence"
+
+- vars:
+    prompt: >
+      I need start/sit help. Should I start Jaylen Waddle or George Pickens this week?
+      For context, my league uses half-PPR scoring with 2 flex spots.
+    tool_results: "file://datasets/mock-data/advanced-receiving-stats.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Check that the model follows the start_sit protocol.
+        The model received advanced receiving stats for multiple WRs. It should:
+        1. Recognize half-PPR format from user context
+        2. Weight metrics appropriately for half-PPR (receptions worth 0.5)
+        3. Reference specific stats from the provided data where applicable
+        4. Use the start/sit output template:
+           - Key factors table
+           - Recommendation with confidence level
+           - Brief reasoning citing 2-3 decisive metrics
+        5. Consider matchup context if applicable
+        Score 0-5 where 5 means fully protocol-compliant.
+      provider: "openai:chat:gpt-5.1"
+    - type: icontains
+      value: "half-PPR"
+
+- vars:
+    prompt: >
+      Give me concise waiver wire picks for a 10-team standard scoring league.
+      Just the top 3 adds, keep it brief.
+    tool_results: "file://datasets/mock-data/trending-players.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Check instruction compliance. The model received trending player data with
+        10 trending adds and their add counts. It should:
+        1. Respect "concise" and "brief" instructions
+        2. Limit to exactly 3 recommendations (as requested)
+        3. Recognize standard scoring (no PPR) and adjust recommendations
+        4. Reference trending add counts from the data
+        5. Use tiered format even if brief
+        6. NOT provide lengthy analysis when user asked for brevity
+        Score 0-5 where 5 means concise, format-aware, and protocol-compliant.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: >
+      Analyze the consistency of top 5 PPR running backs this season.
+      Which ones have the best floor for cash games?
+    tool_results: "file://datasets/mock-data/consistency-metrics.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Check that the model uses the provided consistency data effectively.
+        The model received consistency metrics for 5 top RBs. It should:
+        1. Reference specific consistency metrics from the data: CV (consistency coefficient),
+           floor (fp_floor_p10), boom/bust counts
+        2. Rank players by floor reliability (Bijan Robinson: 0.34 CV best, Achane: 0.58 CV worst)
+        3. Understand "cash games" context = prioritize low variance (low CV)
+        4. Distinguish between high-floor (consistent) vs boom-bust profiles
+        5. Cite specific numbers from the data, not vague claims
+        6. Reference PPR scoring format in analysis
+        Score 0-5 where 5 means data-driven consistency analysis.
+      provider: "openai:chat:gpt-5.1"

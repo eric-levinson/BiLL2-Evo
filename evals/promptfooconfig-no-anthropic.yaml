@@ -1,0 +1,72 @@
+# BiLL2 Fantasy Football AI — Model Evaluation (available models)
+# ====================================================================
+# Runs 4 models (1 Google + 3 OpenAI) with OpenAI as LLM judge.
+# Skips Anthropic (rate-limited) and Gemini 3 Pro (capped).
+#
+# Usage:
+#   cd BiLL2-OG-Monorepo/bill-agent-ui
+#   npx promptfoo eval -c ../evals/promptfooconfig-no-anthropic.yaml
+#   npx promptfoo view
+#
+# Cost: ~$1-2 per full 4-model run (30 prompts x 4 models = 120 test cases)
+
+description: "BiLL2 Fantasy Football AI — Gemini Flash + OpenAI"
+
+prompts:
+  - "{{prompt}}"
+
+providers:
+  # --- Google ---
+  - id: file://providers/bill2-chat.js
+    label: "Gemini 3 Flash"
+    config:
+      modelId: gemini-3-flash-preview
+      temperature: 0
+      maxTokens: 4096
+
+  # --- OpenAI ---
+  - id: file://providers/bill2-chat.js
+    label: "GPT-5 Mini"
+    config:
+      modelId: gpt-5-mini
+      temperature: 0
+      maxTokens: 4096
+
+  - id: file://providers/bill2-chat.js
+    label: "GPT-5.1"
+    config:
+      modelId: gpt-5.1
+      temperature: 0
+      maxTokens: 4096
+
+  - id: file://providers/bill2-chat.js
+    label: "GPT-5.2"
+    config:
+      modelId: gpt-5.2
+      temperature: 0
+      maxTokens: 4096
+
+# Use OpenAI as LLM judge (avoids Anthropic rate limits for rubric scoring)
+defaultTest:
+  options:
+    provider: "openai:chat:gpt-5.1"
+
+# Higher concurrency since Google/OpenAI have generous rate limits
+evaluateOptions:
+  maxConcurrency: 4
+
+tests:
+  # Tool Selection (10 prompts): correct MCP tool routing
+  - file://datasets/tool-selection.yaml
+
+  # Response Quality (7 prompts): analysis depth with mock tool data
+  - file://datasets/response-quality.yaml
+
+  # Step Efficiency (5 prompts): composite tool usage, step count
+  - file://datasets/step-efficiency.yaml
+
+  # Chart Generation (4 prompts): valid JSON with mock stat data
+  - file://datasets/chart-generation.yaml
+
+  # Instruction Following (4 prompts): protocol compliance with mock context
+  - file://datasets/instruction-following.yaml

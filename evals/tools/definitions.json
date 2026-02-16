@@ -1,0 +1,439 @@
+[
+  {
+    "name": "get_player_info_tool",
+    "description": "Fetch basic player information (name, team, position, height, weight, age, IDs). Use for player lookups, identification, and basic bio data. Aliases: player bio, who is, player details.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of player names (partial matches supported, case-insensitive)"
+        }
+      },
+      "required": ["player_names"]
+    }
+  },
+  {
+    "name": "get_player_profile",
+    "description": "Fetch comprehensive player profile combining basic info and all available stats in a single call. Reduces need for 3-4 separate tool calls. Returns playerInfo, receivingStats, passingStats, rushingStats.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of player names (partial matches supported)"
+        },
+        "season_list": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Filter by specific seasons"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows per stats category (default 25)"
+        }
+      },
+      "required": ["player_names"]
+    }
+  },
+  {
+    "name": "compare_players",
+    "description": "Compare 2-5 players side-by-side with stats, dynasty rankings, consistency metrics, and cross-position commonMetrics. Supports scoring_format parameter (ppr/half_ppr/standard). Use for trade evaluation, start/sit, draft decisions, flex comparison. Aliases: player comparison, head to head, versus, matchup, side by side.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of 2-5 player names to compare"
+        },
+        "season": {
+          "type": "integer",
+          "description": "Filter stats by specific season"
+        },
+        "summary": {
+          "type": "boolean",
+          "description": "If true, returns compact output with key metrics only"
+        },
+        "scoring_format": {
+          "type": "string",
+          "enum": ["ppr", "half_ppr", "standard"],
+          "description": "Scoring format for fantasy points (default ppr)"
+        }
+      },
+      "required": ["player_names"]
+    }
+  },
+  {
+    "name": "get_trade_context",
+    "description": "Fetch all data needed for a fantasy trade evaluation in a single composite call. Replaces 5-6 sequential tool calls. Returns player info, season stats with fantasy points (PPR and standard), dynasty rankings, consistency metrics, and optional league context for both give and receive sides. Aliases: evaluate trade, trade analysis, sell high, buy low, dynasty trade, trade value.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "give_player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Players being traded away (1-5 names)"
+        },
+        "receive_player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Players being received (1-5 names)"
+        },
+        "league_id": {
+          "type": "string",
+          "description": "Sleeper league ID for league context"
+        },
+        "scoring_format": {
+          "type": "string",
+          "enum": ["ppr", "half_ppr", "standard"],
+          "description": "Scoring format (default ppr)"
+        },
+        "include_weekly": {
+          "type": "boolean",
+          "description": "Include recent weekly data for trend analysis"
+        },
+        "recent_weeks": {
+          "type": "integer",
+          "description": "Number of recent weeks to include (default 4)"
+        }
+      },
+      "required": ["give_player_names", "receive_player_names"]
+    }
+  },
+  {
+    "name": "get_advanced_receiving_stats",
+    "description": "Fetch advanced seasonal receiving analytics for WR/TE/RB. Includes volume metrics (targets, receptions, yards, TDs, fantasy points), efficiency metrics (target_share, catch_percentage, avg_yac, RACR, EPA), and percentile ranks (targets_pctile, fantasy_points_ppr_pctile). Aliases: receiving stats, target share, catch rate, WR stats, TE stats.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Player names (partial/fuzzy matching)"
+        },
+        "season_list": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Seasons to filter"
+        },
+        "metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific metrics to return"
+        },
+        "order_by_metric": {
+          "type": "string",
+          "description": "Metric to sort by (descending)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows to return (default 100)"
+        },
+        "positions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Filter by positions (default WR, TE, RB)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_advanced_passing_stats",
+    "description": "Fetch advanced seasonal passing analytics for QB. Includes volume metrics (passing yards, TDs, sacks, pressures), efficiency metrics (passer_rating, completion_percentage, EPA, QBR, avg_time_to_throw), and percentile ranks. Aliases: passing stats, QB stats, quarterback analysis.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Player names"
+        },
+        "season_list": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Seasons to filter"
+        },
+        "metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific metrics to return"
+        },
+        "order_by_metric": {
+          "type": "string",
+          "description": "Metric to sort by"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows (default 100)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_advanced_rushing_stats",
+    "description": "Fetch advanced seasonal rushing analytics for RB/QB. Includes carries, yards, TDs, rushing EPA, efficiency, expected rush yards, avg_rush_yards, and percentile ranks. Aliases: rushing stats, RB stats, carry share, ground game.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Player names"
+        },
+        "season_list": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Seasons to filter"
+        },
+        "metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Specific metrics"
+        },
+        "order_by_metric": {
+          "type": "string",
+          "description": "Metric to sort by"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows (default 100)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_advanced_defense_stats",
+    "description": "Fetch advanced seasonal defensive analytics. Includes sacks, INTs, tackles, pressures, completion percentage allowed, and percentile ranks. Aliases: defense stats, IDP stats, defensive player.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Player names"
+        },
+        "season_list": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Seasons to filter"
+        },
+        "positions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Positions (default CB, DB, DE, DL, LB, S)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows (default 100)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_player_consistency",
+    "description": "Fetch player consistency metrics: avg fantasy points, std deviation, floor (p10), ceiling (p90), boom/bust game counts, consistency coefficient. Use for assessing week-to-week reliability, lineup risk, and floor/ceiling profiles. Aliases: boom bust, floor ceiling, consistent, volatile, reliable.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "player_names": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Player names"
+        },
+        "season_list": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Seasons to filter"
+        },
+        "order_by_metric": {
+          "type": "string",
+          "description": "Metric to sort by"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows (default 100)"
+        },
+        "positions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Positions (default QB, RB, WR, TE)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_fantasy_ranks",
+    "description": "Fetch dynasty rankings from vw_dynasty_ranks. Includes ECR, positional rank, tier, value. Use for dynasty value assessment, trade evaluation baseline, ranking comparison. Aliases: dynasty rankings, dynasty value, trade value, player rankings, rank, ECR.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "string",
+          "description": "Filter by position (QB, RB, WR, TE)"
+        },
+        "page_type": {
+          "type": "string",
+          "description": "Ranking category (use get_fantasy_rank_page_types to discover)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max rows (default 30)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_fantasy_rank_page_types",
+    "description": "Get distinct dynasty rank page types (e.g. dynasty-overall, dynasty-qb, superflex-rankings). Call this first to discover available ranking categories.",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_sleeper_trending_players",
+    "description": "Get trending player adds/drops from Sleeper over a time window. Shows which players are being added or dropped league-wide. Use for waiver wire recommendations, breakout detection, injury replacement targets. Aliases: trending, waiver wire, who should I grab, pickup, hot adds, most added.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "sport": {
+          "type": "string",
+          "description": "Sport type (default nfl)"
+        },
+        "add_drop": {
+          "type": "string",
+          "enum": ["add", "drop"],
+          "description": "Trend type (default add)"
+        },
+        "hours": {
+          "type": "integer",
+          "description": "Lookback hours (default 24)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results (default 25)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_sleeper_league_rosters",
+    "description": "Get rosters for a Sleeper league. With summary=True, returns player names/positions/teams. Use for roster analysis, trade targets, positional needs assessment. Aliases: league rosters, my team, my roster, roster construction.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "league_id": {
+          "type": "string",
+          "description": "Sleeper league ID"
+        },
+        "summary": {
+          "type": "boolean",
+          "description": "If true, returns human-readable roster data"
+        }
+      },
+      "required": ["league_id"]
+    }
+  },
+  {
+    "name": "get_sleeper_league_matchups",
+    "description": "Get matchups for a Sleeper league and week. With summary=True, returns player names and lineup details. Use for weekly matchup analysis, start/sit context. Aliases: matchups, this week, weekly matchup, opponent.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "league_id": {
+          "type": "string",
+          "description": "Sleeper league ID"
+        },
+        "week": {
+          "type": "integer",
+          "description": "Week number (1-18)"
+        },
+        "summary": {
+          "type": "boolean",
+          "description": "If true, returns human-readable matchup data"
+        }
+      },
+      "required": ["league_id", "week"]
+    }
+  },
+  {
+    "name": "get_sleeper_league_by_id",
+    "description": "Get Sleeper league details by ID. With summary=False, includes scoring_settings, roster_positions. Use for understanding league format, scoring rules. Aliases: league info, league settings, scoring format.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "league_id": {
+          "type": "string",
+          "description": "Sleeper league ID"
+        },
+        "summary": {
+          "type": "boolean",
+          "description": "If true, compact info without nested settings"
+        }
+      },
+      "required": ["league_id"]
+    }
+  },
+  {
+    "name": "get_sleeper_league_transactions",
+    "description": "Get transactions for a Sleeper league and week. Filter by trade, waiver, free_agent. Use for trade history, recent activity. Aliases: trades, transactions, recent moves.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "league_id": {
+          "type": "string",
+          "description": "Sleeper league ID"
+        },
+        "week": {
+          "type": "integer",
+          "description": "Week number"
+        },
+        "txn_type": {
+          "type": "string",
+          "enum": ["trade", "waiver", "free_agent"],
+          "description": "Filter by transaction type"
+        }
+      },
+      "required": ["league_id", "week"]
+    }
+  },
+  {
+    "name": "get_metrics_metadata",
+    "description": "Returns metric definitions by category (receiving, passing, rushing, defense). Use before querying stats to understand available metrics.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["receiving", "passing", "rushing", "defense"],
+          "description": "Stats category"
+        },
+        "subcategory": {
+          "type": "string",
+          "description": "Subcategory filter"
+        }
+      }
+    }
+  },
+  {
+    "name": "search_web_tool",
+    "description": "Search the web for current NFL news, injury reports, fantasy analysis, and breaking stories. Use for real-time info not in the database. Aliases: news, injury update, latest, breaking.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Max results (default 5)"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+]

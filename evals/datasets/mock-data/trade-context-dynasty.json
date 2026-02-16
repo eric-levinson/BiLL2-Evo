@@ -1,0 +1,89 @@
+[
+  {
+    "tool_name": "get_trade_context",
+    "tool_input": {
+      "give_player_names": ["CeeDee Lamb"],
+      "receive_player_names": ["Bijan Robinson"],
+      "scoring_format": "ppr"
+    },
+    "tool_output": {
+      "giveSide": {
+        "players": [
+          {
+            "player_name": "CeeDee Lamb",
+            "team": "DAL",
+            "position": "WR",
+            "age": 25,
+            "seasonStats": {
+              "season": 2024,
+              "receptions": 101,
+              "receiving_yards": 1329,
+              "receiving_tds": 9,
+              "targets": 148,
+              "target_share": 28.9,
+              "catch_percentage": 68.2,
+              "fantasy_points_ppr": 285.9,
+              "fantasy_points_standard": 184.9
+            },
+            "dynastyRanking": {
+              "ecr": 5,
+              "positional_rank": "WR3",
+              "tier": 1,
+              "value": 9500
+            },
+            "consistency": {
+              "avg_fp_ppr": 16.8,
+              "fp_stddev_ppr": 7.4,
+              "fp_floor_p10": 8.2,
+              "fp_ceiling_p90": 28.1,
+              "boom_games_20plus": 7,
+              "bust_games_under_5": 2,
+              "consistency_coefficient": 0.44
+            }
+          }
+        ],
+        "totalDynastyValue": 9500
+      },
+      "receiveSide": {
+        "players": [
+          {
+            "player_name": "Bijan Robinson",
+            "team": "ATL",
+            "position": "RB",
+            "age": 22,
+            "seasonStats": {
+              "season": 2024,
+              "rushing_yards": 1456,
+              "rushing_tds": 11,
+              "carries": 295,
+              "receptions": 58,
+              "receiving_yards": 487,
+              "receiving_tds": 2,
+              "fantasy_points_ppr": 311.3,
+              "fantasy_points_standard": 253.3,
+              "yards_per_carry": 4.94
+            },
+            "dynastyRanking": {
+              "ecr": 3,
+              "positional_rank": "RB2",
+              "tier": 1,
+              "value": 9800
+            },
+            "consistency": {
+              "avg_fp_ppr": 18.3,
+              "fp_stddev_ppr": 6.2,
+              "fp_floor_p10": 10.1,
+              "fp_ceiling_p90": 27.4,
+              "boom_games_20plus": 8,
+              "bust_games_under_5": 1,
+              "consistency_coefficient": 0.34
+            }
+          }
+        ],
+        "totalDynastyValue": 9800
+      },
+      "valueDifference": 300,
+      "recommendation": "receive_side_favored"
+    }
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "tool_name": "get_sleeper_trending_players",
+    "tool_input": { "add_drop": "add", "hours": 24, "limit": 10 },
+    "tool_output": [
+      { "player_name": "Audric Estime", "position": "RB", "team": "DEN", "add_count": 14523, "rank": 1 },
+      { "player_name": "Ray Davis", "position": "RB", "team": "BUF", "add_count": 12891, "rank": 2 },
+      { "player_name": "Jalen McMillan", "position": "WR", "team": "TB", "add_count": 11204, "rank": 3 },
+      { "player_name": "Isaac Guerendo", "position": "RB", "team": "SF", "add_count": 9876, "rank": 4 },
+      { "player_name": "Quentin Johnston", "position": "WR", "team": "LAC", "add_count": 8934, "rank": 5 },
+      { "player_name": "Tyler Allgeier", "position": "RB", "team": "ATL", "add_count": 7821, "rank": 6 },
+      { "player_name": "Jaxon Smith-Njigba", "position": "WR", "team": "SEA", "add_count": 7456, "rank": 7 },
+      { "player_name": "Jaleel McLaughlin", "position": "RB", "team": "DEN", "add_count": 6543, "rank": 8 },
+      { "player_name": "Demarcus Robinson", "position": "WR", "team": "LAR", "add_count": 5987, "rank": 9 },
+      { "player_name": "Sam LaPorta", "position": "TE", "team": "DET", "add_count": 5432, "rank": 10 }
+    ]
+  }
+]
