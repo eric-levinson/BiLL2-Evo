@@ -5,6 +5,14 @@ from .comparison_registry import register_comparison_tools
 from .info import get_player_info, get_players_by_sleeper_id
 from .info import get_player_profile as _get_player_profile
 
+# All BiLL2 tools are read-only queries with no write-back capability
+_TOOL_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 
 def register_tools(mcp: FastMCP, supabase: Client):
     """
@@ -14,28 +22,31 @@ def register_tools(mcp: FastMCP, supabase: Client):
     register_comparison_tools(mcp, supabase)
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description=(
             "Look up NFL player information including name, team, position, age, and identifiers. "
             "Essential first step for trade evaluation, start/sit analysis, waiver wire decisions, "
             "and dynasty valuation. Use to verify player identity, confirm team affiliation, and "
             "check age for dynasty value assessment."
-        )
+        ),
     )
     def get_player_info_tool(player_names: list[str]) -> list[dict]:
         return get_player_info(supabase, player_names)
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description=(
             "Fetch basic player information by Sleeper IDs. Essential for resolving Sleeper roster "
             "player IDs to real player names and stats. Use when analyzing league rosters, trending "
             "players from Sleeper, or matchup lineups to convert Sleeper's player_id format into "
             "actionable player data for trade evaluation and waiver wire recommendations."
-        )
+        ),
     )
     def get_players_by_sleeper_id_tool(sleeper_ids: list[str]) -> list[dict]:
         return get_players_by_sleeper_id(supabase, sleeper_ids)
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch comprehensive player profile combining basic info and all available stats in a single call.
 
@@ -56,7 +67,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         Stats categories may be empty for positions that don't typically record those stats.
 
         For detailed metric definitions, use the get_metrics_metadata tool.
-        """
+        """,
     )
     def get_player_profile(
         player_names: list[str],

@@ -7,11 +7,20 @@ from supabase import Client
 
 from .info import get_trade_context as _get_trade_context
 
+# All BiLL2 tools are read-only queries with no write-back capability
+_TOOL_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 
 def register_tools(mcp: FastMCP, supabase: Client):
     """Register trade evaluation tools with the FastMCP instance."""
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description=(
             "Fetch all data needed for a fantasy trade evaluation in a single call. "
             "This composite tool replaces 5-6 sequential tool calls by assembling "
@@ -32,7 +41,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             "(ECR, positional rank), and consistency metrics (avg FP, floor/ceiling, boom/bust).\n\n"
             "Keywords: trade evaluation, buy-low, sell-high, dynasty valuation, trade calculator, "
             "trade analyzer, package deal, roster move"
-        )
+        ),
     )
     def get_trade_context(
         give_player_names: list[str],

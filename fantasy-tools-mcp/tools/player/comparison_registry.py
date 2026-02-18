@@ -7,6 +7,14 @@ from supabase import Client
 
 from .comparison_info import compare_players as _compare_players
 
+# All BiLL2 tools are read-only queries with no write-back capability
+_TOOL_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 
 def register_comparison_tools(mcp: FastMCP, supabase: Client):
     """
@@ -14,6 +22,7 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
     """
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Compare 2-5 players side-by-side with their stats and profiles.
 
@@ -44,7 +53,7 @@ def register_comparison_tools(mcp: FastMCP, supabase: Client):
         For detailed metric definitions, use the get_metrics_metadata tool.
 
         Keywords: sell-high, buy-low, league winner, breakout candidate, smash spot, target hog, workhorse back
-        """
+        """,
     )
     def compare_players(
         player_names: list[str],
