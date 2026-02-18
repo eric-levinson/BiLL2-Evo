@@ -1,0 +1,85 @@
+[
+  {
+    "tool_name": "compare_players",
+    "tool_input": { "player_names": ["Bijan Robinson", "Ja'Marr Chase"], "scoring_format": "ppr" },
+    "tool_output": {
+      "players": [
+        {
+          "player_name": "Bijan Robinson",
+          "team": "ATL",
+          "position": "RB",
+          "age": 22,
+          "seasonStats": {
+            "season": 2024,
+            "rushing_yards": 1456,
+            "rushing_tds": 11,
+            "carries": 295,
+            "receptions": 58,
+            "receiving_yards": 487,
+            "receiving_tds": 2,
+            "fantasy_points_ppr": 311.3,
+            "fantasy_points_standard": 253.3,
+            "yards_per_carry": 4.94,
+            "targets": 72,
+            "target_share": 12.8
+          },
+          "dynastyRanking": {
+            "ecr": 3,
+            "positional_rank": "RB2",
+            "tier": 1,
+            "value": 9800
+          },
+          "consistency": {
+            "avg_fp_ppr": 18.3,
+            "fp_stddev_ppr": 6.2,
+            "fp_floor_p10": 10.1,
+            "fp_ceiling_p90": 27.4,
+            "boom_games_20plus": 8,
+            "bust_games_under_5": 1,
+            "consistency_coefficient": 0.34
+          }
+        },
+        {
+          "player_name": "Ja'Marr Chase",
+          "team": "CIN",
+          "position": "WR",
+          "age": 24,
+          "seasonStats": {
+            "season": 2024,
+            "receptions": 117,
+            "receiving_yards": 1708,
+            "receiving_tds": 17,
+            "targets": 158,
+            "target_share": 31.2,
+            "catch_percentage": 74.1,
+            "fantasy_points_ppr": 381.8,
+            "fantasy_points_standard": 264.8,
+            "avg_yac": 5.8,
+            "yards_per_reception": 14.6
+          },
+          "dynastyRanking": {
+            "ecr": 2,
+            "positional_rank": "WR1",
+            "tier": 1,
+            "value": 9900
+          },
+          "consistency": {
+            "avg_fp_ppr": 22.5,
+            "fp_stddev_ppr": 8.1,
+            "fp_floor_p10": 12.3,
+            "fp_ceiling_p90": 34.6,
+            "boom_games_20plus": 11,
+            "bust_games_under_5": 1,
+            "consistency_coefficient": 0.36
+          }
+        }
+      ],
+      "commonMetrics": {
+        "fantasy_points_ppr": { "Bijan Robinson": 311.3, "Ja'Marr Chase": 381.8 },
+        "fantasy_points_standard": { "Bijan Robinson": 253.3, "Ja'Marr Chase": 264.8 },
+        "total_tds": { "Bijan Robinson": 13, "Ja'Marr Chase": 17 },
+        "total_yards": { "Bijan Robinson": 1943, "Ja'Marr Chase": 1708 }
+      }
+    }
+  }
+]

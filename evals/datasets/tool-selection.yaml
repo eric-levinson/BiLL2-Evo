@@ -1,0 +1,116 @@
+# Tool Selection Tests (10 prompts)
+# Validates that models select the correct MCP tools based on user intent.
+# Tests enriched tool descriptions + BM25 synonym routing.
+#
+# Each test provides:
+#   - prompt: The user message
+#   - expected_tools: Tools that SHOULD be called (at least one must match)
+#   - description: What this test validates
+
+- vars:
+    prompt: "Who is Patrick Mahomes?"
+    expected_tools: "get_player_info_tool,get_player_profile"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should attempt to call get_player_info_tool or get_player_profile
+        to look up Patrick Mahomes. It should NOT try to answer from memory alone.
+
+- vars:
+    prompt: "Compare Bijan Robinson vs Ja'Marr Chase for my dynasty team"
+    expected_tools: "compare_players"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call compare_players with both Bijan Robinson and Ja'Marr Chase.
+        It may also call get_fantasy_ranks for dynasty context.
+
+- vars:
+    prompt: "What are the top trending adds on Sleeper right now?"
+    expected_tools: "get_sleeper_trending_players"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call get_sleeper_trending_players with add_drop="add".
+        This tests the "trending" and "waiver" synonym routing.
+
+- vars:
+    prompt: "Show me the league rosters for league 1225572389929099264"
+    expected_tools: "get_sleeper_league_rosters"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+
+- vars:
+    prompt: "What are the top dynasty RB rankings?"
+    expected_tools: "get_fantasy_ranks,get_fantasy_rank_page_types"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call get_fantasy_ranks with position="RB" or equivalent.
+        It may optionally call get_fantasy_rank_page_types first to discover categories.
+
+- vars:
+    prompt: "Get Justin Jefferson's advanced receiving stats for 2024"
+    expected_tools: "get_advanced_receiving_stats"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call get_advanced_receiving_stats with player_names including
+        "Justin Jefferson" and season_list including 2024.
+
+- vars:
+    prompt: "I want to sell high on Josh Allen in my dynasty league. What could I get for him?"
+    expected_tools: "get_trade_context,get_fantasy_ranks,compare_players"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should use trade-related tools. Ideally get_trade_context or
+        get_fantasy_ranks to assess Josh Allen's dynasty value. The "sell high"
+        synonym should route to trade evaluation tools.
+
+- vars:
+    prompt: "Who should I grab off waivers this week? I need RB help"
+    expected_tools: "get_sleeper_trending_players"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call get_sleeper_trending_players to find trending adds.
+        "Who should I grab" and "waivers" should route to the trending players tool.
+
+- vars:
+    prompt: "Evaluate this dynasty trade: I give CeeDee Lamb and Travis Etienne, I receive Tyreek Hill and Bijan Robinson"
+    expected_tools: "get_trade_context"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call get_trade_context with give_player_names=["CeeDee Lamb", "Travis Etienne"]
+        and receive_player_names=["Tyreek Hill", "Bijan Robinson"]. This composite tool should be
+        preferred over multiple separate tool calls.
+
+- vars:
+    prompt: "How consistent has Derrick Henry been this season? Is he a boom-bust player?"
+    expected_tools: "get_player_consistency"
+  assert:
+    - type: javascript
+      value: file://scorers/tool-accuracy.js
+    - type: llm-rubric
+      value: >
+        The model should call get_player_consistency for Derrick Henry.
+        The "consistent" and "boom-bust" keywords should route to the consistency tool.

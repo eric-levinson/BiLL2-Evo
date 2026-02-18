@@ -1,0 +1,56 @@
+[
+  {
+    "tool_name": "get_player_profile",
+    "tool_input": { "player_names": ["Patrick Mahomes"] },
+    "tool_output": {
+      "playerInfo": [
+        {
+          "player_name": "Patrick Mahomes",
+          "team": "KC",
+          "position": "QB",
+          "age": 29,
+          "height": "6-2",
+          "weight": 225,
+          "college": "Texas Tech",
+          "years_exp": 8,
+          "sleeper_id": "4046",
+          "status": "Active"
+        }
+      ],
+      "passingStats": [
+        {
+          "player_name": "Patrick Mahomes",
+          "season": 2024,
+          "games_played": 17,
+          "completions": 404,
+          "attempts": 601,
+          "passing_yards": 4839,
+          "passing_tds": 38,
+          "interceptions": 11,
+          "passer_rating": 101.2,
+          "completion_pct": 67.2,
+          "epa_total": 142.8,
+          "avg_time_to_throw": 2.74,
+          "fantasy_points_ppr": 362.6,
+          "yards_pctile": 88,
+          "tds_pctile": 92,
+          "passer_rating_pctile": 82,
+          "fantasy_points_ppr_pctile": 90
+        }
+      ],
+      "rushingStats": [
+        {
+          "player_name": "Patrick Mahomes",
+          "season": 2024,
+          "carries": 58,
+          "rushing_yards": 389,
+          "rushing_tds": 3,
+          "rushing_epa": 8.2,
+          "avg_rush_yards": 6.7,
+          "fantasy_points_ppr": 44.9
+        }
+      ],
+      "receivingStats": []
+    }
+  }
+]

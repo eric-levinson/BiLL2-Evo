@@ -1,0 +1,70 @@
+# Chart Generation Tests (4 prompts)
+# Validates that models generate valid chart JSON with proper type selection
+# and scale separation (never mixing vastly different scales).
+#
+# Multi-turn: These tests include mock statistical data via tool_results so
+# models have real numbers to chart (not just making up data).
+
+- vars:
+    prompt: "Show me a bar chart of the top 5 RBs by rushing yards in 2024"
+    tool_results: "file://datasets/mock-data/fantasy-ranks-rb.json"
+  assert:
+    - type: javascript
+      value: file://scorers/chart-validity.js
+    - type: llm-rubric
+      value: >
+        The response should include a chart code block with valid JSON.
+        Chart type should be "bar" (comparing categories).
+        Should have data points for top RBs.
+        Y-axis should show rushing yards only (single scale).
+        Must include a descriptive title.
+        The model received dynasty ranking data and should use it to identify top RBs.
+
+- vars:
+    prompt: >
+      Create a chart comparing these players' 2024 receiving stats.
+      Show targets, receptions, and receiving yards for each player.
+    tool_results: "file://datasets/mock-data/advanced-receiving-stats.json"
+  assert:
+    - type: javascript
+      value: file://scorers/chart-validity.js
+    - type: llm-rubric
+      value: >
+        CRITICAL: The model received real receiving data with targets (~138-158),
+        receptions (~89-117), and receiving yards (~1182-1708). It should NOT put
+        all three on the same chart axis because the scales are vastly different.
+        It should either:
+        (a) Use separate charts for yards vs volume metrics, OR
+        (b) Normalize to per-game averages so scales are comparable, OR
+        (c) Use only same-scale metrics together (targets + receptions on one chart).
+        Mixing yards (~1400) with targets (~150) on one bar chart is a failure.
+
+- vars:
+    prompt: "Show me a line chart of Patrick Mahomes' weekly fantasy points over the 2024 season"
+    tool_results: "file://datasets/mock-data/player-profile-mahomes.json"
+  assert:
+    - type: javascript
+      value: file://scorers/chart-validity.js
+    - type: llm-rubric
+      value: >
+        The model received Mahomes' seasonal stats (362.6 total PPR points over 17 games).
+        Chart type should be "line" (trends over time).
+        X-axis should represent weeks (1-17 or 1-18).
+        Y-axis should show fantasy points.
+        Should include title and axis labels.
+        The model may need to estimate weekly values since only seasonal totals were provided;
+        this is acceptable as long as the chart structure is valid.
+
+- vars:
+    prompt: "Visualize the top 10 dynasty RB rankings with a chart showing their dynasty values"
+    tool_results: "file://datasets/mock-data/fantasy-ranks-rb.json"
+  assert:
+    - type: javascript
+      value: file://scorers/chart-validity.js
+    - type: llm-rubric
+      value: >
+        The model received dynasty ranking data with values (4800-9800 range).
+        Bar chart is most appropriate for rankings comparison.
+        Should show player names on one axis and dynasty value on the other.
+        Must have a clear title indicating these are dynasty rankings.
+        Should include all 10 players from the provided data.

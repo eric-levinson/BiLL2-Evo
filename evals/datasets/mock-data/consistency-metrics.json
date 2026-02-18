@@ -1,0 +1,73 @@
+[
+  {
+    "tool_name": "get_player_consistency",
+    "tool_input": { "player_names": ["Saquon Barkley", "Bijan Robinson", "Derrick Henry", "Josh Jacobs", "De'Von Achane"], "season_list": [2024] },
+    "tool_output": [
+      {
+        "player_name": "Saquon Barkley",
+        "position": "RB",
+        "season": 2024,
+        "avg_fp_ppr": 21.4,
+        "fp_stddev_ppr": 9.8,
+        "fp_floor_p10": 9.2,
+        "fp_ceiling_p90": 35.6,
+        "fp_median_ppr": 19.8,
+        "boom_games_20plus": 10,
+        "bust_games_under_5": 1,
+        "consistency_coefficient": 0.46
+      },
+      {
+        "player_name": "Bijan Robinson",
+        "position": "RB",
+        "season": 2024,
+        "avg_fp_ppr": 18.3,
+        "fp_stddev_ppr": 6.2,
+        "fp_floor_p10": 10.1,
+        "fp_ceiling_p90": 27.4,
+        "fp_median_ppr": 17.5,
+        "boom_games_20plus": 8,
+        "bust_games_under_5": 1,
+        "consistency_coefficient": 0.34
+      },
+      {
+        "player_name": "Derrick Henry",
+        "position": "RB",
+        "season": 2024,
+        "avg_fp_ppr": 16.9,
+        "fp_stddev_ppr": 8.5,
+        "fp_floor_p10": 6.3,
+        "fp_ceiling_p90": 29.8,
+        "fp_median_ppr": 15.2,
+        "boom_games_20plus": 7,
+        "bust_games_under_5": 3,
+        "consistency_coefficient": 0.50
+      },
+      {
+        "player_name": "Josh Jacobs",
+        "position": "RB",
+        "season": 2024,
+        "avg_fp_ppr": 15.8,
+        "fp_stddev_ppr": 5.9,
+        "fp_floor_p10": 8.4,
+        "fp_ceiling_p90": 24.2,
+        "fp_median_ppr": 14.9,
+        "boom_games_20plus": 5,
+        "bust_games_under_5": 2,
+        "consistency_coefficient": 0.37
+      },
+      {
+        "player_name": "De'Von Achane",
+        "position": "RB",
+        "season": 2024,
+        "avg_fp_ppr": 17.6,
+        "fp_stddev_ppr": 10.2,
+        "fp_floor_p10": 4.8,
+        "fp_ceiling_p90": 32.1,
+        "fp_median_ppr": 15.4,
+        "boom_games_20plus": 8,
+        "bust_games_under_5": 3,
+        "consistency_coefficient": 0.58
+      }
+    ]
+  }
+]

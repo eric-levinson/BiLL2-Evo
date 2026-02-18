@@ -1,0 +1,75 @@
+# Step Efficiency Tests (5 prompts)
+# Validates that models use composite tools efficiently and don't waste steps.
+# Tests that get_trade_context and compare_players reduce step count.
+#
+# expected_max_steps: Maximum acceptable tool calls for this query
+# expected_min_steps: Minimum expected tool calls (sanity check)
+
+- vars:
+    prompt: "Who is Lamar Jackson?"
+    expected_min_steps: 1
+    expected_max_steps: 2
+  assert:
+    - type: javascript
+      value: file://scorers/step-efficiency.js
+    - type: llm-rubric
+      value: >
+        Simple player lookup should require only 1-2 tool calls
+        (get_player_info_tool or get_player_profile). The model should NOT
+        make unnecessary additional calls for a basic "who is" question.
+
+- vars:
+    prompt: "Compare Tyreek Hill and Stefon Diggs"
+    expected_min_steps: 1
+    expected_max_steps: 3
+  assert:
+    - type: javascript
+      value: file://scorers/step-efficiency.js
+    - type: llm-rubric
+      value: >
+        Player comparison should use compare_players (1 call) rather than
+        making separate get_player_info + get_advanced_receiving_stats calls
+        for each player. Max 3 steps is acceptable if adding dynasty ranks.
+
+- vars:
+    prompt: "Evaluate this trade: I give Justin Jefferson, I receive Ja'Marr Chase"
+    expected_min_steps: 1
+    expected_max_steps: 4
+  assert:
+    - type: javascript
+      value: file://scorers/step-efficiency.js
+    - type: llm-rubric
+      value: >
+        Trade evaluation should use get_trade_context composite tool (1 call)
+        rather than 5-6 separate calls for player info, stats, rankings, and
+        consistency for each player. If the model uses get_trade_context, it
+        should complete in 1-2 steps. Without it, up to 4 is acceptable.
+
+- vars:
+    prompt: >
+      Complex dynasty trade: I give CeeDee Lamb, Travis Etienne, and my 2026 1st,
+      I receive Bijan Robinson and Garrett Wilson. Should I do it in PPR?
+    expected_min_steps: 1
+    expected_max_steps: 6
+  assert:
+    - type: javascript
+      value: file://scorers/step-efficiency.js
+    - type: llm-rubric
+      value: >
+        Complex multi-player trade should use get_trade_context composite tool
+        as the primary data source (1-2 calls), potentially supplemented by
+        get_fantasy_ranks for picks context. Should NOT require 8-10 steps.
+        Efficient range is 1-6 steps.
+
+- vars:
+    prompt: "What are the latest trending player adds?"
+    expected_min_steps: 1
+    expected_max_steps: 2
+  assert:
+    - type: javascript
+      value: file://scorers/step-efficiency.js
+    - type: llm-rubric
+      value: >
+        Simple trending query should complete in 1 call to
+        get_sleeper_trending_players. At most 2 if the model also
+        fetches additional context for the trending players.

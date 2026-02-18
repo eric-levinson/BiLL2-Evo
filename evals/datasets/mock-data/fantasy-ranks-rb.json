@@ -1,0 +1,18 @@
+[
+  {
+    "tool_name": "get_fantasy_ranks",
+    "tool_input": { "position": "RB", "page_type": "dynasty-rb", "limit": 10 },
+    "tool_output": [
+      { "player_name": "Bijan Robinson", "team": "ATL", "position": "RB", "age": 22, "ecr": 1, "positional_rank": "RB1", "tier": 1, "value": 9800 },
+      { "player_name": "Saquon Barkley", "team": "PHI", "position": "RB", "age": 27, "ecr": 2, "positional_rank": "RB2", "tier": 1, "value": 8600 },
+      { "player_name": "Jahmyr Gibbs", "team": "DET", "position": "RB", "age": 22, "ecr": 3, "positional_rank": "RB3", "tier": 1, "value": 8400 },
+      { "player_name": "Breece Hall", "team": "NYJ", "position": "RB", "age": 23, "ecr": 4, "positional_rank": "RB4", "tier": 2, "value": 7800 },
+      { "player_name": "De'Von Achane", "team": "MIA", "position": "RB", "age": 22, "ecr": 5, "positional_rank": "RB5", "tier": 2, "value": 7500 },
+      { "player_name": "Jonathan Taylor", "team": "IND", "position": "RB", "age": 25, "ecr": 6, "positional_rank": "RB6", "tier": 2, "value": 7200 },
+      { "player_name": "Josh Jacobs", "team": "GB", "position": "RB", "age": 26, "ecr": 7, "positional_rank": "RB7", "tier": 3, "value": 6100 },
+      { "player_name": "Derrick Henry", "team": "BAL", "position": "RB", "age": 30, "ecr": 8, "positional_rank": "RB8", "tier": 3, "value": 4800 },
+      { "player_name": "Travis Etienne", "team": "JAX", "position": "RB", "age": 25, "ecr": 9, "positional_rank": "RB9", "tier": 3, "value": 5900 },
+      { "player_name": "Isiah Pacheco", "team": "KC", "position": "RB", "age": 24, "ecr": 10, "positional_rank": "RB10", "tier": 3, "value": 5700 }
+    ]
+  }
+]

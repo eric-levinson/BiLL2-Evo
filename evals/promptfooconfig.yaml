@@ -1,0 +1,129 @@
+# BiLL2 Fantasy Football AI — Model Evaluation Framework
+# ======================================================
+#
+# Evaluates 7 LLM models across 5 test categories using BiLL2's system prompt
+# and MCP tool definitions. Uses a custom provider (bill2-chat.js) that calls
+# model APIs directly with tool definitions.
+#
+# Usage:
+#   cd BiLL2-OG-Monorepo/evals
+#   npx promptfoo eval                    # Run all tests
+#   npx promptfoo eval --no-cache         # Skip cache, fresh results
+#   npx promptfoo eval -p sonnet          # Run specific provider by label fragment
+#   npx promptfoo view                    # View results in browser
+#
+# To run from bill-agent-ui (where promptfoo is installed):
+#   cd BiLL2-OG-Monorepo/bill-agent-ui
+#   npx promptfoo eval -c ../evals/promptfooconfig.yaml
+#
+# Dry run (validate config without calling APIs):
+#   npx promptfoo eval --dry-run
+
+description: "BiLL2 Fantasy Football AI — Model Comparison"
+
+# Prompt template: just the user message. System prompt is injected by the provider.
+prompts:
+  - "{{prompt}}"
+
+# ---------------------------------------------------------------------------
+# Providers — 7 models across 3 API providers
+# ---------------------------------------------------------------------------
+# All use the custom bill2-chat.js provider which includes:
+#   - BiLL2 system prompt (fantasy knowledge, protocols, output templates)
+#   - 18 MCP tool definitions for tool selection testing
+#   - Structured output with [TOOL_CALLS] and [RESPONSE] sections
+#
+# Rate limit note: Anthropic may rate-limit at 30k input tokens/min.
+# concurrency=1 prevents 429s. Google and OpenAI have higher limits.
+
+providers:
+  # --- Anthropic (concurrency: 1 to avoid rate limits) ---
+  - id: file://providers/bill2-chat.js
+    label: "Claude Sonnet 4.5"
+    config:
+      modelId: claude-sonnet-4-5-20250929
+      temperature: 0
+      maxTokens: 4096
+    delay: 10000  # 10s between requests for low-tier rate limits
+
+  - id: file://providers/bill2-chat.js
+    label: "Claude Haiku 4.5"
+    config:
+      modelId: claude-haiku-4-5-20251001
+      temperature: 0
+      maxTokens: 4096
+    delay: 10000
+
+  - id: file://providers/bill2-chat.js
+    label: "Claude Opus 4.5"
+    config:
+      modelId: claude-opus-4-5-20251101
+      temperature: 0
+      maxTokens: 4096
+    delay: 15000  # Opus has stricter rate limits
+
+  # --- Google ---
+  - id: file://providers/bill2-chat.js
+    label: "Gemini 3 Flash"
+    config:
+      modelId: gemini-3-flash-preview
+      temperature: 0
+      maxTokens: 4096
+
+  - id: file://providers/bill2-chat.js
+    label: "Gemini 3 Pro"
+    config:
+      modelId: gemini-3-pro-preview
+      temperature: 0
+      maxTokens: 4096
+
+  # --- OpenAI ---
+  - id: file://providers/bill2-chat.js
+    label: "GPT-5 Mini"
+    config:
+      modelId: gpt-5-mini
+      temperature: 0
+      maxTokens: 4096
+
+  - id: file://providers/bill2-chat.js
+    label: "GPT-5.1"
+    config:
+      modelId: gpt-5.1
+      temperature: 0
+      maxTokens: 4096
+
+# ---------------------------------------------------------------------------
+# Default test configuration
+# ---------------------------------------------------------------------------
+defaultTest:
+  options:
+    # Use Claude Sonnet as the LLM judge for rubric evaluations
+    provider: "anthropic:messages:claude-sonnet-4-5-20250929"
+
+# ---------------------------------------------------------------------------
+# Concurrency — serialize Anthropic requests to avoid 429s
+# ---------------------------------------------------------------------------
+evaluateOptions:
+  maxConcurrency: 1
+
+# ---------------------------------------------------------------------------
+# Output — save results with: -o ../evals/results/latest.json
+# (omitted from config since path resolution depends on CWD)
+# ---------------------------------------------------------------------------
+# Test suites — 30 prompts across 5 categories
+# ---------------------------------------------------------------------------
+tests:
+  # Tool Selection (10 prompts): correct MCP tool routing
+  - file://datasets/tool-selection.yaml
+
+  # Response Quality (7 prompts): analysis depth, template compliance, fantasy knowledge
+  - file://datasets/response-quality.yaml
+
+  # Step Efficiency (5 prompts): composite tool usage, step count minimization
+  - file://datasets/step-efficiency.yaml
+
+  # Chart Generation (4 prompts): valid JSON, type selection, scale separation
+  - file://datasets/chart-generation.yaml
+
+  # Instruction Following (4 prompts): protocol compliance, format awareness
+  - file://datasets/instruction-following.yaml

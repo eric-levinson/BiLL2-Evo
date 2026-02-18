@@ -1,0 +1,132 @@
+# Response Quality Tests (7 prompts)
+# Validates analysis depth, output template compliance, fantasy knowledge usage,
+# scoring format awareness, and confidence level inclusion.
+#
+# Multi-turn: These tests include mock tool output via tool_results so models
+# receive data and can demonstrate analysis capabilities (not just tool selection).
+
+- vars:
+    prompt: >
+      Should I trade Ja'Marr Chase for Bijan Robinson straight up in my PPR dynasty league?
+      I'm competing this year.
+    tool_results: "file://datasets/mock-data/player-comparison-rb.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate the response as a fantasy football expert. The model received detailed
+        comparison data for both players via tool results. The response should:
+        1. Reference the dynasty rankings provided (Chase ECR 2, Robinson ECR 3)
+        2. Discuss age curves (Chase 24 WR in prime, Robinson 22 young RB with shorter shelf life)
+        3. Acknowledge PPR scoring format impact (Chase 381.8 PPR pts vs Robinson 311.3)
+        4. Consider the "competing this year" context (win-now favors proven production)
+        5. Follow the trade evaluation template: comparison table, format impact, verdict with confidence level
+        6. Include a clear confidence level (High/Medium/Low)
+        7. Mention the trade-off: "You're giving up X to gain Y"
+        Score 0-5 where 5 means all criteria met with deep analysis using the provided data.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: >
+      Should I start Amon-Ra St. Brown or DK Metcalf this week in my half-PPR league?
+    tool_results: "file://datasets/mock-data/advanced-receiving-stats.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate as a fantasy football expert. The model received advanced receiving stats
+        for multiple WRs including Amon-Ra St. Brown. The response should:
+        1. Follow the start/sit template (key factors, recommendation, reasoning)
+        2. Consider half-PPR format impact (receptions worth 0.5 points each)
+        3. Reference relevant metrics from the data (St. Brown: 75.4% catch rate, 26.4 target share)
+        4. Include a confidence level
+        5. Use the provided stats to make a data-driven recommendation
+        Score 0-5 where 5 means all criteria met with stats-backed analysis.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: "Give me a full player profile on Patrick Mahomes"
+    tool_results: "file://datasets/mock-data/player-profile-mahomes.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate completeness of the player profile. The model received full profile data
+        including bio, passing stats, and rushing stats. Should include:
+        1. Basic bio information from data (KC, QB, age 29, Texas Tech)
+        2. Key passing stats (4839 yards, 38 TDs, 101.2 passer rating)
+        3. Rushing upside (389 yards, 6.7 YPC)
+        4. Fantasy points context (362.6 PPR points, 90th percentile)
+        5. Dynasty value assessment based on age and production
+        6. Data-backed analysis using the provided numbers, not just opinions
+        Score 0-5 where 5 is comprehensive and data-driven.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: "Who should I pick up off waivers this week? I'm in a 12-team PPR league and need WR depth."
+    tool_results: "file://datasets/mock-data/trending-players.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate waiver wire recommendations. The model received trending player data
+        with add counts. Should:
+        1. Follow the waiver wire template (tiered recommendations)
+        2. Mention league format awareness (12-team PPR)
+        3. Highlight WR options from trending data (Jalen McMillan, Quentin Johnston, Jaxon Smith-Njigba)
+        4. Reference add counts as momentum indicators
+        5. Distinguish short-term streamers vs long-term adds
+        6. Focus on WR position since user specified that need
+        Score 0-5 where 5 means targeted, format-aware recommendations using the data.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: >
+      In my superflex dynasty league, should I trade Patrick Mahomes for Ja'Marr Chase
+      and a 2026 1st round pick? I'm rebuilding.
+    tool_results: "file://datasets/mock-data/player-profile-mahomes.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate dynasty trade analysis in superflex context. The model received
+        Mahomes' full profile data. Should:
+        1. Recognize Superflex QB premium (QBs are most valuable position)
+        2. Factor in Mahomes' dynasty value as elite QB (age 29, 38 TDs, 90th pctile)
+        3. Consider rebuilding context (youth and draft capital favored)
+        4. Discuss the 2026 1st round pick value
+        5. Reference positional scarcity (QB scarce in superflex)
+        6. Include confidence level and clear trade-off summary
+        7. Acknowledge this is a close/complex decision
+        Score 0-5 where 5 means expert-level superflex-aware dynasty analysis.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: "What's the difference between Saquon Barkley and Josh Jacobs in standard scoring?"
+    tool_results: "file://datasets/mock-data/consistency-metrics.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate scoring format awareness. The model received consistency metrics for
+        both players. Should:
+        1. Recognize "standard scoring" means no PPR (rec=0)
+        2. Emphasize rushing volume and TDs over reception metrics
+        3. Compare consistency profiles (Barkley: 0.46 CV vs Jacobs: 0.37 CV)
+        4. Reference floor/ceiling data (Barkley higher ceiling 35.6 vs Jacobs 24.2)
+        5. Back up claims with specific stats from the provided data
+        Score 0-5 where 5 means clearly format-adjusted analysis with data citations.
+      provider: "openai:chat:gpt-5.1"
+
+- vars:
+    prompt: >
+      I'm thinking about trading away Travis Kelce in my TEP dynasty league (1.5 PPR for TEs).
+      Is now a good time to sell? What kind of return should I expect?
+    tool_results: "file://datasets/mock-data/fantasy-ranks-rb.json"
+  assert:
+    - type: llm-rubric
+      value: >
+        Evaluate TE Premium dynasty analysis. The model received dynasty ranking data
+        (RB rankings for trade value context). Should:
+        1. Understand TEP format (1.5 points per TE reception)
+        2. Recognize Kelce's age curve (TE peak 26-30, decline after 31)
+        3. Reference TE scarcity (5-8 reliable starters)
+        4. Discuss the sell-high window for aging elite TEs
+        5. Suggest realistic return expectations (reference dynasty values from the data)
+        6. Include confidence level
+        Score 0-5 where 5 means expert TEP-aware analysis.
+      provider: "openai:chat:gpt-5.1"
