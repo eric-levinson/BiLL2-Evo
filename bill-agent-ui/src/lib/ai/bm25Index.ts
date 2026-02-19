@@ -138,12 +138,7 @@ export function searchBM25Index(
   // and return empty results rather than crashing the request.
   let results: BMDocument[]
   try {
-    results = BM25(
-      index.documents,
-      keywords,
-      undefined,
-      sorter
-    ) as BMDocument[]
+    results = BM25(index.documents, keywords, undefined, sorter) as BMDocument[]
   } catch (error) {
     console.warn('[BM25] Search failed, falling back to empty results:', error)
     return []
