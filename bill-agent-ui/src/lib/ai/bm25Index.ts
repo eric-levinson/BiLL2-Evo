@@ -86,9 +86,13 @@ const FANTASY_SYNONYMS: Record<string, string[]> = {
  * @returns Array of lowercase keywords with synonym expansions
  */
 function tokenizeQuery(query: string): string[] {
+  // Strip regex-special characters BEFORE synonym lookup so that
+  // punctuation like "action???" becomes "action" and doesn't crash
+  // okapibm25's internal `new RegExp(term, "g")` construction.
   const baseTokens = query
     .toLowerCase()
     .split(/\s+/)
+    .map((word) => word.replace(/[^a-z0-9-]/g, ''))
     .filter((word) => word.length > 0)
 
   // Expand fantasy synonyms: if a token matches a synonym key,
@@ -128,12 +132,22 @@ export function searchBM25Index(
   // Score documents using BM25 with default constants (k1=1.2, b=0.75)
   // Use sorter to get BMDocument[] with scores
   const sorter = (a: BMDocument, b: BMDocument) => b.score - a.score
-  const results = BM25(
-    index.documents,
-    keywords,
-    undefined,
-    sorter
-  ) as BMDocument[]
+
+  // Safety net: okapibm25 uses `new RegExp(term, "g")` internally.
+  // If any token still contains regex-special chars, catch the error
+  // and return empty results rather than crashing the request.
+  let results: BMDocument[]
+  try {
+    results = BM25(
+      index.documents,
+      keywords,
+      undefined,
+      sorter
+    ) as BMDocument[]
+  } catch (error) {
+    console.warn('[BM25] Search failed, falling back to empty results:', error)
+    return []
+  }
 
   // Map results to tool objects and take top-k
   return results

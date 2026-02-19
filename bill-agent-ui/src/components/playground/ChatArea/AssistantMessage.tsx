@@ -38,7 +38,22 @@ const ToolCallBadge = memo(({ toolName, status }: ToolCallMessagePartProps) => {
 })
 ToolCallBadge.displayName = 'ToolCallBadge'
 
-const AssistantMessage = () => {
+// Stable component references — extracted outside the component to prevent
+// recreation on every render, which would force MessagePrimitive.Parts
+// to re-render the entire message tree (including expensive MarkdownRenderer).
+const TextPart = ({ text }: { text: string }) => (
+  <MarkdownRenderer>{text}</MarkdownRenderer>
+)
+TextPart.displayName = 'TextPart'
+
+const MESSAGE_PARTS_COMPONENTS = {
+  Text: TextPart,
+  tools: {
+    Fallback: ToolCallBadge
+  }
+} as const
+
+const AssistantMessage = memo(() => {
   const { streamingErrorMessage } = usePlaygroundStore()
   const message = useMessage({ optional: true })
   const hasContent = message?.content && message.content.length > 0
@@ -71,14 +86,7 @@ const AssistantMessage = () => {
           )}
 
           {/* Render message parts with tool call rendering */}
-          <MessagePrimitive.Parts
-            components={{
-              Text: ({ text }) => <MarkdownRenderer>{text}</MarkdownRenderer>,
-              tools: {
-                Fallback: ToolCallBadge
-              }
-            }}
-          />
+          <MessagePrimitive.Parts components={MESSAGE_PARTS_COMPONENTS} />
 
           {/* Action bar for copy and regenerate functionality */}
           <ActionBarPrimitive.Root
@@ -101,7 +109,7 @@ const AssistantMessage = () => {
       </div>
     </MessagePrimitive.Root>
   )
-}
+})
 
 AssistantMessage.displayName = 'AssistantMessage'
 

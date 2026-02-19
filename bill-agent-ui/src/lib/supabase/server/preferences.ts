@@ -119,7 +119,7 @@ export function formatPreferencesForPrompt(
     context += '**Connected Sleeper Leagues:**\n'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     preferences.connected_leagues.forEach((league: any) => {
-      context += `- ${league.name} (${league.season}, ${league.scoring_format})${league.is_primary ? ' [PRIMARY]' : ''}\n`
+      context += `- ${league.name} (league_id: ${league.league_id}, ${league.season}, ${league.scoring_format})${league.is_primary ? ' [PRIMARY]' : ''}\n`
     })
     context += '\n'
   }
