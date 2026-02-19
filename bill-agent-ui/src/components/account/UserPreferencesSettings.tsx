@@ -57,9 +57,13 @@ export default function UserPreferencesSettings() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1">
                             <div className="font-medium">{league.name}</div>
-                            <div className="text-muted-foreground text-xs">
-                              {league.season} • {league.scoring_format}
-                            </div>
+                            {(league.season || league.scoring_format) && (
+                              <div className="text-muted-foreground text-xs">
+                                {[league.season, league.scoring_format]
+                                  .filter(Boolean)
+                                  .join(' • ')}
+                              </div>
+                            )}
                           </div>
                           {league.is_primary && (
                             <span className="text-secondary-foreground rounded-md bg-secondary px-2 py-1 text-xs font-medium">
@@ -113,7 +117,7 @@ export default function UserPreferencesSettings() {
                     {preferencesData.preference_tags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-secondary-foreground rounded-md bg-secondary px-2 py-1 text-xs font-medium"
+                        className="rounded-md border border-border bg-background px-2 py-1 text-xs font-medium"
                       >
                         {tag}
                       </span>

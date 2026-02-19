@@ -98,9 +98,17 @@ const SessionsList = () => {
         {sessionsData.map((session) => {
           const isActive = sessionId === session.session_id
           return (
-            <motion.button
+            <motion.div
               key={session.session_id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleSessionClick(session.session_id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleSessionClick(session.session_id)
+                }
+              }}
               className={`group relative flex cursor-pointer flex-col gap-1 rounded-lg border px-3 py-2 text-left transition-colors ${
                 isActive
                   ? 'border-primary bg-primary/10'
@@ -128,7 +136,7 @@ const SessionsList = () => {
               >
                 <Trash className="text-muted-foreground h-3.5 w-3.5 hover:text-destructive" />
               </button>
-            </motion.button>
+            </motion.div>
           )
         })}
       </div>
