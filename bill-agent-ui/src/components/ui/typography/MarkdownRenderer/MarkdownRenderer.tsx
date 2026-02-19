@@ -24,7 +24,7 @@ const MarkdownRendererBase: FC<MarkdownRendererProps> = ({
       'prose prose-h1:text-xl dark:prose-invert flex w-full flex-col gap-y-5 rounded-lg',
       classname
     )}
-    components={{ ...(inline ? inlineComponents : components) }}
+    components={inline ? inlineComponents : components}
     remarkPlugins={REMARK_PLUGINS}
     rehypePlugins={REHYPE_PLUGINS}
   >

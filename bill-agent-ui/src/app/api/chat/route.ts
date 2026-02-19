@@ -29,7 +29,10 @@ import {
   getMessageText,
   filterBM25ToolCalls
 } from '@/lib/utils/messageFiltering'
-import { deduplicateToolCalls } from '@/lib/utils/deduplicateMessages'
+import {
+  deduplicateToolCalls,
+  ensureMessageIds
+} from '@/lib/utils/deduplicateMessages'
 import {
   getUserPreferences,
   formatPreferencesForPrompt
@@ -264,8 +267,16 @@ export async function POST(req: Request) {
         }
       : undefined
 
-    // Fetch user preferences for cross-session memory
+    // Fetch user preferences and onboarding data for cross-session memory
     const userPreferences = await getUserPreferences(user.id)
+
+    // Fetch Sleeper username from onboarding so the model can look up
+    // leagues without asking the user for their username again.
+    const { data: onboarding } = await supabase
+      .from('user_onboarding')
+      .select('sleeper_username')
+      .eq('user_id', user.id)
+      .single()
 
     // Pre-resolve league scoring settings if primary league is set.
     // Eliminates the most frequent wasted tool call — the agent currently
@@ -276,10 +287,17 @@ export async function POST(req: Request) {
 
     let userContextSection = formatPreferencesForPrompt(userPreferences)
 
+    // Inject Sleeper username so the model can call get_sleeper_leagues_by_username
+    // directly without needing the user to repeat it
+    if (onboarding?.sleeper_username) {
+      userContextSection += `\n**Sleeper Username:** ${onboarding.sleeper_username}\n`
+    }
+
     // Append resolved league settings as XML block for the agent
-    if (leagueContext) {
+    if (leagueContext && userPreferences?.primary_league_id) {
       userContextSection += `\n\n<league_settings>
 Primary League: ${leagueContext.leagueName}
+League ID: ${userPreferences.primary_league_id}
 Scoring: ${leagueContext.scoringFormat}
 Format: ${leagueContext.isSuperFlex ? 'Superflex' : 'Standard roster'}
 Teams: ${leagueContext.teamCount}
@@ -336,9 +354,12 @@ Roster: ${leagueContext.rosterSummary}
       // SERVER-SIDE persistence - fires even when client disconnects
       onFinish: async ({ messages: completedMessages }) => {
         try {
-          // Filter out BM25 tool calls and deduplicate tool call IDs before persisting
+          // Filter out BM25 tool calls, deduplicate tool call IDs, and
+          // ensure every message has a non-empty ID before persisting.
           const bm25Filtered = filterBM25ToolCalls(completedMessages)
-          const filteredMessages = deduplicateToolCalls(bm25Filtered)
+          const filteredMessages = ensureMessageIds(
+            deduplicateToolCalls(bm25Filtered)
+          )
 
           // Check if session exists in database (for auto-generated client IDs)
           let sessionExists = false

@@ -1,6 +1,25 @@
 import type { UIMessage } from '@ai-sdk/react'
 
 /**
+ * Ensures every message has a non-empty `id`.
+ *
+ * The AI SDK's multi-step agent responses sometimes produce intermediate
+ * assistant messages with empty-string IDs.  assistant-ui's MessageRepository
+ * uses IDs to build a parent→child tree, so two messages sharing the same
+ * `""` key corrupt the tree and cause earlier messages to vanish from the
+ * rendered thread.
+ *
+ * Call this when loading messages from the database AND before persisting so
+ * that stored data is always clean.
+ */
+export function ensureMessageIds(messages: UIMessage[]): UIMessage[] {
+  return messages.map((msg) => {
+    if (msg.id) return msg
+    return { ...msg, id: crypto.randomUUID() }
+  })
+}
+
+/**
  * Deduplicates tool calls and tool results by toolCallId
  * Prevents "Duplicate key toolCallId-xyz in tapResources" errors in Assistant UI
  * Keeps the first occurrence and removes subsequent duplicates
