@@ -169,6 +169,9 @@ cython_debug/
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
 poetry.toml
 
+# Tool usage analytics logs
+logs/
+
 # ruff
 .ruff_cache/
 

@@ -11,11 +11,20 @@ from .info import (
     get_stats_metadata as _get_stats_metadata,
 )
 
+# All BiLL2 tools are read-only queries with no write-back capability
+_TOOL_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 
 def register_tools(mcp: FastMCP, supabase: Client):
     """Register league-related tools with the FastMCP instance."""
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description=(
             "Return game-stat field definitions for NFL offense/defense. Use to understand what game stat "
             "fields mean for deeper fantasy analysis. "
@@ -24,12 +33,13 @@ def register_tools(mcp: FastMCP, supabase: Client):
             "pressure_and_sacks, special_teams, seasonal. "
             "Defense subcategories: overall, tackling, pressure, coverage, "
             "turnovers, penalties. Case-insensitive; omit subcategory to return full category."
-        )
+        ),
     )
     def get_stats_metadata(category: str, subcategory: str | None = None) -> dict:
         return _get_stats_metadata(category, subcategory)
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch offensive weekly game stats for NFL players.
 
@@ -55,7 +65,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             - Situational/advanced: red zone efficiency, third down conversion rate, game identifiers, opponent, and other contextual fields.
         - For safety and performance, fully unfiltered queries (no player_names, season_list, weekly_list, or positions specified) may be refused or limited by the implementation; prefer narrowing queries by name, season, week, or position.
         - Returns: dict containing the queried rows and any metadata or error information.
-        """
+        """,
     )
     def get_offensive_players_game_stats(
         player_names: list[str] | None = None,
@@ -78,6 +88,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch defensive weekly game stats for NFL players.
 
@@ -103,7 +114,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
             - Situational/advanced: yards after catch allowed, air yards completed, receiving TDs allowed, game identifiers, opponent, and other contextual fields.
         - For safety and performance, fully unfiltered queries (no player_names, season_list, weekly_list, or positions specified) may be refused or limited by the implementation; prefer narrowing queries by name, season, week, or position.
         - Returns: dict containing the queried rows and any metadata or error information.
-        """
+        """,
     )
     def get_defensive_players_game_stats(
         player_names: list[str] | None = None,

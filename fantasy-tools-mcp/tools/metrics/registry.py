@@ -13,16 +13,25 @@ from .info import get_advanced_rushing_stats as _get_advanced_rushing_stats
 from .info import get_advanced_rushing_stats_weekly as _get_advanced_rushing_stats_weekly
 from .info import get_player_consistency as _get_player_consistency
 
+# All BiLL2 tools are read-only queries with no write-back capability
+_TOOL_ANNOTATIONS = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
 
 def register_tools(mcp: FastMCP, supabase: Client):
     """Register fantasy-related tools with the FastMCP instance."""
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description=(
             "Returns metric definitions by category for receiving, passing, rushing, and defense advanced "
             "NFL statistics. Use to understand what advanced metrics mean for fantasy analysis. "
             "Use subcategory to pick one of: basic_info, volume_metrics, efficiency_metrics, situational_metrics, weekly."
-        )
+        ),
     )
     def get_metrics_metadata(category: str | None = None, subcategory: str | None = None) -> dict:
         """Return metadata from the embedded metrics_catalog.
@@ -43,6 +52,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         return sub
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced seasonal receiving stats for NFL players.
 
@@ -65,7 +75,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         receiving_2pt_conversions, receiving_first_downs, avg_cushion, avg_separation, player_display_name, receiving_yards_after_catch, age, drop
 
         Basic player info (season, player_name, ff_team, merge_name) is always included.
-        """
+        """,
     )
     def get_advanced_receiving_stats(
         player_names: list[str] | None = None,
@@ -80,6 +90,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced seasonal passing stats for NFL quarterbacks and passers.
 
@@ -102,7 +113,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, week, player_name, team, position, merge_name, height, weight) is always included.
-        """
+        """,
     )
     def get_advanced_passing_stats(
         player_names: list[str] | None = None,
@@ -123,6 +134,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced seasonal rushing stats for NFL running backs, hybrid backs, and runners.
 
@@ -145,7 +157,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, player_name, ff_team, merge_name) is always included.
-        """
+        """,
     )
     def get_advanced_rushing_stats(
         player_names: list[str] | None = None,
@@ -166,6 +178,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced seasonal defensive stats for NFL defenders and defensive playmakers.
 
@@ -188,7 +201,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, week, player_name, team, position, merge_name, height, weight) is always included.
-        """
+        """,
     )
     def get_advanced_defense_stats(
         player_names: list[str] | None = None,
@@ -214,6 +227,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced weekly receiving stats for NFL players.
 
@@ -236,7 +250,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, week, player_name, ff_team, ff_position, merge_name, height, weight) is always included.
-        """
+        """,
     )
     def get_advanced_receiving_stats_weekly(
         player_names: list[str] | None = None,
@@ -259,6 +273,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced weekly passing stats for NFL quarterbacks and passers.
 
@@ -281,7 +296,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, week, player_name, team, position, merge_name, height, weight) is always included.
-        """
+        """,
     )
     def get_advanced_passing_stats_weekly(
         player_names: list[str] | None = None,
@@ -304,6 +319,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced weekly rushing stats for NFL running backs, hybrid backs, and runners.
 
@@ -326,7 +342,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, week, player_name, team, position, merge_name, height, weight) is always included.
-        """
+        """,
     )
     def get_advanced_rushing_stats_weekly(
         player_names: list[str] | None = None,
@@ -349,6 +365,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Fetch advanced weekly defensive stats for NFL defenders and defensive playmakers.
 
@@ -371,7 +388,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         For detailed metric definitions and categories, use the get_metrics_metadata tool.
         Basic player info (season, week, player_name, team, position, merge_name, height, weight) is always included.
-        """
+        """,
     )
     def get_advanced_defense_stats_weekly(
         player_names: list[str] | None = None,
@@ -387,6 +404,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
         )
 
     @mcp.tool(
+        annotations=_TOOL_ANNOTATIONS,
         description="""
         Evaluate a player's weekly scoring consistency, floor, and ceiling.
 
@@ -418,7 +436,7 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
         Basic player info (season, player_name, ff_position, ff_team) is always included.
         Data sourced from mv_player_consistency materialized view (refreshed weekly Tuesday 7 AM UTC).
-        """
+        """,
     )
     def get_player_consistency(
         player_names: list[str] | None = None,
