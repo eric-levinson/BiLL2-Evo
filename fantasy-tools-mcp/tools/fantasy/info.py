@@ -162,10 +162,14 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
             users = future_users.result()
 
         user_map = league.map_users_to_team_name(users)
+        # Build user_id -> username mapping so the AI can match the logged-in
+        # Sleeper username (e.g. "slum") to the correct roster.
+        username_map = {u["user_id"]: u.get("username", u.get("display_name")) for u in users}
 
         for roster in rosters:
             owner = roster.get("owner_id")
             roster["owner_name"] = user_map.get(owner)
+            roster["owner_username"] = username_map.get(owner)
 
         if not summary:
             return rosters
@@ -175,6 +179,7 @@ def get_sleeper_league_rosters(league_id: str, summary: bool = False, supabase: 
             summary_roster = {
                 "roster_id": roster.get("roster_id"),
                 "owner_name": roster.get("owner_name"),
+                "owner_username": roster.get("owner_username"),
             }
 
             player_ids = roster.get("players") or []
@@ -236,10 +241,12 @@ def get_sleeper_league_matchups(
 
         roster_to_owner = league.map_rosterid_to_ownerid(rosters)
         user_map = league.map_users_to_team_name(users)
+        username_map = {u["user_id"]: u.get("username", u.get("display_name")) for u in users}
         for matchup in matchups:
             rid = matchup.get("roster_id")
             owner = roster_to_owner.get(rid)
             matchup["owner_name"] = user_map.get(owner)
+            matchup["owner_username"] = username_map.get(owner)
 
         if not summary:
             return matchups
@@ -250,6 +257,7 @@ def get_sleeper_league_matchups(
                 "matchup_id": matchup.get("matchup_id"),
                 "roster_id": matchup.get("roster_id"),
                 "owner_name": matchup.get("owner_name"),
+                "owner_username": matchup.get("owner_username"),
                 "points": matchup.get("points"),
             }
 
