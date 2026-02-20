@@ -287,10 +287,24 @@ def get_start_sit_context(
 
         player_bundles.append(bundle)
 
+    # --- Validate required fields (percentile ranks + consistency) ---
+    missing_required: list[str] = []
+    for bundle in player_bundles:
+        pname = bundle["player_name"]
+        if bundle.get("consistency") is None:
+            missing_required.append(f"{pname}: consistency metrics unavailable")
+        stats = bundle.get("season_stats", {})
+        has_pctile = any(
+            any(k.endswith("_pctile") for k in row) for cat in stats.values() if isinstance(cat, list) for row in cat
+        )
+        if stats and not has_pctile:
+            missing_required.append(f"{pname}: positional percentile ranks unavailable")
+
     return {
         "players": player_bundles,
         "week": week,
         "scoring_format": scoring_format,
         "data_season": data_season,
         "players_not_found": players_not_found,
+        "missing_required_data": missing_required if missing_required else None,
     }

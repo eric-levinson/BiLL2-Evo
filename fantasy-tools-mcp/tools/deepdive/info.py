@@ -304,6 +304,16 @@ def get_player_deep_dive(
             "team": rank_data.get("team"),
         }
 
+    # --- Validate required fields (percentile ranks + consistency) ---
+    missing_required: list[str] = []
+    if consistency_data is None:
+        missing_required.append(f"{display_name}: consistency metrics unavailable")
+    has_pctile = any(
+        any(k.endswith("_pctile") for k in row) for cat in season_stats.values() if isinstance(cat, list) for row in cat
+    )
+    if season_stats and not has_pctile:
+        missing_required.append(f"{display_name}: positional percentile ranks unavailable")
+
     return {
         "player_info": {
             "player_name": display_name,
@@ -321,4 +331,5 @@ def get_player_deep_dive(
         "usage_trends": usage_trends,
         "scoring_format": scoring_format,
         "data_season": data_season,
+        "missing_required_data": missing_required if missing_required else None,
     }
