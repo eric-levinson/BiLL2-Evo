@@ -142,6 +142,7 @@ export async function maybeSummarize(
 
   const { text: summary } = await generateText({
     model: createModelInstance(modelId),
+    maxOutputTokens: 1024,
     messages: [
       {
         role: 'user',
