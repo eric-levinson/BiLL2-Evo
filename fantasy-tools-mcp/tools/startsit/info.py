@@ -19,7 +19,10 @@ from tools.metrics.info import (
 from tools.player.info import get_player_info
 from tools.ranks.info import get_fantasy_ranks
 
-# Position-appropriate metrics with percentile ranks (043)
+# Position-appropriate metrics (043)
+# Receiving pctile columns live in mv_receiving_percentile_ranks (separate MV)
+# because vw_advanced_receiving_analytics has a LATERAL join that makes inline
+# PERCENT_RANK() too expensive. Pctile data is fetched separately and merged.
 _RECEIVING_METRICS = [
     "targets",
     "receptions",
@@ -30,6 +33,9 @@ _RECEIVING_METRICS = [
     "target_share",
     "catch_percentage",
     "avg_yac",
+]
+
+_RECEIVING_PCTILE_COLS = [
     "targets_pctile",
     "target_share_pctile",
     "receiving_yards_pctile",
@@ -197,6 +203,24 @@ def get_start_sit_context(
         except Exception:
             return None
 
+    def _fetch_receiving_pctile(name: str) -> list[dict]:
+        try:
+            result = build_player_stats_query(
+                supabase=supabase,
+                table_name="mv_receiving_percentile_ranks",
+                base_columns=["merge_name", "ff_position", "season"],
+                player_name_column="merge_name",
+                position_column="ff_position",
+                default_positions=["WR", "TE", "RB"],
+                return_key="recvPctile",
+                player_names=[name],
+                metrics=_RECEIVING_PCTILE_COLS,
+                limit=3,
+            )
+            return result.get("recvPctile", [])
+        except Exception:
+            return []
+
     def _fetch_dynasty_ranks() -> list[dict]:
         try:
             return get_fantasy_ranks(supabase=supabase, limit=500)
@@ -204,12 +228,13 @@ def get_start_sit_context(
             return []
 
     # --- Parallel fetch (single phase — all queries at once) ---
-    worker_count = len(unique_names) * 5 + 1  # 5 fetches per player + rankings
+    worker_count = len(unique_names) * 6 + 1  # 6 fetches per player + rankings
     max_workers = min(worker_count, 12)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         info_futures = {n: executor.submit(_fetch_info, n) for n in unique_names}
         recv_futures = {n: executor.submit(_fetch_receiving, n) for n in unique_names}
+        recv_pctile_futures = {n: executor.submit(_fetch_receiving_pctile, n) for n in unique_names}
         pass_futures = {n: executor.submit(_fetch_passing, n) for n in unique_names}
         rush_futures = {n: executor.submit(_fetch_rushing, n) for n in unique_names}
         weekly_futures = {n: executor.submit(_fetch_weekly, n) for n in unique_names}
@@ -218,11 +243,25 @@ def get_start_sit_context(
 
         infos = {n: f.result() for n, f in info_futures.items()}
         receiving = {n: f.result() for n, f in recv_futures.items()}
+        recv_pctile = {n: f.result() for n, f in recv_pctile_futures.items()}
         passing = {n: f.result() for n, f in pass_futures.items()}
         rushing = {n: f.result() for n, f in rush_futures.items()}
         weekly = {n: f.result() for n, f in weekly_futures.items()}
         consistency = {n: f.result() for n, f in consistency_futures.items()}
         all_rankings = rankings_future.result()
+
+    # --- Merge receiving percentile ranks from MV into receiving stats ---
+    for name in unique_names:
+        recv_rows = receiving.get(name, [])
+        pctile_rows = recv_pctile.get(name, [])
+        if recv_rows and pctile_rows:
+            pctile_by_season = {r.get("season"): r for r in pctile_rows}
+            for row in recv_rows:
+                pctile = pctile_by_season.get(row.get("season"))
+                if pctile:
+                    for col in _RECEIVING_PCTILE_COLS:
+                        if col in pctile:
+                            row[col] = pctile[col]
 
     # --- Build rankings lookup ---
     rankings_by_name: dict[str, dict] = {}

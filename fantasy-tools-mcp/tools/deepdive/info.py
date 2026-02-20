@@ -20,7 +20,10 @@ from tools.metrics.info import (
 from tools.player.info import get_player_info
 from tools.ranks.info import get_fantasy_ranks
 
-# Position-appropriate metrics with percentile ranks (043)
+# Position-appropriate metrics (043)
+# Receiving pctile columns live in mv_receiving_percentile_ranks (separate MV)
+# because vw_advanced_receiving_analytics has a LATERAL join that makes inline
+# PERCENT_RANK() too expensive. Pctile data is fetched separately and merged.
 _RECEIVING_METRICS = [
     "targets",
     "receptions",
@@ -34,6 +37,9 @@ _RECEIVING_METRICS = [
     "receiving_air_yards",
     "receiving_first_downs",
     "receiving_yards_after_catch",
+]
+
+_RECEIVING_PCTILE_COLS = [
     "targets_pctile",
     "target_share_pctile",
     "receiving_yards_pctile",
@@ -187,6 +193,24 @@ def get_player_deep_dive(
         except Exception:
             return None
 
+    def _fetch_receiving_pctile() -> list[dict]:
+        try:
+            result = build_player_stats_query(
+                supabase=supabase,
+                table_name="mv_receiving_percentile_ranks",
+                base_columns=["merge_name", "ff_position", "season"],
+                player_name_column="merge_name",
+                position_column="ff_position",
+                default_positions=["WR", "TE", "RB"],
+                return_key="recvPctile",
+                player_names=[name],
+                metrics=_RECEIVING_PCTILE_COLS,
+                limit=3,
+            )
+            return result.get("recvPctile", [])
+        except Exception:
+            return []
+
     def _fetch_dynasty_ranks() -> list[dict]:
         try:
             return get_fantasy_ranks(supabase=supabase, limit=500)
@@ -234,12 +258,13 @@ def get_player_deep_dive(
             return []
 
     # --- Parallel fetch ---
-    worker_count = 7 if include_game_log else 6
-    max_workers = min(worker_count, 8)
+    worker_count = 8 if include_game_log else 7
+    max_workers = min(worker_count, 10)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         info_future = executor.submit(_fetch_info)
         recv_future = executor.submit(_fetch_receiving)
+        recv_pctile_future = executor.submit(_fetch_receiving_pctile)
         pass_future = executor.submit(_fetch_passing)
         rush_future = executor.submit(_fetch_rushing)
         consistency_future = executor.submit(_fetch_consistency)
@@ -249,12 +274,23 @@ def get_player_deep_dive(
 
         info_list = info_future.result()
         recv_data = recv_future.result()
+        recv_pctile_data = recv_pctile_future.result()
         pass_data = pass_future.result()
         rush_data = rush_future.result()
         consistency_data = consistency_future.result()
         all_rankings = rankings_future.result()
         game_log = game_log_future.result()
         usage_trends = usage_future.result()
+
+    # --- Merge receiving percentile ranks from MV into receiving stats ---
+    if recv_data and recv_pctile_data:
+        pctile_by_season = {r.get("season"): r for r in recv_pctile_data}
+        for row in recv_data:
+            pctile = pctile_by_season.get(row.get("season"))
+            if pctile:
+                for col in _RECEIVING_PCTILE_COLS:
+                    if col in pctile:
+                        row[col] = pctile[col]
 
     # --- Build player info ---
     player_info = info_list[0] if info_list else None
@@ -269,6 +305,7 @@ def get_player_deep_dive(
             "usage_trends": [],
             "scoring_format": scoring_format,
             "data_season": None,
+            "missing_required_data": None,
         }
 
     display_name = player_info.get("display_name", name)

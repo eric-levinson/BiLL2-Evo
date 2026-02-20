@@ -20,7 +20,10 @@ from tools.metrics.info import (
 )
 from tools.ranks.info import get_fantasy_ranks
 
-# Position-appropriate metrics with percentile ranks (043)
+# Position-appropriate metrics (043)
+# Receiving pctile columns live in mv_receiving_percentile_ranks (separate MV)
+# because vw_advanced_receiving_analytics has a LATERAL join that makes inline
+# PERCENT_RANK() too expensive. Pctile data is fetched separately and merged.
 _RECEIVING_METRICS = [
     "targets",
     "receptions",
@@ -30,6 +33,9 @@ _RECEIVING_METRICS = [
     "fantasy_points_ppr",
     "target_share",
     "catch_percentage",
+]
+
+_RECEIVING_PCTILE_COLS = [
     "targets_pctile",
     "target_share_pctile",
     "receiving_yards_pctile",
@@ -151,6 +157,24 @@ def get_waiver_context(
         except Exception:
             return []
 
+    def _fetch_receiving_pctile(name: str) -> list[dict]:
+        try:
+            result = build_player_stats_query(
+                supabase=supabase,
+                table_name="mv_receiving_percentile_ranks",
+                base_columns=["merge_name", "ff_position", "season"],
+                player_name_column="merge_name",
+                position_column="ff_position",
+                default_positions=["WR", "TE", "RB"],
+                return_key="recvPctile",
+                player_names=[name],
+                metrics=_RECEIVING_PCTILE_COLS,
+                limit=3,
+            )
+            return result.get("recvPctile", [])
+        except Exception:
+            return []
+
     def _fetch_consistency(name: str) -> dict | None:
         try:
             result = build_player_stats_query(
@@ -218,19 +242,34 @@ def get_waiver_context(
         if name:
             player_names_to_enrich.append(name)
 
-    worker_count = len(player_names_to_enrich) * 4  # recv + pass + rush + consistency
+    worker_count = len(player_names_to_enrich) * 5  # recv + recv_pctile + pass + rush + consistency
     max_workers = min(max(worker_count, 1), 12)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         recv_futures = {n: executor.submit(_fetch_receiving, n) for n in player_names_to_enrich}
+        recv_pctile_futures = {n: executor.submit(_fetch_receiving_pctile, n) for n in player_names_to_enrich}
         pass_futures = {n: executor.submit(_fetch_passing, n) for n in player_names_to_enrich}
         rush_futures = {n: executor.submit(_fetch_rushing, n) for n in player_names_to_enrich}
         consistency_futures = {n: executor.submit(_fetch_consistency, n) for n in player_names_to_enrich}
 
         receiving = {n: f.result() for n, f in recv_futures.items()}
+        recv_pctile = {n: f.result() for n, f in recv_pctile_futures.items()}
         passing = {n: f.result() for n, f in pass_futures.items()}
         rushing = {n: f.result() for n, f in rush_futures.items()}
         consistency = {n: f.result() for n, f in consistency_futures.items()}
+
+    # --- Merge receiving percentile ranks from MV into receiving stats ---
+    for name in player_names_to_enrich:
+        recv_rows = receiving.get(name, [])
+        pctile_rows = recv_pctile.get(name, [])
+        if recv_rows and pctile_rows:
+            pctile_by_season = {r.get("season"): r for r in pctile_rows}
+            for row in recv_rows:
+                pctile = pctile_by_season.get(row.get("season"))
+                if pctile:
+                    for col in _RECEIVING_PCTILE_COLS:
+                        if col in pctile:
+                            row[col] = pctile[col]
 
     # --- Assemble player bundles ---
     players_without_stats: list[str] = []
