@@ -45,6 +45,10 @@ import {
 } from '@/lib/ai/tools/preferences'
 import { getBillSystemPrompt } from '@/lib/ai/prompts/billSystemPrompt'
 import { resolveLeagueSettings } from '@/lib/ai/leagueContext'
+import {
+  maybeSummarize,
+  type SummarizationResult
+} from '@/lib/ai/conversationSummarizer'
 import { z } from 'zod'
 
 /**
@@ -115,6 +119,23 @@ export async function POST(req: Request) {
     const { messages } = parsed.data
     // Non-UUID session IDs are silently dropped by the schema's .catch(undefined)
     const sessionId = parsed.data.id
+
+    // Pre-process: summarize conversation if it exceeds the turn threshold.
+    // Uses a lightweight model (Haiku) to compress older turns, preserving
+    // fantasy-specific context (player names, league settings, trade decisions).
+    let summarizationResult: SummarizationResult | null = null
+    try {
+      summarizationResult = await maybeSummarize(messages)
+      if (summarizationResult) {
+        console.log(
+          `[Chat API] Conversation summarized: ${messages.length} messages → ${summarizationResult.trimmedMessages.length} recent messages + summary`
+        )
+      }
+    } catch (err) {
+      // Summarization failure is non-fatal — proceed with full message history
+      console.error('[Summarization] Failed, proceeding without summary:', err)
+    }
+    const activeMessages = summarizationResult?.trimmedMessages ?? messages
 
     // Acquire MCP client from connection pool
     // Pool handles connection reuse, circuit breaker, and retry logic
@@ -326,7 +347,10 @@ Roster: ${leagueContext.rosterSummary}
       stopWhen: stepCountIs(10),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       prepareStep: prepareStep as any,
-      instructions: getBillSystemPrompt(userContextSection),
+      instructions: getBillSystemPrompt(
+        userContextSection,
+        summarizationResult?.summary
+      ),
       // Enable Anthropic prompt caching: system prompt (~3,000 tokens) and tool
       // definitions are cached for 5 min, reducing input cost by ~90% on turns 2+.
       // Non-Anthropic providers ignore unrecognised providerOptions.
@@ -347,16 +371,29 @@ Roster: ${leagueContext.rosterSummary}
     // Use createAgentUIStreamResponse which properly handles the agent stream
     return createAgentUIStreamResponse({
       agent,
-      uiMessages: messages,
+      uiMessages: activeMessages,
       // CRITICAL: Consume stream to ensure completion even on client disconnect
       // This prevents data loss when client closes browser or network disconnects
       consumeSseStream: consumeStream,
       // SERVER-SIDE persistence - fires even when client disconnects
       onFinish: async ({ messages: completedMessages }) => {
         try {
+          // If conversation was summarized, reconstruct full history for persistence.
+          // completedMessages only contains recent turns + new response; we prepend
+          // the older messages that were compressed for the LLM context window.
+          const fullMessages = summarizationResult
+            ? [
+                ...messages.slice(
+                  0,
+                  messages.length - summarizationResult.trimmedMessages.length
+                ),
+                ...completedMessages
+              ]
+            : completedMessages
+
           // Filter out BM25 tool calls, deduplicate tool call IDs, and
           // ensure every message has a non-empty ID before persisting.
-          const bm25Filtered = filterBM25ToolCalls(completedMessages)
+          const bm25Filtered = filterBM25ToolCalls(fullMessages)
           const filteredMessages = ensureMessageIds(
             deduplicateToolCalls(bm25Filtered)
           )
