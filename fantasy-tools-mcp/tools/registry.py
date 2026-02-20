@@ -9,13 +9,16 @@ import sys
 from fastmcp import FastMCP
 from supabase import Client
 
+from tools.deepdive.registry import register_tools as register_deepdive_tools
 from tools.dictionary.registry import register_tools as register_dictionary_tools
 from tools.fantasy.registry import register_tools as register_fantasy_tools
 from tools.league.registry import register_tools as _register_league_tools
 from tools.metrics.registry import register_tools as register_metrics_tools
 from tools.player.registry import register_tools as register_player_tools
 from tools.ranks.registry import register_tools as register_ranks_tools
+from tools.startsit.registry import register_tools as register_startsit_tools
 from tools.trade.registry import register_tools as register_trade_tools
+from tools.waiver.registry import register_tools as register_waiver_tools
 from tools.websearch.registry import register_tools as register_websearch_tools
 
 
@@ -54,6 +57,11 @@ def register_tools(mcp: FastMCP, supabase: Client):
 
     # Register websearch tools
     register_websearch_tools(mcp, supabase)
+
+    # Register composite tools (051)
+    register_startsit_tools(mcp, supabase)
+    register_waiver_tools(mcp, supabase)
+    register_deepdive_tools(mcp, supabase)
 
 
 def _register_resources(mcp: FastMCP):

@@ -203,6 +203,148 @@ get_trade_context(
 
 ---
 
+## Start/Sit Tools
+
+### `get_start_sit_context`
+
+Fetch all data needed for a fantasy start/sit decision in a single call. This composite tool replaces 4-5 sequential tool calls by assembling player season stats with positional percentile ranks, weekly performance, consistency metrics, and dynasty rankings in parallel. Returns a data-only bundle with zero analysis or opinions.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `player_names` | `list[str]` | Yes | - | Players to compare for start/sit (1-8 names) |
+| `week` | `int` | Yes | - | NFL week number (1-18) to evaluate |
+| `season` | `int \| None` | No | `None` | Season year filter (defaults to most recent) |
+| `scoring_format` | `str` | No | `"ppr"` | Scoring format: `"ppr"`, `"half_ppr"`, or `"standard"` |
+
+**Returns:** Dict with keys:
+
+- `players[]`: Player data bundles for each player
+- `week`: The evaluated week number
+- `scoring_format`: Effective scoring format string
+- `data_season`: Most recent season in the data
+- `players_not_found[]`: Names that couldn't be resolved
+- `missing_required_data[]`: Warnings when required percentile/consistency data is unavailable
+
+**Each player bundle includes:**
+
+- Basic info: `player_name`, `position`, `team`, `age`
+- Season stats by category (`receiving`, `passing`, `rushing`) with positional percentile ranks (`*_pctile` columns, 0-100)
+- Weekly stats for the specified week with `fantasy_points` and `fantasy_points_ppr`
+- Consistency metrics: `avg_fp_ppr`, `fp_stddev_ppr`, `fp_floor_p10`, `fp_ceiling_p90`, `boom_games_20plus`, `bust_games_under_5`, `consistency_coefficient`
+- Dynasty ranking: `ecr`, `positional_rank`, `team`
+
+**Example:**
+```python
+# Compare two WRs for a start/sit decision
+get_start_sit_context(
+    player_names=["Justin Jefferson", "Ja'Marr Chase"],
+    week=12
+)
+
+# Multi-player flex decision with specific season
+get_start_sit_context(
+    player_names=["Travis Kelce", "George Kittle", "Dalton Kincaid"],
+    week=14,
+    season=2025,
+    scoring_format="half_ppr"
+)
+```
+
+---
+
+## Waiver Wire Tools
+
+### `get_waiver_context`
+
+Fetch all data needed for waiver wire decisions in a single call. This composite tool replaces 3-4 sequential tool calls by assembling trending player adds from Sleeper, season stats with positional percentile ranks, consistency metrics, dynasty rankings, and league roster availability in parallel. Returns a data-only bundle with zero analysis or opinions.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `league_id` | `str` | Yes | - | Sleeper league ID for roster availability check |
+| `position_filter` | `str \| None` | No | `None` | Filter trending players by position (`"QB"`, `"RB"`, `"WR"`, `"TE"`) |
+| `scoring_format` | `str` | No | `"ppr"` | Scoring format: `"ppr"`, `"half_ppr"`, or `"standard"` |
+| `top_n` | `int` | No | `10` | Number of trending players to evaluate (max 25) |
+
+**Returns:** Dict with keys:
+
+- `trending_players[]`: Enriched player data bundles sorted by trending add count
+- `league_id`: The league ID used
+- `scoring_format`: Effective scoring format string
+- `data_season`: Most recent season in the data
+- `players_without_stats[]`: Trending players with no stats found
+- `missing_required_data[]`: Warnings when required percentile/consistency data is unavailable
+
+**Each player bundle includes:**
+
+- Basic info: `player_name`, `position`, `team`
+- `trending_add_count`: Number of league-wide adds in last 24 hours
+- `is_available_in_league`: Whether the player is on a roster in your league
+- Season stats by category (`receiving`, `passing`, `rushing`) with positional percentile ranks
+- Consistency metrics: `avg_fp_ppr`, `fp_stddev_ppr`, `fp_floor_p10`, `fp_ceiling_p90`, `boom_games_20plus`, `bust_games_under_5`, `consistency_coefficient`
+- Dynasty ranking: `ecr`, `positional_rank`, `team`
+
+**Example:**
+```python
+# Top 10 trending adds with league availability
+get_waiver_context(league_id="1225572389929099264")
+
+# WR-only waiver targets
+get_waiver_context(
+    league_id="1225572389929099264",
+    position_filter="WR",
+    top_n=15
+)
+```
+
+---
+
+## Deep Dive Tools
+
+### `get_player_deep_dive`
+
+Fetch comprehensive player analysis data in a single call. This composite tool replaces 4-6 sequential tool calls by assembling player bio, season stats with positional percentile ranks, consistency metrics, dynasty rankings, optional weekly game log, and target share/usage trends in parallel. Returns a data-only bundle with zero analysis or opinions.
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `player_name` | `str` | Yes | - | The player to analyze |
+| `scoring_format` | `str` | No | `"ppr"` | Scoring format: `"ppr"`, `"half_ppr"`, or `"standard"` |
+| `include_game_log` | `bool` | No | `False` | If True, includes recent weekly game log with fantasy points |
+| `recent_weeks` | `int` | No | `6` | Number of recent weeks for game log and usage trends |
+
+**Returns:** Dict with keys:
+
+- `player_info`: Bio data (`player_name`, `position`, `team`, `age`, `years_of_experience`, `height`, `weight`)
+- `season_stats`: Position-appropriate stats by category with positional percentile ranks (`*_pctile` columns, 0-100)
+- `consistency`: `avg_fp_ppr`, `fp_stddev_ppr`, `fp_floor_p10`, `fp_ceiling_p90`, `fp_median_ppr`, `boom_games_20plus`, `bust_games_under_5`, `consistency_coefficient`
+- `dynasty_ranking`: `ecr`, `positional_rank`, `team`
+- `game_log[]`: Recent weekly game log with fantasy points (if requested, else null)
+- `usage_trends[]`: Weekly target share, separation, and cushion data
+- `scoring_format`: Effective scoring format string
+- `data_season`: Most recent season in the data
+- `missing_required_data[]`: Warnings when required percentile/consistency data is unavailable
+
+**Example:**
+```python
+# Quick player evaluation
+get_player_deep_dive(player_name="Amon-Ra St. Brown")
+
+# Full deep dive with game log
+get_player_deep_dive(
+    player_name="Bijan Robinson",
+    include_game_log=True,
+    recent_weeks=8,
+    scoring_format="half_ppr"
+)
+```
+
+---
+
 ## Advanced Metrics Tools
 
 These tools query `vw_advanced_*` views for receiving, passing, rushing, and defense analytics.
