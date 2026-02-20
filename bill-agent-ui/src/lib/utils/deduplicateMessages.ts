@@ -32,8 +32,9 @@ export function deduplicateToolCalls(messages: UIMessage[]): UIMessage[] {
   // But we shouldn't have TWO tool-calls with the same ID, or TWO tool-results with the same ID
   const seenToolCallIds = new Set<string>()
   const seenToolResultIds = new Set<string>()
+  let arrayChanged = false
 
-  return messages.map((message) => {
+  const result = messages.map((message) => {
     if (!message.parts) {
       return message
     }
@@ -73,9 +74,19 @@ export function deduplicateToolCalls(messages: UIMessage[]): UIMessage[] {
       return true
     })
 
+    // Preserve reference identity when no parts were removed —
+    // this prevents unnecessary React re-renders during streaming
+    if (deduplicatedParts.length === message.parts.length) {
+      return message
+    }
+
+    arrayChanged = true
     return {
       ...message,
       parts: deduplicatedParts
     }
   })
+
+  // If nothing changed, return the original array to preserve reference identity
+  return arrayChanged ? result : messages
 }
