@@ -284,13 +284,29 @@ ${userContext}
 /**
  * Generates the complete system prompt for the BiLL AI agent.
  * Static content first (maximizes Anthropic cache prefix hit rate),
- * followed by dynamic user context.
+ * followed by dynamic user context and optional conversation summary.
  *
  * @param userContext - Formatted user preferences and context for personalization
+ * @param conversationSummary - Optional compressed summary of older conversation turns
  * @returns Complete system prompt string
  */
-export function getBillSystemPrompt(userContext: string): string {
-  return `${getStaticSystemPrompt()}
+export function getBillSystemPrompt(
+  userContext: string,
+  conversationSummary?: string
+): string {
+  let prompt = `${getStaticSystemPrompt()}
 
 ${getUserContextSection(userContext)}`
+
+  if (conversationSummary) {
+    prompt += `
+
+<conversation_summary>
+The following is a summary of earlier conversation history. Use it as context for the user's current question.
+
+${conversationSummary}
+</conversation_summary>`
+  }
+
+  return prompt
 }
