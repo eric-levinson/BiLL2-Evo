@@ -9,6 +9,28 @@ from tools.registry import register_tools
 
 load_dotenv()  # Loads variables from .env
 
+# Initialize OpenTelemetry tracing for Arize Phoenix (if endpoint configured)
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_COLLECTOR_ENDPOINT")
+if PHOENIX_ENDPOINT:
+    try:
+        from openinference.instrumentation.anthropic import AnthropicInstrumentor
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+        tracer_provider = TracerProvider()
+        tracer_provider.add_span_processor(
+            SimpleSpanProcessor(OTLPSpanExporter(endpoint=PHOENIX_ENDPOINT))
+        )
+        AnthropicInstrumentor().instrument(tracer_provider=tracer_provider)
+        print(f"[Tracing] Phoenix tracing initialized → {PHOENIX_ENDPOINT}")
+    except ImportError:
+        print("[Tracing] OTel packages not installed — tracing disabled")
+else:
+    print("[Tracing] PHOENIX_COLLECTOR_ENDPOINT not set — tracing disabled")
+
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")

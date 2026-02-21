@@ -49,6 +49,7 @@ import {
   maybeSummarize,
   type SummarizationResult
 } from '@/lib/ai/conversationSummarizer'
+import { flushTraces, detectFeature } from '@/lib/ai/tracing'
 import { z } from 'zod'
 
 /**
@@ -326,6 +327,14 @@ Roster: ${leagueContext.rosterSummary}
 </league_settings>`
     }
 
+    // Detect feature category from last user message for trace segmentation
+    const lastUserMsg = [...messages]
+      .reverse()
+      .find((m: UIMessage) => m.role === 'user')
+    const lastUserText = getMessageText(lastUserMsg)
+    const feature = detectFeature(lastUserText)
+    const turnStart = performance.now()
+
     // Create preference management tools
     const preferenceTools = {
       update_user_preference: createUpdateUserPreferenceTool(user.id),
@@ -351,6 +360,15 @@ Roster: ${leagueContext.rosterSummary}
         userContextSection,
         summarizationResult?.summary
       ),
+      // Enable OpenTelemetry tracing via Vercel AI SDK.
+      // Spans are exported to Arize Phoenix when PHOENIX_COLLECTOR_ENDPOINT is set.
+      experimental_telemetry: {
+        isEnabled: true,
+        metadata: {
+          userId: user.id,
+          feature
+        }
+      },
       // Enable Anthropic prompt caching: system prompt (~3,000 tokens) and tool
       // definitions are cached for 5 min, reducing input cost by ~90% on turns 2+.
       // Non-Anthropic providers ignore unrecognised providerOptions.
@@ -377,6 +395,39 @@ Roster: ${leagueContext.rosterSummary}
       consumeSseStream: consumeStream,
       // SERVER-SIDE persistence - fires even when client disconnects
       onFinish: async ({ messages: completedMessages }) => {
+        // Structured stdout trace log — fallback observability when Phoenix is not configured
+        try {
+          const turnDuration = Math.round(performance.now() - turnStart)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const toolCalls = completedMessages
+            .filter((m: UIMessage) => m.role === 'assistant')
+            .flatMap((m: UIMessage) =>
+              (m.parts ?? [])
+                .filter((p) => p.type === 'tool-invocation')
+                .map((p: any) => ({
+                  tool: p.toolInvocation?.toolName as string,
+                  success: p.toolInvocation?.state === 'result'
+                }))
+            )
+
+          console.log(
+            JSON.stringify({
+              trace_id: `turn-${sessionId ?? 'unknown'}-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              user_preview: lastUserText.slice(0, 60),
+              model: modelId,
+              feature,
+              tool_chain: toolCalls,
+              total_duration_ms: turnDuration
+            })
+          )
+        } catch {
+          // Trace logging is non-fatal
+        }
+
+        // Flush OpenTelemetry spans to Phoenix before serverless function returns
+        await flushTraces()
+
         try {
           // If conversation was summarized, reconstruct full history for persistence.
           // completedMessages only contains recent turns + new response; we prepend
