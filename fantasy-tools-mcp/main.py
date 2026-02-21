@@ -21,9 +21,7 @@ if PHOENIX_ENDPOINT:
         from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
         tracer_provider = TracerProvider()
-        tracer_provider.add_span_processor(
-            SimpleSpanProcessor(OTLPSpanExporter(endpoint=PHOENIX_ENDPOINT))
-        )
+        tracer_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=PHOENIX_ENDPOINT)))
         AnthropicInstrumentor().instrument(tracer_provider=tracer_provider)
         print(f"[Tracing] Phoenix tracing initialized → {PHOENIX_ENDPOINT}")
     except ImportError:

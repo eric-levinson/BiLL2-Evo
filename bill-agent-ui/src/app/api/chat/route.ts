@@ -398,12 +398,12 @@ Roster: ${leagueContext.rosterSummary}
         // Structured stdout trace log — fallback observability when Phoenix is not configured
         try {
           const turnDuration = Math.round(performance.now() - turnStart)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const toolCalls = completedMessages
             .filter((m: UIMessage) => m.role === 'assistant')
             .flatMap((m: UIMessage) =>
               (m.parts ?? [])
                 .filter((p) => p.type === 'tool-invocation')
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .map((p: any) => ({
                   tool: p.toolInvocation?.toolName as string,
                   success: p.toolInvocation?.state === 'result'
